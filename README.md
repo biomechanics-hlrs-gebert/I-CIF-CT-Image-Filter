@@ -1,4 +1,4 @@
-# Spatial Parallel Transformation of Scalar Fields
+# Image Processing - Convolusional Filtering of Scalar Fields.
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
