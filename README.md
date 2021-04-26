@@ -1,4 +1,4 @@
-# Image Processing - Convolusional Filtering of Scalar Fields.
+# Image Processing - 3D Convolusional Filtering
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
@@ -24,15 +24,15 @@ Simply put, Image Processing aims at filtering Computed Tomography Scans (basica
 ## Development of new features
 All new features or parts of the tool are developed via branches. At any time, a version which compiles and executes and which does not necessarily crash is kept on the Repo's master branch.
 
-Developing new features and calulations with C or Fortran may render a cumbersome undertaking. Utilizing an interpreted language or interpreting framework like MatLab, Octave, Python or sth. else is welcomed. However, please push *all* of the development files into this repository/testing/A... directory structure.
+Developing new features and calculations with C or Fortran may render a cumbersome undertaking. Utilizing an interpreted language or interpreting framework like MatLab, Octave, Python or sth. else is welcomed. However, please push *all* of the development files into this repository/testing/A... directory structure.
 
 ### We apply *a slightly modified* [semantic versioning](https://semver.org):
 
 Given a version number MAJOR.MINOR.PATCH, increment the:
 
-* MAJOR version when you make incompatible changes,
-* MINOR version when you add functionality in a backwards compatible manner, and
-* PATCH version when you make backwards compatible bug fixes.
+* MAJOR version when you major Features (i.e. new way of image processing),
+* MINOR version when you extend functionality (i.e. new kernels), and
+* PATCH version when you make bug fixes.
 ## Requirements
 
 * x86 64bit Hardware
@@ -54,7 +54,7 @@ Parallelization of the program is done with an API called MPI (Message Passing I
 
 Required: MPI - compiled with integer 4 and mpi_f08 - simply run ```./Open-MPI_install.sh```
 
-  1. [Open-mpi >=4.1.0](https://www.open-mpi.org/software/ompi/v4.1/) on local systems. Other versions are not tested.
+  1. [Open-mpi 4.1.0](https://www.open-mpi.org/software/ompi/v4.1/) on local systems. Other versions are not tested.
   2. [HPE-MPT on HLRS Hawk](https://kb.hlrs.de/platforms/index.php/MPI(Hawk))
 
 The program may be ported to other architectures. Maybe not :-)
@@ -82,6 +82,7 @@ rm -r «your program directory»
 ```
 
 ## Usage
+It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible.
 ### Set up the parametrization with proper parameters within 
 ```source 1_ImageProcessing_Environment.sh```
 
@@ -120,6 +121,6 @@ sudo chmod +x «compile_testcase.f90»
 | Schnabel  | Benjamin | HLRS - NUM   |
 | Gebert    | Johannes | HLRS - NUM   |
 ## Limits
-None specifically detected.
+Will follow.
 ## Arbitrary
 Use this program at your own risk.

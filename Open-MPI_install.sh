@@ -2,7 +2,7 @@
 # ----------------------------------------------------------------------------------------
 # Open-MPI download, build and install script.
 #
-# Author:          Johannes Gebert <gebert@hlrs.de>
+# Author:          Johannes Gebert «gebert@hlrs.de»
 # Created: on :    08.09.2020
 # Last edit:       07.04.2021
 # ----------------------------------------------------------------------------------------
@@ -84,9 +84,8 @@ if [ $ABORT -eq 0 ]; then
 
 	make && make install
 
-	rm -r ./openmpi-$VERSION*
-
 	if [ $? -eq 0 ]; then
+		rm -r ./openmpi-$VERSION* >/dev/null 2>/dev/null &
 		echo ""
 		echo "----------------------------------------------------------------------------------------"
 		echo "Open-MPI successfully installed in:"

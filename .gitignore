@@ -42,9 +42,6 @@
 *.idb
 *.pdb
 
-# Datasets
-/datasets/
-
 # Kernel Module Compile Results
 *.mod*
 *.cmd
