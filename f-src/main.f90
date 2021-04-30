@@ -27,37 +27,34 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fun1 = 5     
 INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    ! File unit
 
 ! Internal Variables
-CHARACTER(LEN = mcl)                                            :: n2s
-CHARACTER(LEN = mcl)                                            :: fileName
-CHARACTER(LEN = mcl)                                            :: fileNameExportVtk
-
-INTEGER  (KIND = ik)                                            :: i
-INTEGER  (KIND = ik)                                            :: selectKernel    , sizekernel
+CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
+INTEGER  (KIND = ik)                                            :: i                           , &
+                                                                   selectKernel    , sizekernel
 CHARACTER(LEN = mcl)                                            :: selectKernel_str, sizekernel_str
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims
 
-REAL     (KIND = rk)                                            :: start, finish
-REAL     (KIND = rk)                                            :: sigma
+REAL     (KIND = rk)                                            :: sigma, start, finish
 CHARACTER(LEN = mcl)                                            :: sigma_str, version
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel
 REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: array
 
 ! Histogram Variables
-CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter
-CHARACTER(LEN = mcl)                                            :: histogram_filename_post_Filter
+CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter, & 
+                                                                   histogram_filename_post_Filter
 INTEGER  (KIND = ik), PARAMETER                                 :: fl_un_H_pre=41, fl_un_H_post=42
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: hist_boundaries
 ! Histogram is scaled to INT2 because 65.535 entries are sufficient to calculate and print virtually any histogram
-INTEGER  (KIND = ik)           , DIMENSION(65536), ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
-INTEGER  (KIND = ik)           , DIMENSION(65536), ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
+INTEGER  (KIND = ik)           , DIMENSION(65536), ALLOCATABLE  :: histogram_pre__F       , histogram_post_F,     &
+                                                                   histogram_pre__F_global, histogram_post_F_global
 
 ! MPI Variables
-INTEGER  (KIND=mik)                                             :: ierr
-INTEGER  (KIND=mik)                                             :: my_rank, size_mpi, remainder
+INTEGER  (KIND=mik)                                             :: ierr, my_rank, size_mpi, remainder
 INTEGER  (KIND=mik)            , DIMENSION(:)    , ALLOCATABLE  :: send_cnt, dsplcmnts
 REAL     (KIND=rk)             , DIMENSION(:)    , ALLOCATABLE  :: recv_bffr_1D
 INTEGER  (KIND=mik)                                             :: recv_bffr_sz_1D
+INTEGER  (KIND=mik)            , DIMENSION(3)                   :: sections, offset_per_dir, vox_per_dir_and_sec &
+                                                                   dims_reduced, remainder_per_dir
 
 ! Debug Variables
 INTEGER  (KIND = ik)                                            :: debug
@@ -188,21 +185,67 @@ ALLOCATE(dsplcmnts(size_mpi))
 ! Idea: Calculate size_mpi with respect to modulo 2
 ! Idea: Always split a dimension by 2 - as often as size_mpi-remainder is devided until =0
 
+! Get sections per direction
 CALL TD_Array_Scatter (size_mpi, sections)
 
+remainder_per_dir = MODULO(array / sections)
 
+! Let's use the remainder to shift the filtered image to the center of the original one.
+! This will ensure filtering either the whole image or at least filtering without an artificial 
+! Padding at the outer surfaces (borders of the image).
+   offset_per_dir = FLOOR(offset_per_dir / 2_ik)
 
-remainder = MODULO(entries, size_mpi)                                    ! remainder set to "last rank"
-recv_bffr_sz_1D = (entries - remainder) / size_mpi
-send_cnt(1:size_mpi ) = recv_bffr_sz_1D
-send_cnt(1:remainder) = send_cnt(1:remainder)+1_mik
+dims_reduced      = dims - remainder_per_dir
 
+! Remainder per direction gets fully ignored (!) 
+! It's assumed, that even if we split into 32768 processes (/ 32, 32, 32 /) sections,
+! max. 31 x 31 x 31 Voxel get lost (Worst Case). Considering large input sets,
+! which are imperative for utilizing large amounts of processors, losing 31 voxel at
+! ~ 2000 ... 4000 Voxel per direction is not an issue.
+! On the other hand, Distribution of the array gets way easier and presumably quicker.
+vox_per_dir_and_sec = array_reduced / sections
 
-dsplcmnts(:)=0_mik
+size_mpi_ii = 1_ik
+
+! Only the first Subarray needs to be defined for this Datatype.
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+         INT(SHAPE(array), KIND=mik), &
+                 vox_per_dir_and_sec, &
+                      offset_per_dir, &
+                   MPI_ORDER_FORTRAN, &
+                             MPI_INT, &
+                             MPI_INT, &
+                                ierr)
 
 ! Distribute the array globally
-CALL MPI_SCATTERV(array, send_cnt, dsplcmnts, MPI_DOUBLE_PRECISION, recv_bffr_1D,  &
+CALL MPI_SCATTER(array, PRODUCT(vox_per_dir_and_sec), &
+                                MPI_DOUBLE_PRECISION, &
+                                        recv_bffr_1D, &
                      send_cnt(my_rank+1_mik), MPI_DOUBLE_PRECISION ,0_mik, MPI_COMM_WORLD)
+
+
+
+
+
+
+
+! DO ii = 1, sections(1) 
+!         DO jj = 1, sections(2) 
+!                 DO kk = 1, sections(3) 
+
+
+!                 END DO
+!         END DO
+! END DO 
+
+! remainder = MODULO(entries, size_mpi)                                    ! remainder set to "last rank"
+! recv_bffr_sz_1D = (entries - remainder) / size_mpi
+! send_cnt(1:size_mpi ) = recv_bffr_sz_1D
+! send_cnt(1:remainder) = send_cnt(1:remainder)+1_mik
+! dsplcmnts(:)=0_mik
+
+
+
 
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
