@@ -181,14 +181,22 @@ CALL MPI_BCAST (hist_boundaries, 3_mik, MPI_INT, 0_mik, MPI_COMM_WORLD)
 
 ! Calculate and Allocate information for scattering the global array.
 ALLOCATE(send_cnt(size_mpi))
+ALLOCATE(recv_bffr_1D(send_cnt(my_rank+1_mik)))
+ALLOCATE(dsplcmnts(size_mpi))
 
-remainder = MODULO(entries, size_mpi)     ! remainder set to "last rank"
+! Calculate how to distribute Array to Processor
+! Idea: Calculate size_mpi with respect to modulo 2
+! Idea: Always split a dimension by 2 - as often as size_mpi-remainder is devided until =0
+
+CALL TD_Array_Scatter (size_mpi, sections)
+
+
+
+remainder = MODULO(entries, size_mpi)                                    ! remainder set to "last rank"
 recv_bffr_sz_1D = (entries - remainder) / size_mpi
 send_cnt(1:size_mpi ) = recv_bffr_sz_1D
 send_cnt(1:remainder) = send_cnt(1:remainder)+1_mik
 
-ALLOCATE(recv_bffr_1D(send_cnt(my_rank+1_mik)))
-ALLOCATE(dsplcmnts(size_mpi))
 
 dsplcmnts(:)=0_mik
 
