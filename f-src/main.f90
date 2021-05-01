@@ -13,8 +13,7 @@ USE MPI_F08
 USE file_routines     
 USE kernels
 USE strings
-! histogram may be located in tis file as well. However it may extend to inherit additional routines
-USE histogram
+USE aux_routines_ip
 USE standards
 
 IMPLICIT NONE
@@ -28,33 +27,36 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    
 
 ! Internal Variables
 CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
-INTEGER  (KIND = ik)                                            :: i
+INTEGER  (KIND = ik)                                            :: ii, jj, kk, address
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
 CHARACTER(LEN = mcl)                                            :: selectKernel_str, sizekernel_str
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding
 
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, border, subarray_origin
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, offset_per_dir, vox_per_dir_and_sec
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir
+
+INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
 REAL     (KIND = rk)                                            :: sigma, start, finish
 CHARACTER(LEN = mcl)                                            :: sigma_str, version
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel
-INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: array, subarray
+INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: array, result_array, subarray, result_subarray 
 
 ! Histogram Variables
-CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter, & 
-                                                                   histogram_filename_post_Filter
+CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter 
+CHARACTER(LEN = mcl)                                            :: histogram_filename_post_Filter
 INTEGER  (KIND = ik), PARAMETER                                 :: fl_un_H_pre=41, fl_un_H_post=42
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: hist_boundaries
+INTEGER  (KIND = ik)                                            :: histo_bound_global_lo, histo_bound_global_hi
+INTEGER  (KIND = ik)                                            :: histo_bound_local_lo, histo_bound_local_hi
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: hbnds
+
 ! Histogram is scaled to INT2 because 65.535 entries are sufficient to calculate and print virtually any histogram
-INTEGER  (KIND = ik)           , DIMENSION(65536), ALLOCATABLE  :: histogram_pre__F       , histogram_post_F,     &
-                                                                   histogram_pre__F_global, histogram_post_F_global
+INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
+INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
 
 ! MPI Variables
-INTEGER  (KIND=mik)                                             :: ierr, my_rank, size_mpi, remainder
-INTEGER  (KIND=mik)            , DIMENSION(:)    , ALLOCATABLE  :: send_cnt, dsplcmnts
-REAL     (KIND=rk)             , DIMENSION(:)    , ALLOCATABLE  :: recv_bffr_1D
-INTEGER  (KIND=mik)                                             :: recv_bffr_sz_1D
-INTEGER  (KIND=mik)            , DIMENSION(3)                   :: sections, offset_per_dir, vox_per_dir_and_sec &
-                                                                   dims_reduced, remainder_per_dir
+INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi
+TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
 
 ! Debug Variables
 INTEGER  (KIND = ik)                                            :: debug
@@ -156,10 +158,10 @@ IF (my_rank==0) THEN
         WRITE(*,'(A)')
 
         ! Write kernel to terminal
-        WRITE(n2s,*) sizeKernel
+        WRITE(n2s,*) kernel_spec(2)
         WRITE(*,'(A)') 'Kernel:'
-        DO i = 1, SIZE(kernel, 1)
-                WRITE(*,'(' // TRIM(ADJUSTL(n2s)) //'F7.4)') kernel(i,:)
+        DO ii = 1, SIZE(kernel, 1)
+                WRITE(*,'(' // TRIM(ADJUSTL(n2s)) //'F7.4)') kernel(ii,:)
         END  DO
         WRITE(*,'(A)')
 
@@ -168,20 +170,11 @@ IF (my_rank==0) THEN
         CALL read_vtk(fun1, fileName, array, dims, spcng)
         WRITE(*,'(A)') 'VTK File import done'
 
-
-        ! Get the boundaries of the Histograms
-        ! This procedure needs to be run on the full image. MPI Parallel file reading may be a solution
-        hist_boundaries    = (/ NINT( MINVAL(array), KIND=INT32), NINT( MAXVAL(array), KIND=INT32) , 0_mik /)
-        ! Apparent data Range
-        hist_boundaries(3) = hist_boundaries(2)-hist_boundaries(1)
-        
         ! Get the output Filenames of the Histograms
         histogram_filename_pre__Filter = TRIM(log_file(1:(LEN_TRIM(log_file)-4)))//"_hist_PRE__FILTER.csv"
         histogram_filename_post_Filter = TRIM(log_file(1:(LEN_TRIM(log_file)-4)))//"_hist_POST_FILTER.csv"
 
 ENDIF ! (my_rank==0)
-
-CALL MPI_BCAST (hist_boundaries, 3_mik, MPI_INT, 0_mik, MPI_COMM_WORLD)
 
 ! Get sections per direction
 CALL TD_Array_Scatter (size_mpi, sections)
@@ -198,24 +191,24 @@ original_image_padding = border * 2
 ! ~ 2000 ... 4000 Voxel per direction is not an issue.
 ! On the other hand, Distribution of the array gets way easier and presumably quicker.
 
-remainder_per_dir = MODULO(array / sections)
+remainder_per_dir = MODULO(dims, sections)
 
 ! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
 ! into the center of array. Then add the border. This way, no artifical padding is required.
-IF (remainder_per_dir(1) < original_image_padding(1) .OR. 
-    remainder_per_dir(2) < original_image_padding(2) .OR.
+IF (remainder_per_dir(1) < original_image_padding(1) .OR. & 
+    remainder_per_dir(2) < original_image_padding(2) .OR. &
     remainder_per_dir(3) < original_image_padding(3)) THEN
-        remainder_per_dir = MODULO( (array - original_image_padding) / sections))
+        remainder_per_dir = MODULO( (dims - original_image_padding), sections)
 END IF
 
 ! Let's use the remainder to shift the filtered image to the center of the original one.
 ! This will ensure filtering either the whole image or at least filtering without an artificial 
 ! Padding at the outer surfaces (borders of the image).
-     offset_per_dir = FLOOR(remainder_per_dir / 2_ik)
+offset_per_dir = FLOOR(REAL(remainder_per_dir, KIND=rk) / 2_rk)
 
-vox_per_dir_and_sec = ( (array-remainder_per_dir) / sections) + original_image_padding
+dims_reduced   = dims - remainder_per_dir
 
-dims_reduced        = dims - remainder_per_dir
+vox_per_dir_and_sec = (dims_reduced / sections) + original_image_padding
 
 DO ii = 1, sections(1) 
         DO jj = 1, sections(2) 
@@ -229,7 +222,7 @@ DO ii = 1, sections(1)
 
                                 ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
                                 CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-                                        INT(SHAPE(array), KIND=mik) , &
+                                        INT(SHAPE(array), KIND=mik) , & ! Original array as all the addresses must fit
                                         vox_per_dir_and_sec         , &
                                         subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
                                         MPI_ORDER_FORTRAN           , &
@@ -237,13 +230,13 @@ DO ii = 1, sections(1)
                                         type_subarray               , &
                                         ierr)
 
-                                CALL MPI_TYPE_COMMIT(type_subarray)
+                                CALL MPI_TYPE_COMMIT(type_subarray, ierr)
                         END IF
                 END DO
         END DO
 END DO 
 
-ALLOCATE( subarray(vox_per_dir_and_sec) )
+ALLOCATE( subarray(vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
 
 CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
         subarray, 1_mik, type_subarray, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
@@ -252,25 +245,39 @@ CALL MPI_TYPE_FREE(type_subarray)
 
 IF (my_rank == 0_ik) DEALLOCATE(array)
 
+! Prepare collecting the subarrays to assemble a global vtk file.
 ! subarray_reduced_boundaries
+! No Overlapping and no remainder.
+
 srb (1:3) = border + 1_ik
 srb (4:6) = vox_per_dir_and_sec - border - 1_ik
 
+vox_per_dir_and_sec = vox_per_dir_and_sec - original_image_padding
+subarray_origin     = vox_per_dir_and_sec * rank_section
+
+ALLOCATE( result_subarray (vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
+
+! Get information about the data range of the Histogram globally. 
+histo_bound_local_lo = MINVAL(subarray)
+histo_bound_local_hi = MAXVAL(subarray)
+
+CALL MPI_REDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INT, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_REDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INT, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (                      histo_bound_global_lo, 1_mik, MPI_INT,          0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (                      histo_bound_global_hi, 1_mik, MPI_INT,          0_mik, MPI_COMM_WORLD, ierr)
+
+hbnds    = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_hi - histo_bound_global_lo /)
+
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
-CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), histogram_pre__F)            
+CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)            
 
 ! Start image processing
-CALL convolution_un_padded_input (vox_per_dir_and_sec, subarray, kernel_spec(2), kernel, .TRUE., subarray)
+CALL convolution_un_padded_input (vox_per_dir_and_sec, subarray, kernel_spec(2), kernel, .TRUE., result_subarray)
 
 ! After image filtering
 ! Get Histogram of Scalar Values
-CALL extract_histogram_scalar_array (subarray, histogram_post_F)            
-
-! Collect the subarrays to assemble a global vtk file.
-! No Overlapping and no remainder.
-vox_per_dir_and_sec = vox_per_dir_and_sec - original_image_padding
-subarray_origin     = vox_per_dir_and_sec * rank_section
+CALL extract_histogram_scalar_array (subarray, hbnds, histogram_post_F)            
 
 ! MPI_TYPE_CREATE_DARRAY may fit better. Implementation not entirely clear at the moment...
 CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
@@ -279,49 +286,47 @@ CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
         subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
         MPI_ORDER_FORTRAN           , &
         MPI_INT                     , &
-        type_subarray               , &
+        type_result_subarray        , &
         ierr)
 
-CALL MPI_TYPE_COMMIT(type_subarray)
+CALL MPI_TYPE_COMMIT(type_result_subarray, ierr)
 
-ALLOCATE( result_array(dims_reduced) )
+ALLOCATE( result_array(dims_reduced(1), dims_reduced(2), dims_reduced(3) ) )
 
-CALL MPI_SENDRECV (subarray, 1_mik, type_subarray, 0_mik, my_rank + size_mpi, &
+CALL MPI_SENDRECV (result_subarray, 1_mik, type_result_subarray, 0_mik, my_rank + size_mpi, &
         result_array, 1_mik, type_subarray, my_rank, my_rank + size_mpi, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
      
-CALL MPI_TYPE_FREE(type_subarray) 
+CALL MPI_TYPE_FREE(type_result_subarray) 
 
 DEALLOCATE(subarray)
 
 ! Collect the data of the histogram pre filtering
-CALL MPI_REDUCE (histogram_pre__F, histogram_global_pre__F, &
-        65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 ! Collect the data of the histogram post filtering
-CALL MPI_REDUCE (histogram_pre__F, histogram_global_post__F, &
-        65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 IF (my_rank==0) THEN
 
         ! Export Histogram of Scalar Array pre Filtering
         OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
                 WRITE(fl_un_H_pre,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
-                DO ii=-340,340
-                        WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_result_pre__F(ii)
+                DO ii=-3276, 3277
+                        WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
                 END DO
         CLOSE(fl_un_H_pre)
         
         ! Export Histogram of Scalar Array post Filtering
-        OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_psot_Filter, ACTION="WRITE", STATUS="new")
+        OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
                 WRITE(fl_un_H_post,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
-                DO ii=-340,340
-                        WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_result_post_F(ii)
+                DO ii=-3276, 3277       
+                     WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
                 END DO
         CLOSE(fl_un_H_post)
 
         ! Export VTK file (testing)
         WRITE(*,'(A)') 'VTK File export started'
-        WRITE(n2s,*) selectKernel
+        WRITE(n2s,*) kernel_spec(1)
         fileNameExportVtk = fileName(1:LEN_TRIM(fileName)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
         CALL write_vtk(fun2, fileNameExportVtk, result_array, spcng, dims_reduced)
         WRITE(*,'(A)') 'VTK File export done'
