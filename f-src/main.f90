@@ -22,6 +22,7 @@ IMPLICIT NONE
 ! MPI: Kind=32 Bit / 4 Byte / ik=4 - Change in «working_directory/f-src/mod_standards.f90 
 
 ! Parameter
+INTEGER  (KIND = ik), PARAMETER                                 :: debug = 2
 INTEGER  (KIND = ik), PARAMETER                                 :: fun1 = 5     ! File unit
 INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    ! File unit
 
@@ -59,7 +60,6 @@ INTEGER  (KIND = mik)                                           :: ierr, my_rank
 TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
 
 ! Debug Variables
-INTEGER  (KIND = ik)                                            :: debug
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
 CHARACTER(LEN = mcl)                                            :: debug_str, log_file
 LOGICAL                                                         :: log_exist = .FALSE.
@@ -89,9 +89,6 @@ IF (my_rank==0) THEN
         !-------------------------------
         ! Read input (from environment sh)
         !-------------------------------
-        
-        CALL GET_COMMAND_ARGUMENT(3, debug_str)
-        READ(debug_str,'(I4)') debug
 
         !-- Create log-file
         CALL GET_COMMAND_ARGUMENT(2, log_file)
@@ -108,13 +105,13 @@ IF (my_rank==0) THEN
         ! VTK file name
         CALL GET_COMMAND_ARGUMENT(1, fileName)
         ! Kernel for image processing ['0': Identity kernel, '1': Gaussian filter]
-        CALL GET_COMMAND_ARGUMENT(4, selectKernel_str)
+        CALL GET_COMMAND_ARGUMENT(3, selectKernel_str)
         READ(selectKernel_str,'(I4)') kernel_spec(1)
         ! Kernel size
-        CALL GET_COMMAND_ARGUMENT(5, sizeKernel_str)
+        CALL GET_COMMAND_ARGUMENT(4, sizeKernel_str)
         READ(sizeKernel_str,'(I4)') kernel_spec(2)
         ! For gaussian filter kernel, sigma is required
-        CALL GET_COMMAND_ARGUMENT(6, sigma_str)
+        CALL GET_COMMAND_ARGUMENT(5, sigma_str)
         READ(sigma_str,'(F8.3)') sigma
 
         CALL GET_COMMAND_ARGUMENT(7, version)    
@@ -130,7 +127,7 @@ IF (my_rank==0) THEN
         WRITE(*,'(A)')  std_lnbrk
         WRITE(*,'(A)')  'Image Processing'
         WRITE(*,'(A)')  ''
-        WRITE(*,'(A)')  'Author:  Benjamin Schnabel'
+        WRITE(*,'(A)')  'Authors: Benjamin Schnabel, Johannes Gebert | HLRS - NUM'
         WRITE(*,'(2A)') 'Version: ', TRIM(version)
         WRITE(*,'(A)')  std_lnbrk
         WRITE(*,'(A)')
@@ -138,8 +135,9 @@ IF (my_rank==0) THEN
 ENDIF ! (my_rank==0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
-CALL MPI_BCAST (kernel_spec, 2_mik, MPI_INT             , 0_mik, MPI_COMM_WORLD)
+CALL MPI_BCAST (kernel_spec, 2_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
 CALL MPI_BCAST (sigma      , 1_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD)
+CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
 
 ALLOCATE(kernel(kernel_spec(2), kernel_spec(2)))
 
@@ -220,16 +218,18 @@ DO ii = 1, sections(1)
                                 ! Add original image Data as padding
                                 subarray_origin = sections * vox_per_dir_and_sec - border + offset_per_dir
 
+                                ! Why the heck is this useful?! Gets a Fatal Error without it. Need someone who has more experience.
+                                CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
                                 ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
                                 CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
                                         INT(SHAPE(array), KIND=mik) , & ! Original array as all the addresses must fit
                                         vox_per_dir_and_sec         , &
                                         subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
                                         MPI_ORDER_FORTRAN           , &
-                                        MPI_INT                     , &
+                                        MPI_INTEGER                 , &
                                         type_subarray               , &
                                         ierr)
-
                                 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
                         END IF
                 END DO
@@ -238,9 +238,16 @@ END DO
 
 ALLOCATE( subarray(vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
 
-CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
-        subarray, 1_mik, type_subarray, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-     
+IF ( debug .EQ. 2_ik ) WRITE (*,'(A)'); WRITE(*,'(A)') "Initialize Sendrecv to distribute array across ranks."
+
+CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, 100_mik, &
+        subarray, SIZE(subarray), MPI_INTEGER, 0_mik, 100_mik, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+        
+! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
+!         subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+
+IF ( debug .EQ. 2_ik ) WRITE (*,'(A)'); WRITE(*,'(A)') "Initializing Sendrecv to distribute array across ranks done."
+
 CALL MPI_TYPE_FREE(type_subarray)
 
 IF (my_rank == 0_ik) DEALLOCATE(array)
@@ -261,10 +268,10 @@ ALLOCATE( result_subarray (vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_p
 histo_bound_local_lo = MINVAL(subarray)
 histo_bound_local_hi = MAXVAL(subarray)
 
-CALL MPI_REDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INT, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_REDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INT, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (                      histo_bound_global_lo, 1_mik, MPI_INT,          0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (                      histo_bound_global_hi, 1_mik, MPI_INT,          0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_REDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_REDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INTEGER, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (                      histo_bound_global_lo, 1_mik, MPI_INTEGER,          0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (                      histo_bound_global_hi, 1_mik, MPI_INTEGER,          0_mik, MPI_COMM_WORLD, ierr)
 
 hbnds    = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_hi - histo_bound_global_lo /)
 
@@ -285,7 +292,7 @@ CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
         vox_per_dir_and_sec         , &
         subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
         MPI_ORDER_FORTRAN           , &
-        MPI_INT                     , &
+        MPI_INTEGER                 , &
         type_result_subarray        , &
         ierr)
 
@@ -294,7 +301,7 @@ CALL MPI_TYPE_COMMIT(type_result_subarray, ierr)
 ALLOCATE( result_array(dims_reduced(1), dims_reduced(2), dims_reduced(3) ) )
 
 CALL MPI_SENDRECV (result_subarray, 1_mik, type_result_subarray, 0_mik, my_rank + size_mpi, &
-        result_array, 1_mik, type_subarray, my_rank, my_rank + size_mpi, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+        result_array, 1_mik, MPI_INTEGER, my_rank, my_rank + size_mpi, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
      
 CALL MPI_TYPE_FREE(type_result_subarray) 
 

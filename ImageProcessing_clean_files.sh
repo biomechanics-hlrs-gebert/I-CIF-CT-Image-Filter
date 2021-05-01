@@ -22,5 +22,5 @@ else
     # If a file is not present, it will show an error message - which is fine.
     trash ./datasets/Knochenprobe_2_77_Kernel_0.vtk
     trash ./datasets/Knochenprobe_2_77_Kernel_1.vtk
-    trash ./04-26-21_log_ImageProcessing.txt
+    trash ./05-01-21_log_ImageProcessing.txt
 fi

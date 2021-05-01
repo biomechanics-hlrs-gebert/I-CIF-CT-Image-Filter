@@ -14,7 +14,7 @@
 # vulcan  - NEC Cluster
 # julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU
 export IP_ARCH="julius"
-export IP_VRSN="V0.1.0"
+export IP_VRSN="V0.2.0"
 # ----------------------------------------------------------------------------------------
 #
 # Base path of the Spatial Registration Tool
@@ -36,8 +36,9 @@ export IP_GS="1.0"      # Sigma of Gauß Kernel
 export IP_LOG=$IP_PREFIX/$(date +"%m-%d-%y")"_log_ImageProcessing.txt"
 # ----------------------------------------------------------------------------------------
 #
+# Feature deprecated with Version V0.2.0 due to performance issues. Now set in Source
 # Set a Debugging level. "DEBUG" (1), "DEBUG_ALL" (2) or "PRODUCTION" (0). 
-export IP_DBG_LVL="1"
+# export IP_DBG_LVL="2"
 # ----------------------------------------------------------------------------------------
 #
 # Set environment

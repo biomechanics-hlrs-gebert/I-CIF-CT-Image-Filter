@@ -31,7 +31,6 @@ if [ $do_not_start -eq 0 ]; then
 			echo
 			mpirun -np $1 $IP_PREFIX"/bin/Image_Processing_"$IP_ARCH"_"$IP_VRSN"_x86_64" $IP_DATA_IN  \
 																						 $IP_LOG      \
-																						 $IP_DBG_LVL  \
 																						 $IP_SELECT_K \
 																						 $IP_SIZE_K   \
 																						 $IP_GS       \
