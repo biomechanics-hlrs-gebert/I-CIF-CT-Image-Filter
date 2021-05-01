@@ -18,34 +18,29 @@ MODULE aux_routines_IP
 
 CONTAINS
 
-   SUBROUTINE extract_histogram_scalar_array (array, hbnds, entries, histogram)
+SUBROUTINE extract_histogram_scalar_array (array, histogram)
 
-   REAL     (KIND=rk)    , DIMENSION(:,:,:)                       , INTENT(IN)        :: array
-   INTEGER  (KIND=ik)    , DIMENSION(3)                           , INTENT(IN)        :: hbnds    ! histogram lower/upper bounds
-   INTEGER  (KIND=ik)                                             , INTENT(IN)        :: entries
-   INTEGER  (KIND=ik)    , DIMENSION(:)    , ALLOCATABLE          , INTENT(INOUT)     :: histogram
+INTEGER  (KIND=ik)    , DIMENSION(:,:,:)                       , INTENT(IN)        :: array
+INTEGER  (KIND=ik)    , DIMENSION(:)    , ALLOCATABLE          , INTENT(INOUT)     :: histogram
 
-   ! Internal variables
-   INTEGER  (KIND=ik)    , DIMENSION(65536)                                           :: histogram_result
-   INTEGER  (KIND=ik)                                                                 :: fl_un = 50_ik
-   INTEGER  (KIND=ik)                                                                 :: ii
+! Internal variables
+INTEGER  (KIND=ik)    , DIMENSION(65536)                                           :: histogram_result
+INTEGER  (KIND=ik)                                                                 :: ii, jj, kk
+INTEGER  (KIND=ik)    , DIMENSION(3)                                               :: shp
 
-   ! Calculate Notation of the histogram - done by slave processes to save time during communication
-   ! Histogram is scaled to INT2 because 65.535 entries are sufficient to calculate and print any histogram
-   IF( -3276700_ik > hbnds(1) .OR.  3276600 < hbnds(2)) THEN   ! bounds - 1 and *100 to scale
-      recv_bffr_1D = recv_bffr_1D / &                          ! 32767 is slightly wrong, but neglibile
-            REAL(ABS(hbnds(3)), KIND= REAL64) * 3276700._rk     ! ABS to preserve sign
-   END IF
+histogram(:)       =0_mik
+histogram_result(:)=0_mik
 
-   histogram(:)       =0_mik
-   histogram_result(:)=0_mik
+shp = SHAPE(array)
 
-   DO ii=1, SIZE(array)
-      histogram(NINT(recv_bffr_1D(ii)/100.0_rk))=&
-            histogram(NINT(recv_bffr_1D(ii)/100.0_rk))+1_mik
-   END DO
-
-   END SUBROUTINE extract_histogram_scalar_array
+DO ii=1, shp(1)
+  DO jj=1, shp(2)
+    DO kk=1, shp(3)
+    histogram(INT(array(ii, jj, kk)/100_ik)) = histogram(INT(array(ii, jj, kk)/100_ik))+1_ik
+    END DO
+  END DO
+END DO
+END SUBROUTINE extract_histogram_scalar_array
 
    SUBROUTINE TD_Array_Scatter (size_mpi, sections)
       ! Three-Dimensional Array Scatter Routine

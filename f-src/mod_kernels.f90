@@ -19,71 +19,76 @@ IMPLICIT NONE
 
 CONTAINS
 
-SUBROUTINE convolution(dimImage, image, sizeKernel, kernel)
+SUBROUTINE convolution_un_padded_input(dims, image, sizeKernel, kernel, padding_switch, result_image)
+        ! padding_switch .EQV. .TRUE.  - image is     padded
+        ! padding_switch .EQV. .FALSE. - image is not padded
 
-   ! External variables
-   INTEGER(KIND = ik)           , DIMENSION(3)                        , INTENT(IN)    :: dimImage
-   INTEGER(KIND = ik)                                                 , INTENT(IN)    :: sizeKernel
+        ! External variables
+        INTEGER(KIND = ik)           , DIMENSION(3)                        , INTENT(IN)    :: dims
+        INTEGER(KIND = ik)                                                 , INTENT(IN)    :: sizeKernel
+        REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel)   , INTENT(IN)    :: kernel
+        LOGICAL                                                            , INTENT(IN)    :: padding_switch
+        INTEGER(KIND = ik)           , DIMENSION(dims(1), dims(2), dims(3)), INTENT(IN)    :: image
+        INTEGER(KIND = ik)           , DIMENSION(dims(1), dims(2), dims(3)), INTENT(OUT)   :: result_image
 
-   REAL   (KIND = rk)           , DIMENSION(dimImage(1), dimImage(2), dimImage(3)), INTENT(INOUT) :: image
-   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel)   , INTENT(IN)    :: kernel
+        ! Parameter
+        INTEGER(KIND = ik), PARAMETER                                                      :: nthreads = 2
 
-   ! Parameter
-   INTEGER(KIND = ik), PARAMETER                                                      :: nthreads = 2
+        ! Internal variables
+        INTEGER(KIND = ik)                                                                 :: ii, jj, kk, ll, mm
+        INTEGER(KIND = ik)                                                                 :: border
+        INTEGER(KIND = ik)                                                                 :: borderPO
+        INTEGER(KIND = ik)           , DIMENSION(3)                                        :: dimsPadded
 
-   ! Internal variables
-   INTEGER(KIND = ik)                                                                 :: i, j, k, l, m
-   INTEGER(KIND = ik)                                                                 :: border
-   INTEGER(KIND = ik)                                                                 :: borderPO
-   INTEGER(KIND = ik)           , DIMENSION(3)                                        :: dimImagePadded
+        REAL   (KIND = rk)                                                                 :: accumulator
+        REAL   (KIND = rk)           , DIMENSION(:,:,:)                    , ALLOCATABLE   :: imagePadded
 
-   REAL   (KIND = rk)                                                                 :: accumulator
-   REAL   (KIND = rk)           , DIMENSION(:,:,:)                    , ALLOCATABLE   :: imagePadded
-   REAL   (KIND = rk)           , DIMENSION(dimImage(1), dimImage(2), dimImage(3))    :: imageCopy
-   
-   !-------------------------------
-   ! Calculation
-   !-------------------------------
+        !-------------------------------
+        ! Calculation
+        !-------------------------------
 
-!    call omp_set_num_threads(nthreads)
-    
-   border = FLOOR(REAL(sizeKernel) / 2)
+        !    call omp_set_num_threads(nthreads)
 
-   ALLOCATE(imagePadded(dimImage(1) + 2 * border, dimImage(2) + 2 * border, dimImage(3) + 2 * border))
+        border = FLOOR(REAL(sizeKernel) / 2)
+        borderPO = border + 1
 
-   dimImagePadded = SHAPE(imagePadded)
-   imagePadded = 0
-   
-   borderPO = border + 1
+        IF (padding_switch .EQV. .FALSE.) THEN
+                ! Image inserted here is not padded (with anything)
+                ALLOCATE(imagePadded(dims(1) + 2 * border, dims(2) + 2 * border, dims(3) + 2 * border))
+
+                dimsPadded = SHAPE(imagePadded)
+                imagePadded(borderPO : dims(1) + border, borderPO : dims(2) + border, borderPO : dims(3) + border) = image
+        ELSE
+                ! Image was send with padding. However, it must fit to the Kernel provided. Otherwise, the result will be corrupted
+                dimsPadded = dims
+                imagePadded = image
+        END IF
 
 ! TODO: Setup export to log with DBG_LVL == 2 !
 !    write(*,*) border
 !    write(*,*) borderPO
-!    write(*,*) dimImage
+!    write(*,*) dims
 !    write(*,*) SHAPE(image)
 !    write(*,*) SHAPE(imagePadded)
 
-   imagePadded(borderPO : dimImage(1) + border, borderPO : dimImage(2) + border, borderPO : dimImage(3) + border) = image
 
-   DO i = borderPO, dimImage(3)
-           DO j = borderPO, dimImage(2)
-                   DO k = borderPO, dimImage(1)
-                           accumulator = 0
-                           DO l = - border, border
-                                   !$OMP PARALLEL
-                                   DO m = - border, border
-                                           accumulator = accumulator + (kernel(l + border + 1, m + border + 1) &
-                                                   * imagePadded(k + l, j + m, i))
-                                   END DO
-                                   !$OMP END PARALLEL
-                           END DO
-                           imageCopy(k - border, j - border, i) = accumulator
-                   END DO
-           END DO
-   END DO
-
-   image = imageCopy
-END SUBROUTINE convolution
+        DO ii = borderPO, dims(3)
+                DO jj = borderPO, dims(2)
+                        DO kk = borderPO, dims(1)
+                                accumulator = 0
+                                DO ll = - border, border
+                                        !$OMP PARALLEL
+                                        DO mm = - border, border
+                                                accumulator = accumulator + (kernel(ll + border + 1, mm + border + 1) &
+                                                        * imagePadded(kk + ll, jj + mm, ii))
+                                        END DO
+                                        !$OMP END PARALLEL
+                                END DO
+                                result_image(kk - border, jj - border, ii - border) = INT(accumulator, KIND=ik)
+                        END DO
+                END DO
+        END DO
+END SUBROUTINE convolution_un_padded_input
 
 SUBROUTINE kernel_identity(kernel, sizeKernel)
    ! Return the identity kernel

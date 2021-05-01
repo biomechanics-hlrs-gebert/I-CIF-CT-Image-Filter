@@ -37,7 +37,7 @@ REAL     (KIND = rk)                                            :: sigma, start,
 CHARACTER(LEN = mcl)                                            :: sigma_str, version
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel
-REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: array
+INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: array, subarray
 
 ! Histogram Variables
 CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter, & 
@@ -136,7 +136,7 @@ IF (my_rank==0) THEN
 ENDIF ! (my_rank==0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
-CALL MPI_BCAST (kernel_spec, 2_mik, MPI_INT, 0_mik, MPI_COMM_WORLD)
+CALL MPI_BCAST (kernel_spec, 2_mik, MPI_INT             , 0_mik, MPI_COMM_WORLD)
 CALL MPI_BCAST (sigma      , 1_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD)
 
 ALLOCATE(kernel(kernel_spec(2), kernel_spec(2)))
@@ -183,20 +183,20 @@ ENDIF ! (my_rank==0)
 
 CALL MPI_BCAST (hist_boundaries, 3_mik, MPI_INT, 0_mik, MPI_COMM_WORLD)
 
-! Calculate and Allocate information for scattering the global array.
-! ALLOCATE(send_cnt(size_mpi))
-! ALLOCATE(recv_bffr_1D(send_cnt(my_rank+1_mik)))
-! ALLOCATE(dsplcmnts(size_mpi))
-
-! Calculate how to distribute Array to Processor
-! Idea: Calculate size_mpi with respect to modulo 2
-! Idea: Always split a dimension by 2 - as often as size_mpi-remainder is devided until =0
-
 ! Get sections per direction
 CALL TD_Array_Scatter (size_mpi, sections)
 
 ! Calculate Padding to decrease "size of array" to a corresponding size
-original_image_padding = FLOOR(REAL(kernel_spec(2)) / 2) * 2    ! NOT the same as kernel_spec(2) !
+! NOT the same as kernel_spec(2) !
+border                 = FLOOR(REAL(kernel_spec(2)) / 2)
+original_image_padding = border * 2
+
+! Remainder per direction gets almost fully ignored (!) 
+! It's assumed, that even if we split into 32768 processes (/ 32, 32, 32 /) sections,
+! max. 31 x 31 x 31 Voxel get lost (Worst Case). Considering large input sets,
+! which are imperative for utilizing large amounts of processors, losing 31 voxel at
+! ~ 2000 ... 4000 Voxel per direction is not an issue.
+! On the other hand, Distribution of the array gets way easier and presumably quicker.
 
 remainder_per_dir = MODULO(array / sections)
 
@@ -205,75 +205,93 @@ remainder_per_dir = MODULO(array / sections)
 IF (remainder_per_dir(1) < original_image_padding(1) .OR. 
     remainder_per_dir(2) < original_image_padding(2) .OR.
     remainder_per_dir(3) < original_image_padding(3)) THEN
-        remainder_per_dir = MODULO( (array - original_image_padding) / sections)                     
+        remainder_per_dir = MODULO( (array - original_image_padding) / sections))
 END IF
 
 ! Let's use the remainder to shift the filtered image to the center of the original one.
 ! This will ensure filtering either the whole image or at least filtering without an artificial 
 ! Padding at the outer surfaces (borders of the image).
-   offset_per_dir = FLOOR(offset_per_dir / 2_ik)
+     offset_per_dir = FLOOR(remainder_per_dir / 2_ik)
 
-! Remainder per direction gets fully ignored (!) 
-! It's assumed, that even if we split into 32768 processes (/ 32, 32, 32 /) sections,
-! max. 31 x 31 x 31 Voxel get lost (Worst Case). Considering large input sets,
-! which are imperative for utilizing large amounts of processors, losing 31 voxel at
-! ~ 2000 ... 4000 Voxel per direction is not an issue.
-! On the other hand, Distribution of the array gets way easier and presumably quicker.
-
-vox_per_dir_and_sec = (array_reduced / sections) + original_image_padding
+vox_per_dir_and_sec = ( (array-remainder_per_dir) / sections) + original_image_padding
 
 dims_reduced        = dims - remainder_per_dir
-
-! Only the first Subarray needs to be defined for this Datatype.
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-         INT(dims_reduced, KIND=mik), &
-                 vox_per_dir_and_sec, &
-                offset_per_dir-1_mik, &
-                   MPI_ORDER_FORTRAN, &
-                             MPI_INT, &
-                       type_subarray, &
-                                ierr)
-
-CALL MPI_TYPE_COMMIT(type_subarray)
 
 DO ii = 1, sections(1) 
         DO jj = 1, sections(2) 
                 DO kk = 1, sections(3) 
+                        ! Converting address of subarray into rank is tested in Octave.
+                        address = (kk-1)*sections(1)*sections(2) + (jj-1_ik)*sections(1) + ii
+                        rank_section = sections
+                        IF (address .EQ. my_rank) THEN
+                                ! Add original image Data as padding
+                                subarray_origin = sections * vox_per_dir_and_sec - border + offset_per_dir
 
+                                ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
+                                CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+                                        INT(SHAPE(array), KIND=mik) , &
+                                        vox_per_dir_and_sec         , &
+                                        subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
+                                        MPI_ORDER_FORTRAN           , &
+                                        MPI_INT                     , &
+                                        type_subarray               , &
+                                        ierr)
 
+                                CALL MPI_TYPE_COMMIT(type_subarray)
+                        END IF
                 END DO
         END DO
 END DO 
 
+ALLOCATE( subarray(vox_per_dir_and_sec) )
 
-! Distribute the array globally
-! CALL MPI_SCATTER(array, PRODUCT(vox_per_dir_and_sec), &
-!                                 MPI_DOUBLE_PRECISION, &
-!                                         recv_bffr_1D, &
-!                      send_cnt(my_rank+1_mik), MPI_DOUBLE_PRECISION ,0_mik, MPI_COMM_WORLD)
-! remainder = MODULO(entries, size_mpi)                                    ! remainder set to "last rank"
-! recv_bffr_sz_1D = (entries - remainder) / size_mpi
-! send_cnt(1:size_mpi ) = recv_bffr_sz_1D
-! send_cnt(1:remainder) = send_cnt(1:remainder)+1_mik
-! dsplcmnts(:)=0_mik
+CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
+        subarray, 1_mik, type_subarray, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+     
+CALL MPI_TYPE_FREE(type_subarray)
 
+IF (my_rank == 0_ik) DEALLOCATE(array)
 
-
+! subarray_reduced_boundaries
+srb (1:3) = border + 1_ik
+srb (4:6) = vox_per_dir_and_sec - border - 1_ik
 
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
-CALL extract_histogram_scalar_array (array, hist_boundaries, dims, histogram_pre__F)            
+CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), histogram_pre__F)            
 
 ! Start image processing
-CALL convolution (dims, array, sizeKernel, kernel)
+CALL convolution_un_padded_input (vox_per_dir_and_sec, subarray, kernel_spec(2), kernel, .TRUE., subarray)
 
 ! After image filtering
 ! Get Histogram of Scalar Values
-CALL extract_histogram_scalar_array (array, hist_boundaries, dims, histogram_post_F)
+CALL extract_histogram_scalar_array (subarray, histogram_post_F)            
 
-! Collect the subarrays to assemble a global vtk file
-CALL MPI_GATHERV(array, send_cnt, dsplcmnts, MPI_DOUBLE_PRECISION, recv_bffr_1D,  &
-        send_cnt(my_rank+1_mik), MPI_DOUBLE_PRECISION ,0_mik, MPI_COMM_WORLD)
+! Collect the subarrays to assemble a global vtk file.
+! No Overlapping and no remainder.
+vox_per_dir_and_sec = vox_per_dir_and_sec - original_image_padding
+subarray_origin     = vox_per_dir_and_sec * rank_section
+
+! MPI_TYPE_CREATE_DARRAY may fit better. Implementation not entirely clear at the moment...
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+        INT(SHAPE(array), KIND=mik) , &
+        vox_per_dir_and_sec         , &
+        subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
+        MPI_ORDER_FORTRAN           , &
+        MPI_INT                     , &
+        type_subarray               , &
+        ierr)
+
+CALL MPI_TYPE_COMMIT(type_subarray)
+
+ALLOCATE( result_array(dims_reduced) )
+
+CALL MPI_SENDRECV (subarray, 1_mik, type_subarray, 0_mik, my_rank + size_mpi, &
+        result_array, 1_mik, type_subarray, my_rank, my_rank + size_mpi, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+     
+CALL MPI_TYPE_FREE(type_subarray) 
+
+DEALLOCATE(subarray)
 
 ! Collect the data of the histogram pre filtering
 CALL MPI_REDUCE (histogram_pre__F, histogram_global_pre__F, &
@@ -282,10 +300,6 @@ CALL MPI_REDUCE (histogram_pre__F, histogram_global_pre__F, &
 ! Collect the data of the histogram post filtering
 CALL MPI_REDUCE (histogram_pre__F, histogram_global_post__F, &
         65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
-
-DEALLOCATE(recv_bffr_1D)
-DEALLOCATE(send_cnt)
-DEALLOCATE(dsplcmnts)
 
 IF (my_rank==0) THEN
 
@@ -309,9 +323,10 @@ IF (my_rank==0) THEN
         WRITE(*,'(A)') 'VTK File export started'
         WRITE(n2s,*) selectKernel
         fileNameExportVtk = fileName(1:LEN_TRIM(fileName)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
-        CALL write_vtk(fun2, fileNameExportVtk, array, spcng, dims)
+        CALL write_vtk(fun2, fileNameExportVtk, result_array, spcng, dims_reduced)
         WRITE(*,'(A)') 'VTK File export done'
 
+        DEALLOCATE(result_array)
         DEALLOCATE(kernel)
 
         CALL CPU_TIME(finish)
