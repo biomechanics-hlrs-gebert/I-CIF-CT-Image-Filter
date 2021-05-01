@@ -328,3 +328,12 @@ TSWLatexianTemp*
 
 # Makeindex log files
 *.lpz
+
+# VTK-Files
+*.vtk
+
+# Binaries
+*_x86_64
+
+# vscode workspace
+.vscode
