@@ -28,10 +28,10 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    
 
 ! Internal Variables
 CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
-INTEGER  (KIND = ik)                                            :: i                           , &
-                                                                   selectKernel    , sizekernel
+INTEGER  (KIND = ik)                                            :: i
+INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
 CHARACTER(LEN = mcl)                                            :: selectKernel_str, sizekernel_str
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding
 
 REAL     (KIND = rk)                                            :: sigma, start, finish
 CHARACTER(LEN = mcl)                                            :: sigma_str, version
@@ -107,10 +107,10 @@ IF (my_rank==0) THEN
         CALL GET_COMMAND_ARGUMENT(1, fileName)
         ! Kernel for image processing ['0': Identity kernel, '1': Gaussian filter]
         CALL GET_COMMAND_ARGUMENT(4, selectKernel_str)
-        READ(selectKernel_str,'(I4)') selectKernel
+        READ(selectKernel_str,'(I4)') kernel_spec(1)
         ! Kernel size
         CALL GET_COMMAND_ARGUMENT(5, sizeKernel_str)
-        READ(sizeKernel_str,'(I4)') sizeKernel
+        READ(sizeKernel_str,'(I4)') kernel_spec(2)
         ! For gaussian filter kernel, sigma is required
         CALL GET_COMMAND_ARGUMENT(6, sigma_str)
         READ(sigma_str,'(F8.3)') sigma
@@ -133,19 +133,26 @@ IF (my_rank==0) THEN
         WRITE(*,'(A)')  std_lnbrk
         WRITE(*,'(A)')
 
-        ALLOCATE(kernel(sizeKernel, sizeKernel))
-        
-        SELECT CASE(selectKernel)
-                CASE(0)
-                        WRITE(*,'(A)') 'Identity kernel selected'
-                        CALL kernel_identity(kernel, sizeKernel)
-                CASE(1)
-                        WRITE(*,'(A)') 'Gaussian filter kernel selected'
-                        CALL kernel_gauss(kernel, sizeKernel, sigma)
-                CASE DEFAULT
-                        WRITE(*,'(A)') 'Identity kernel selected'
-                        CALL kernel_identity(kernel, sizeKernel)
-        END SELECT
+ENDIF ! (my_rank==0)
+
+! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
+CALL MPI_BCAST (kernel_spec, 2_mik, MPI_INT, 0_mik, MPI_COMM_WORLD)
+CALL MPI_BCAST (sigma      , 1_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD)
+
+ALLOCATE(kernel(kernel_spec(2), kernel_spec(2)))
+
+SELECT CASE(kernel_spec(1))
+      ! CASE(0) = identity Kernel, which also refers to CASE DEFAULT because it won't alter the image.
+        CASE(1)
+                IF (my_rank==0) WRITE(*,'(A)') 'Gaussian filter kernel selected'
+                CALL kernel_gauss(kernel, kernel_spec(2), sigma)
+        CASE DEFAULT
+                IF (my_rank==0) WRITE(*,'(A)') 'Identity kernel selected'
+                CALL kernel_identity(kernel, kernel_spec(2))
+END SELECT
+
+IF (my_rank==0) THEN
+ 
         WRITE(*,'(A)')
 
         ! Write kernel to terminal
@@ -177,9 +184,9 @@ ENDIF ! (my_rank==0)
 CALL MPI_BCAST (hist_boundaries, 3_mik, MPI_INT, 0_mik, MPI_COMM_WORLD)
 
 ! Calculate and Allocate information for scattering the global array.
-ALLOCATE(send_cnt(size_mpi))
-ALLOCATE(recv_bffr_1D(send_cnt(my_rank+1_mik)))
-ALLOCATE(dsplcmnts(size_mpi))
+! ALLOCATE(send_cnt(size_mpi))
+! ALLOCATE(recv_bffr_1D(send_cnt(my_rank+1_mik)))
+! ALLOCATE(dsplcmnts(size_mpi))
 
 ! Calculate how to distribute Array to Processor
 ! Idea: Calculate size_mpi with respect to modulo 2
@@ -188,14 +195,23 @@ ALLOCATE(dsplcmnts(size_mpi))
 ! Get sections per direction
 CALL TD_Array_Scatter (size_mpi, sections)
 
+! Calculate Padding to decrease "size of array" to a corresponding size
+original_image_padding = FLOOR(REAL(kernel_spec(2)) / 2) * 2    ! NOT the same as kernel_spec(2) !
+
 remainder_per_dir = MODULO(array / sections)
+
+! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
+! into the center of array. Then add the border. This way, no artifical padding is required.
+IF (remainder_per_dir(1) < original_image_padding(1) .OR. 
+    remainder_per_dir(2) < original_image_padding(2) .OR.
+    remainder_per_dir(3) < original_image_padding(3)) THEN
+        remainder_per_dir = MODULO( (array - original_image_padding) / sections)                     
+END IF
 
 ! Let's use the remainder to shift the filtered image to the center of the original one.
 ! This will ensure filtering either the whole image or at least filtering without an artificial 
 ! Padding at the outer surfaces (borders of the image).
    offset_per_dir = FLOOR(offset_per_dir / 2_ik)
-
-dims_reduced      = dims - remainder_per_dir
 
 ! Remainder per direction gets fully ignored (!) 
 ! It's assumed, that even if we split into 32768 processes (/ 32, 32, 32 /) sections,
@@ -203,41 +219,38 @@ dims_reduced      = dims - remainder_per_dir
 ! which are imperative for utilizing large amounts of processors, losing 31 voxel at
 ! ~ 2000 ... 4000 Voxel per direction is not an issue.
 ! On the other hand, Distribution of the array gets way easier and presumably quicker.
-vox_per_dir_and_sec = array_reduced / sections
 
-size_mpi_ii = 1_ik
+vox_per_dir_and_sec = (array_reduced / sections) + original_image_padding
+
+dims_reduced        = dims - remainder_per_dir
 
 ! Only the first Subarray needs to be defined for this Datatype.
 CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-         INT(SHAPE(array), KIND=mik), &
+         INT(dims_reduced, KIND=mik), &
                  vox_per_dir_and_sec, &
-                      offset_per_dir, &
+                offset_per_dir-1_mik, &
                    MPI_ORDER_FORTRAN, &
                              MPI_INT, &
-                             MPI_INT, &
+                       type_subarray, &
                                 ierr)
 
+CALL MPI_TYPE_COMMIT(type_subarray)
+
+DO ii = 1, sections(1) 
+        DO jj = 1, sections(2) 
+                DO kk = 1, sections(3) 
+
+
+                END DO
+        END DO
+END DO 
+
+
 ! Distribute the array globally
-CALL MPI_SCATTER(array, PRODUCT(vox_per_dir_and_sec), &
-                                MPI_DOUBLE_PRECISION, &
-                                        recv_bffr_1D, &
-                     send_cnt(my_rank+1_mik), MPI_DOUBLE_PRECISION ,0_mik, MPI_COMM_WORLD)
-
-
-
-
-
-
-
-! DO ii = 1, sections(1) 
-!         DO jj = 1, sections(2) 
-!                 DO kk = 1, sections(3) 
-
-
-!                 END DO
-!         END DO
-! END DO 
-
+! CALL MPI_SCATTER(array, PRODUCT(vox_per_dir_and_sec), &
+!                                 MPI_DOUBLE_PRECISION, &
+!                                         recv_bffr_1D, &
+!                      send_cnt(my_rank+1_mik), MPI_DOUBLE_PRECISION ,0_mik, MPI_COMM_WORLD)
 ! remainder = MODULO(entries, size_mpi)                                    ! remainder set to "last rank"
 ! recv_bffr_sz_1D = (entries - remainder) / size_mpi
 ! send_cnt(1:size_mpi ) = recv_bffr_sz_1D
