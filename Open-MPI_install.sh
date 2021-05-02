@@ -64,7 +64,7 @@ if [ $ABORT -eq 0 ]; then
 	sudo mkdir -p $PREPREF >/dev/null 2>/dev/null &
 	sudo chown $USER:$USER -R $PREPREF
 
-	PREF=$PREPREF/openmpi-$VERSION
+	PREF=$PREPREF/openmpi-NO_F08-$VERSION
 
 	tar -xvzf openmpi-$VERSION.tar.gz
 	cd openmpi-$VERSION
@@ -80,7 +80,7 @@ if [ $ABORT -eq 0 ]; then
 	export FCFLAGS="-m64"
 	export CFLAGS="-m64"
 	export CXXFLAGS="-m64"
-	./configure --prefix=$PREF --enable-mpi-fortran=usempif08
+	./configure --prefix=$PREF # --enable-mpi-fortran=usempif08
 
 	make && make install
 

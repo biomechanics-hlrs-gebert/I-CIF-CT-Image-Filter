@@ -96,10 +96,10 @@ IF (my_rank==0) THEN
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
 
         IF ( log_exist .EQV. .TRUE. ) THEN
-        WRITE(*,'(A)') "Log file already exists! Program aborted."
-        CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_FILE_EXISTS, ierr)
+              WRITE(*,'(A)') "Log file already exists! Program aborted."
+              CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_FILE_EXISTS, ierr)
         ELSE
-        OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
+              OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
         ENDIF
 
         ! VTK file name
@@ -114,7 +114,7 @@ IF (my_rank==0) THEN
         CALL GET_COMMAND_ARGUMENT(5, sigma_str)
         READ(sigma_str,'(F8.3)') sigma
 
-        CALL GET_COMMAND_ARGUMENT(7, version)    
+        CALL GET_COMMAND_ARGUMENT(6, version)    
 
         !-------------------------------
         ! Calculation
@@ -191,6 +191,14 @@ original_image_padding = border * 2
 
 remainder_per_dir = MODULO(dims, sections)
 
+IF ( debug .GE. 1_ik .AND. my_rank .EQ. 0_ik) THEN
+        WRITE(rd_o,'(A)'); WRITE(*,'(A)') "Calculation of domain sectioning:"
+        WRITE(rd_o,'(A, 3I5)') "dims:                   ", dims
+        WRITE(rd_o,'(A, 3I5)') "border:                 ", border
+        WRITE(rd_o,'(A, 3I5)') "original_image_padding: ", original_image_padding
+        WRITE(rd_o,'(A, 3I5)') "remainder_per_dir:      ", remainder_per_dir
+END IF
+
 ! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
 ! into the center of array. Then add the border. This way, no artifical padding is required.
 IF (remainder_per_dir(1) < original_image_padding(1) .OR. & 
@@ -198,6 +206,9 @@ IF (remainder_per_dir(1) < original_image_padding(1) .OR. &
     remainder_per_dir(3) < original_image_padding(3)) THEN
         remainder_per_dir = MODULO( (dims - original_image_padding), sections)
 END IF
+
+IF ( debug .GE. 1_ik .AND. my_rank .EQ. 0_ik) WRITE(rd_o,'(A, 3I5)') "remainder_per_dir: ", remainder_per_dir; WRITE(*,'(A)')  
+IF ( debug .GE. 1_ik .AND. my_rank .EQ. 0_ik) CLOSE(rd_o)
 
 ! Let's use the remainder to shift the filtered image to the center of the original one.
 ! This will ensure filtering either the whole image or at least filtering without an artificial 
@@ -208,47 +219,89 @@ dims_reduced   = dims - remainder_per_dir
 
 vox_per_dir_and_sec = (dims_reduced / sections) + original_image_padding
 
-DO ii = 1, sections(1) 
+if (my_rank==0) THEN
+        DO ii = 1, sections(1) 
         DO jj = 1, sections(2) 
-                DO kk = 1, sections(3) 
-                        ! Converting address of subarray into rank is tested in Octave.
-                        address = (kk-1)*sections(1)*sections(2) + (jj-1_ik)*sections(1) + ii
-                        rank_section = sections
-                        IF (address .EQ. my_rank) THEN
-                                ! Add original image Data as padding
-                                subarray_origin = sections * vox_per_dir_and_sec - border + offset_per_dir
+        DO kk = 1, sections(3) 
+        ! Converting address of subarray into rank is tested in Octave.
+        address = (kk-1)*sections(1)*sections(2) + (jj-1_ik)*sections(1) + ii
+!            rank_section = sections
 
-                                ! Why the heck is this useful?! Gets a Fatal Error without it. Need someone who has more experience.
-                                CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+        IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "Address: ", address, " My Rank: ",my_rank
 
-                                ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
-                                CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-                                        INT(SHAPE(array), KIND=mik) , & ! Original array as all the addresses must fit
-                                        vox_per_dir_and_sec         , &
-                                        subarray_origin - 1_mik     , & ! array_of_starts indexed from 0
-                                        MPI_ORDER_FORTRAN           , &
-                                        MPI_INTEGER                 , &
-                                        type_subarray               , &
-                                        ierr)
-                                CALL MPI_TYPE_COMMIT(type_subarray, ierr)
-                        END IF
-                END DO
+!            IF (address .EQ. (my_rank + 1_ik)) THEN
+                ! Add original image Data as padding
+        subarray_origin = (sections-1_ik) * vox_per_dir_and_sec - border + offset_per_dir
+        
+        ! IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I5)') "Pre MPI_Barrier to distribute array across ranks. My Rank:", my_rank
+        ! Why the heck is this useful?! Gets a Fatal Error without it. Need someone who has more experience.
+        ! CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
+        ! IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I5)') "Post MPI_Barrier to distribute array across ranks. My Rank: ", my_rank
+
+        ! if (my_rank==1) dims = (/ 171, 171 ,171/)
+        write(*,*)  "3"                                           ! "My Rank: ", my_rank, 
+        write(*,*)  (/ dims(1), dims(2), dims(3) /)               ! "My Rank: ", my_rank,                             
+        write(*,*)  vox_per_dir_and_sec                           ! "My Rank: ", my_rank,                 
+        write(*,*)  subarray_origin - 1_mik                       ! "My Rank: ", my_rank,                     
+        write(*,*)  MPI_ORDER_FORTRAN                             ! "My Rank: ", my_rank,               
+        write(*,*)  MPI_INTEGER                                   ! "My Rank: ", my_rank,         
+        write(*,*)  type_subarray                                 ! "My Rank: ", my_rank,           
+        write(*,*)  ierr                                          ! "My Rank: ", my_rank,  
+
+        ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
+        CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+        (/ dims(1), dims(2), dims(3) /)     , & ! Original array as all the addresses must fit
+        vox_per_dir_and_sec                 , &
+        subarray_origin - 1_mik             , & ! array_of_starts indexed from 0
+        MPI_ORDER_FORTRAN                   , &
+        MPI_INTEGER                         , &
+        type_subarray                       , &
+        ierr)
+        CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+        CALL MPI_SEND(array, 1_mik, type_subarray, address, address, MPI_COMM_WORLD, ierr )
+
+        CALL MPI_TYPE_FREE(type_subarray)
+
+!           END IF
         END DO
-END DO 
-
+        END DO
+        END DO 
+ENDIF
 ALLOCATE( subarray(vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
 
-IF ( debug .EQ. 2_ik ) WRITE (*,'(A)'); WRITE(*,'(A)') "Initialize Sendrecv to distribute array across ranks."
+IF (my_rank > 0) THEN
+        
+        ! ! Calculate the rank_section out of my_rank and sections(/ x, y, z/)
+        ! zremainder = MODULO(my_rank, sections(1)*sections(2))
+        ! IF (zremainder .EQ 0_ik) THEN
+        !         rank_section = (/ sections(1), sections(2), (my_rank - zremainder) / (sections(1)*sections(2)) /)
+        ! ELSE
+        !         rank_section(3) = (my_rank - zremainder) / (sections(1) * sections(2)) 
+        ! yremainder = MODULO(zremainder, sections(1))
+        
+        ! IF (yremainder .EQ. 0_ik) THEN
+        !         rank_section = (/ sections(1), (zremainder - yremainder) / sections(1), rank_section(3)+1 /)
+        ! ELSE
+        !         rank_section = (/ yremainder, (zremainder - yremainder) / sections(1) + 1_ik, rank_section(3) + 1_ik /)
+        ! ENDIF
+        ! ENDIF
+        
+        CALL MPI_RECV(subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
+END IF
 
-CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, 100_mik, &
-        subarray, SIZE(subarray), MPI_INTEGER, 0_mik, 100_mik, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initialize Sendrecv to distribute array across ranks."
+
+! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
+!       subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
+
         
 ! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
 !         subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
 
-IF ( debug .EQ. 2_ik ) WRITE (*,'(A)'); WRITE(*,'(A)') "Initializing Sendrecv to distribute array across ranks done."
+IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initializing Sendrecv to distribute array across ranks done."
 
-CALL MPI_TYPE_FREE(type_subarray)
+! CALL MPI_TYPE_FREE(type_subarray)
 
 IF (my_rank == 0_ik) DEALLOCATE(array)
 
@@ -345,6 +398,8 @@ IF (my_rank==0) THEN
         WRITE(*,*)
         WRITE(*,'(A7, F8.3, A8)') 'Time = ', (finish - start) / 60,' Minutes'
         WRITE(*,'(A)') std_lnbrk
+
+        IF (debug >= 1) CLOSE(rd_o)
 
 ENDIF ! (my_rank==0)
 
