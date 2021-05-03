@@ -32,7 +32,7 @@ INTEGER  (KIND = ik)                                            :: ii, jj, kk, a
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
 CHARACTER(LEN = mcl)                                            :: selectKernel_str, sizekernel_str
 
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, border, subarray_origin
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, border, subarray_origin, clipboard
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, offset_per_dir, vox_per_dir_and_sec
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir
 
@@ -42,6 +42,8 @@ CHARACTER(LEN = mcl)                                            :: sigma_str, ve
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel
 INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: array, result_array, subarray, result_subarray 
+CHARACTER(LEN =   8)                                            :: date
+CHARACTER(LEN =  10)                                            :: time
 
 ! Histogram Variables
 CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter 
@@ -132,12 +134,25 @@ IF (my_rank==0) THEN
         WRITE(*,'(A)')  std_lnbrk
         WRITE(*,'(A)')
 
+        CALL DATE_AND_TIME(date, time)
+
+        IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
+                WRITE(rd_o,'(2A)')     "This Logfile: ", TRIM(log_file)
+                WRITE(rd_o,'(A)')   
+                WRITE(rd_o,'(A)')      "HLRS - NUM"
+                WRITE(rd_o,'(2A)')     "Image Processing ", TRIM(version)
+                WRITE(rd_o,'(4A)')     date, " [ccyymmdd]    ", time, " [hhmmss.sss]"  
+                WRITE(rd_o,'(A)')      std_lnbrk
+                WRITE(rd_o,'(A, I7)')  "Debug Level:            ", debug
+                WRITE(rd_o,'(A, I7)')  "Processors:             ", size_mpi  
+                WRITE(rd_o,'(A)')      std_lnbrk
+        END IF
+
 ENDIF ! (my_rank==0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
 CALL MPI_BCAST (kernel_spec, 2_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
 CALL MPI_BCAST (sigma      , 1_mik, MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD)
-CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
 
 ALLOCATE(kernel(kernel_spec(2), kernel_spec(2)))
 
@@ -174,6 +189,8 @@ IF (my_rank==0) THEN
 
 ENDIF ! (my_rank==0)
 
+CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
+
 ! Get sections per direction
 CALL TD_Array_Scatter (size_mpi, sections)
 
@@ -191,8 +208,10 @@ original_image_padding = border * 2
 
 remainder_per_dir = MODULO(dims, sections)
 
-IF ( debug .GE. 1_ik .AND. my_rank .EQ. 0_ik) THEN
-        WRITE(rd_o,'(A)'); WRITE(*,'(A)') "Calculation of domain sectioning:"
+IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
+        WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
+        WRITE(rd_o,'(A)')
+        WRITE(rd_o,'(A, 3I5)') "sections:               ", sections
         WRITE(rd_o,'(A, 3I5)') "dims:                   ", dims
         WRITE(rd_o,'(A, 3I5)') "border:                 ", border
         WRITE(rd_o,'(A, 3I5)') "original_image_padding: ", original_image_padding
@@ -201,23 +220,27 @@ END IF
 
 ! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
 ! into the center of array. Then add the border. This way, no artifical padding is required.
-IF (remainder_per_dir(1) < original_image_padding(1) .OR. & 
-    remainder_per_dir(2) < original_image_padding(2) .OR. &
-    remainder_per_dir(3) < original_image_padding(3)) THEN
-        remainder_per_dir = MODULO( (dims - original_image_padding), sections)
+IF ((remainder_per_dir(1) < original_image_padding(1)) .OR. & 
+    (remainder_per_dir(2) < original_image_padding(2)) .OR. &
+    (remainder_per_dir(3) < original_image_padding(3))) THEN
+        dims_reduced   = dims - original_image_padding
+ELSE
+        dims_reduced   = dims - remainder_per_dir
 END IF
-
-IF ( debug .GE. 1_ik .AND. my_rank .EQ. 0_ik) WRITE(rd_o,'(A, 3I5)') "remainder_per_dir: ", remainder_per_dir; WRITE(*,'(A)')  
-IF ( debug .GE. 1_ik .AND. my_rank .EQ. 0_ik) CLOSE(rd_o)
 
 ! Let's use the remainder to shift the filtered image to the center of the original one.
 ! This will ensure filtering either the whole image or at least filtering without an artificial 
 ! Padding at the outer surfaces (borders of the image).
-offset_per_dir = FLOOR(REAL(remainder_per_dir, KIND=rk) / 2_rk)
-
-dims_reduced   = dims - remainder_per_dir
 
 vox_per_dir_and_sec = (dims_reduced / sections) + original_image_padding
+
+IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
+        WRITE(rd_o,'(A, 3I5)') "dims-orig_img_padding:  ", clipboard
+        WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
+        WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
+        WRITE(rd_o,'(A, 3I5)') "vox_per_dir_and_sec:    ", vox_per_dir_and_sec
+        CLOSE(rd_o)
+END IF
 
 if (my_rank==0) THEN
         DO ii = 1, sections(1) 
@@ -231,7 +254,8 @@ if (my_rank==0) THEN
 
 !            IF (address .EQ. (my_rank + 1_ik)) THEN
                 ! Add original image Data as padding
-        subarray_origin = (sections-1_ik) * vox_per_dir_and_sec - border + offset_per_dir
+
+        subarray_origin = (sections-1_ik) * (vox_per_dir_and_sec - original_image_padding) + border
         
         ! IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I5)') "Pre MPI_Barrier to distribute array across ranks. My Rank:", my_rank
         ! Why the heck is this useful?! Gets a Fatal Error without it. Need someone who has more experience.
@@ -251,15 +275,19 @@ if (my_rank==0) THEN
         ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
         CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
         (/ dims(1), dims(2), dims(3) /)     , & ! Original array as all the addresses must fit
-        vox_per_dir_and_sec                 , &
-        subarray_origin - 1_mik             , & ! array_of_starts indexed from 0
+        (/ vox_per_dir_and_sec(1),     vox_per_dir_and_sec(2),       vox_per_dir_and_sec(3) /)   , &
+        (/ subarray_origin(1) - 1_mik, subarray_origin(2) - 1_mik, subarray_origin(3) - 1_mik /) , & ! array_of_starts indexed from 0
         MPI_ORDER_FORTRAN                   , &
         MPI_INTEGER                         , &
         type_subarray                       , &
         ierr)
         CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-        CALL MPI_SEND(array, 1_mik, type_subarray, address, address, MPI_COMM_WORLD, ierr )
+        IF (address .NE. 1_ik) THEN
+                CALL MPI_SEND(array, 1_mik, type_subarray, address-1_mik, address-1_mik, MPI_COMM_WORLD, ierr )
+        END IF
+
+        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, I15)') "My Rank: ", address-1_ik, " Size of Subarray:", SIZE(vox_per_dir_and_sec)
 
         CALL MPI_TYPE_FREE(type_subarray)
 
@@ -268,6 +296,7 @@ if (my_rank==0) THEN
         END DO
         END DO 
 ENDIF
+
 ALLOCATE( subarray(vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
 
 IF (my_rank > 0) THEN
@@ -286,11 +315,14 @@ IF (my_rank > 0) THEN
         !         rank_section = (/ yremainder, (zremainder - yremainder) / sections(1) + 1_ik, rank_section(3) + 1_ik /)
         ! ENDIF
         ! ENDIF
-        
+        IF ( debug .EQ. 2_ik ) THEN
+                WRITE(*,'(A)') "Initialize Recv to distribute array across ranks."
+                WRITE(*,'(A, I7, A, 3I5)') "My Rank: ", my_rank, " vox_per_dir_and_sec:    ", vox_per_dir_and_sec
+                WRITE(*,'(A, I7, A, I15)') "My Rank: ", my_rank, " Size of Subarray:", SIZE(subarray)
+        END IF
         CALL MPI_RECV(subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
 END IF
 
-IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initialize Sendrecv to distribute array across ranks."
 
 ! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
 !       subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
@@ -299,7 +331,7 @@ IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initialize Sendrecv to distribute array a
 ! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
 !         subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
 
-IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initializing Sendrecv to distribute array across ranks done."
+IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initializing recv to distribute array across ranks done."
 
 ! CALL MPI_TYPE_FREE(type_subarray)
 
