@@ -246,31 +246,13 @@ if (my_rank==0) THEN
         DO ii = 1, sections(1) 
         DO jj = 1, sections(2) 
         DO kk = 1, sections(3) 
+
         ! Converting address of subarray into rank is tested in Octave.
         address = (kk-1)*sections(1)*sections(2) + (jj-1_ik)*sections(1) + ii
-!            rank_section = sections
 
         IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "Address: ", address, " My Rank: ",my_rank
 
-!            IF (address .EQ. (my_rank + 1_ik)) THEN
-                ! Add original image Data as padding
-
         subarray_origin = (sections-1_ik) * (vox_per_dir_and_sec - original_image_padding) + border
-        
-        ! IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I5)') "Pre MPI_Barrier to distribute array across ranks. My Rank:", my_rank
-        ! Why the heck is this useful?! Gets a Fatal Error without it. Need someone who has more experience.
-        ! CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)
-        ! IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I5)') "Post MPI_Barrier to distribute array across ranks. My Rank: ", my_rank
-
-        ! if (my_rank==1) dims = (/ 171, 171 ,171/)
-        write(*,*)  "3"                                           ! "My Rank: ", my_rank, 
-        write(*,*)  (/ dims(1), dims(2), dims(3) /)               ! "My Rank: ", my_rank,                             
-        write(*,*)  vox_per_dir_and_sec                           ! "My Rank: ", my_rank,                 
-        write(*,*)  subarray_origin - 1_mik                       ! "My Rank: ", my_rank,                     
-        write(*,*)  MPI_ORDER_FORTRAN                             ! "My Rank: ", my_rank,               
-        write(*,*)  MPI_INTEGER                                   ! "My Rank: ", my_rank,         
-        write(*,*)  type_subarray                                 ! "My Rank: ", my_rank,           
-        write(*,*)  ierr                                          ! "My Rank: ", my_rank,  
 
         ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
         CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
@@ -291,7 +273,6 @@ if (my_rank==0) THEN
 
         CALL MPI_TYPE_FREE(type_subarray)
 
-!           END IF
         END DO
         END DO
         END DO 
@@ -299,9 +280,9 @@ ENDIF
 
 ALLOCATE( subarray(vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
 
-IF (my_rank > 0) THEN
-        
+IF (my_rank > 0) THEN        
         ! ! Calculate the rank_section out of my_rank and sections(/ x, y, z/)
+        ! ! Tested via Octave. Not fully implemented by 20210503
         ! zremainder = MODULO(my_rank, sections(1)*sections(2))
         ! IF (zremainder .EQ 0_ik) THEN
         !         rank_section = (/ sections(1), sections(2), (my_rank - zremainder) / (sections(1)*sections(2)) /)
@@ -323,17 +304,6 @@ IF (my_rank > 0) THEN
         CALL MPI_RECV(subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
 END IF
 
-
-! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
-!       subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-
-        
-! CALL MPI_SENDRECV (array, 1_mik, type_subarray, my_rank, my_rank, &
-!         subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr)
-
-IF ( debug .EQ. 2_ik ) WRITE(*,'(A)') "Initializing recv to distribute array across ranks done."
-
-! CALL MPI_TYPE_FREE(type_subarray)
 
 IF (my_rank == 0_ik) DEALLOCATE(array)
 
