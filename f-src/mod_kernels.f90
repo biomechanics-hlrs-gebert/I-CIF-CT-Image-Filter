@@ -7,7 +7,8 @@
 
 ! SUBROUTINE convolution(dims, image, sizeKernel, kernel)
 ! SUBROUTINE kernel_identity(kernel, sizeKernel)
-! SUBROUTINE kernel_gauss(kernel, sizeKernel, sigma)
+! SUBROUTINE kernel_gauss_2d(kernel, sizeKernel, sigma)
+! SUBROUTINE kernel_gauss_3d(kernel, sizeKernel, sigma)
 
 MODULE kernels
 
@@ -113,7 +114,7 @@ SUBROUTINE kernel_identity(kernel, sizeKernel)
    kernel(mp, mp) = 1.0
 END SUBROUTINE kernel_identity
 
-SUBROUTINE kernel_gauss(kernel, sizeKernel, sigma)
+SUBROUTINE kernel_gauss_2d(kernel, sizeKernel, sigma)
    ! Return the Gaussian kernel
    ! https://en.wikipedia.org/wiki/Gaussian_filter
 
@@ -133,10 +134,11 @@ SUBROUTINE kernel_gauss(kernel, sizeKernel, sigma)
 
    kernel = 0
 
+   x0 = (sizeKernel + 1) / 2
+   y0 = (sizeKernel + 1) / 2
+
    DO i = -(sizeKernel - 1) / 2, (sizeKernel - 1) / 2
            DO j = -(sizeKernel - 1) / 2, (sizeKernel - 1) / 2
-                   x0 = (sizeKernel + 1) / 2
-                   y0 = (sizeKernel + 1) / 2
                    x = i + x0
                    y = j + y0
 
@@ -145,8 +147,49 @@ SUBROUTINE kernel_gauss(kernel, sizeKernel, sigma)
            END DO
    END DO
 
-   sumKernel = sum(kernel)
+   sumKernel = SUM(kernel)
    kernel = kernel / sumKernel
-END SUBROUTINE kernel_gauss
+END SUBROUTINE kernel_gauss_2d
+
+SUBROUTINE kernel_gauss_3d(kernel, sizeKernel, sigma)
+   ! Return the Gaussian kernel
+   ! https://en.wikipedia.org/wiki/Gaussian_filter
+
+   ! Externel variables
+   INTEGER(KIND = ik)                                                           , INTENT(IN)  :: sizeKernel
+   REAL   (KIND = rk)                                                           , INTENT(IN)  :: sigma
+   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
+
+   ! Internel variables
+   INTEGER(KIND = ik)                                                                         :: i, j, k
+   REAL   (KIND = rk)                                                                         :: x0, y0, z0, x, y, z
+   REAL   (KIND = rk)                                                                         :: sumKernel
+
+   !-------------------------------
+   ! Calculation
+   !-------------------------------
+
+   kernel = 0
+
+   x0 = (sizeKernel + 1) / 2
+   y0 = (sizeKernel + 1) / 2
+   z0 = (sizeKernel + 1) / 2
+
+   DO i = -(sizeKernel - 1) / 2, (sizeKernel - 1) / 2
+           DO j = -(sizeKernel - 1) / 2, (sizeKernel - 1) / 2
+                DO k = -(sizeKernel - 1) / 2, (sizeKernel - 1) / 2
+                        x = i + x0
+                        y = j + y0
+                        z = k + z0
+
+                        kernel(INT(x), INT(y), INT(z)) = (1 / (2 * pi * sigma**2)) &
+                                * EXP(- (((x - x0)**2 + (y - y0)**2 + (z - z0)**2) / (2 * sigma**2)));
+                END DO
+           END DO
+   END DO
+
+   sumKernel = SUM(kernel)
+   kernel = kernel / sumKernel
+END SUBROUTINE kernel_gauss_3d
 
 END MODULE kernels
