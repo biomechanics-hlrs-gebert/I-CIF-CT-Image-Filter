@@ -6,7 +6,8 @@
 ! Date    23.04.2021
 
 ! SUBROUTINE convolution(dims, image, sizeKernel, kernel)
-! SUBROUTINE kernel_identity(kernel, sizeKernel)
+! SUBROUTINE kernel_identity_2d(kernel, sizeKernel)
+! SUBROUTINE kernel_identity_3d(kernel, sizeKernel)
 ! SUBROUTINE kernel_gauss_2d(kernel, sizeKernel, sigma)
 ! SUBROUTINE kernel_gauss_3d(kernel, sizeKernel, sigma)
 
@@ -91,15 +92,38 @@ SUBROUTINE convolution_un_padded_input(dims, image, sizeKernel, kernel, padding_
         END DO
 END SUBROUTINE convolution_un_padded_input
 
-SUBROUTINE kernel_identity(kernel, sizeKernel)
+SUBROUTINE kernel_identity_2d(kernel, sizeKernel)
    ! Return the identity kernel
    ! https://en.wikipedia.org/wiki/Kernel_(image_processing)
 
    ! Parameter
 
    ! External variables
-   INTEGER(KIND = ik)                                              , INTENT(IN)  :: sizeKernel
-   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel), INTENT(OUT) :: kernel
+        INTEGER(KIND = ik)                                              , INTENT(IN)  :: sizeKernel
+        REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel), INTENT(OUT) :: kernel
+     
+        ! Internal variables
+        INTEGER(KIND = ik) :: mp
+     
+        !-------------------------------
+        ! Calculation
+        !-------------------------------
+        
+        mp = 1 + (sizeKernel - 1) / 2
+     
+        kernel = 0
+        kernel(mp, mp) = 1.0
+END SUBROUTINE kernel_identity_2d
+
+SUBROUTINE kernel_identity_3d(kernel, sizeKernel)
+   ! Return the identity kernel
+   ! https://en.wikipedia.org/wiki/Kernel_(image_processing)
+
+   ! Parameter
+
+   ! External variables
+   INTEGER(KIND = ik)                                                          , INTENT(IN)  :: sizeKernel
+   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT) :: kernel
 
    ! Internal variables
    INTEGER(KIND = ik) :: mp
@@ -111,8 +135,8 @@ SUBROUTINE kernel_identity(kernel, sizeKernel)
    mp = 1 + (sizeKernel - 1) / 2
 
    kernel = 0
-   kernel(mp, mp) = 1.0
-END SUBROUTINE kernel_identity
+   kernel(mp, mp, mp) = 1.0
+END SUBROUTINE kernel_identity_3d
 
 SUBROUTINE kernel_gauss_2d(kernel, sizeKernel, sigma)
    ! Return the Gaussian kernel
