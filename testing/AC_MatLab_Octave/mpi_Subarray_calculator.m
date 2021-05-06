@@ -2,7 +2,9 @@ clc
 clear
 
 # Steering part of script below function!
-# Amount of Processors provided must be dividable by 2 ### or better 4
+# Amount of Processors provided shall be dividable by 2 ### or better 4
+# In it's current state (210503), 3, 5 and 7 processors are implemted in Fortran 
+# as well.
 
 function rtrn = mpi_scatter(size_mpi)
   

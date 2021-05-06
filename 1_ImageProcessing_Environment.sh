@@ -4,7 +4,7 @@
 #
 # Author:          Johannes Gebert - HLRS - NUM «gebert@hlrs.de»
 # Created:         25.04.2021
-# Last edit:       25.04.2021
+# Last edit:       06.05.2021
 #
 # Usage: source «this script»
 # ----------------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 # vulcan  - NEC Cluster
 # julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU
 export IP_ARCH="julius"
-export IP_VRSN="V0.2.0"
+export IP_VRSN="V0.3.0"
 # ----------------------------------------------------------------------------------------
 #
 # Base path of the Spatial Registration Tool
@@ -27,10 +27,11 @@ export IP_DATA_IN=$IP_PREFIX/datasets/"Knochenprobe_2_77.vtk"
 # ----------------------------------------------------------------------------------------
 #
 # Steering parameters
-# ['0': Identity kernel, '1': Gaussian filter]
-export IP_SELECT_K="1"  # Select Kernel
-export IP_SIZE_K="3"    # Size of Kernel
-export IP_GS="1.0"      # Sigma of Gauß Kernel
+#
+export IP_MODE_K="3"           # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
+export IP_SELECT_K="Identity"  # Select Kernel      ['Identity', 'Gaussian']
+export IP_SIZE_K="3"           # Size of Kernel
+export IP_GS="1.0"             # Sigma of Gauß Kernel
 # ----------------------------------------------------------------------------------------
 # Set a filename for the log file. Empty --> stdout / shell
 export IP_LOG=$IP_PREFIX/$(date +"%m-%d-%y")"_log_ImageProcessing.txt"
