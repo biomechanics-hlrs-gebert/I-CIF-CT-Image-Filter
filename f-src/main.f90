@@ -67,9 +67,9 @@ INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    
 CHARACTER(LEN = mcl)                                            :: log_file
 LOGICAL                                                         :: log_exist = .FALSE.
 
-!-------------------------------
+!----------------------------------
 ! Initialize MPI Environment
-!-------------------------------
+!----------------------------------
 
 CALL MPI_INIT(ierr)
 CALL MPI_ERR(ierr,"MPI_INIT didn't succeed")
@@ -88,11 +88,10 @@ END IF
 
 ! Start serialized sequence
 IF (my_rank .EQ. 0) THEN
-        WRITE(*,*) "pi= ",pi 
 
-        !-------------------------------
+        !----------------------------------
         ! Read input (from environment sh)
-        !-------------------------------
+        !---------------------------------- 
 
         !-- Create log-file
         CALL GET_COMMAND_ARGUMENT(2, log_file)
@@ -122,9 +121,9 @@ IF (my_rank .EQ. 0) THEN
 
         CALL GET_COMMAND_ARGUMENT(7, version)    
 
-        !-------------------------------
+        !----------------------------------
         ! Calculation
-        !-------------------------------
+        !----------------------------------
 
         ! Track calculation time
         CALL CPU_TIME(start)
@@ -226,7 +225,6 @@ IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
         WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
         WRITE(rd_o,'(A, 3I5)') "vox_per_dir_and_sec:    ", vox_per_dir_and_sec
-        CLOSE(rd_o)
 END IF
 
 IF (my_rank .EQ. 0) THEN
@@ -388,11 +386,11 @@ CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)
 ! Collect data
 IF (my_rank > 0) THEN        
 
-        ! MPI_TYPE_CREATE_DARRAY may fit better. Implementation not entirely clear at the moment...
+        ! This routine simply sends the array as is without extracting any subarray. Done to clearly show its nature as 3D array.
         CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
                 INT(SHAPE(result_subarray), KIND=mik) , &
                 vox_per_dir_and_sec                   , &
-                (/ border, border, border/)           , & ! array_of_starts indexed from 0
+                (/ 0_mik, 0_mik, 0_mik/)              , & ! array_of_starts indexed from 0
                 MPI_ORDER_FORTRAN                     , &
                 MPI_INTEGER                           , &
                 type_result_subarray                  , &
@@ -402,12 +400,13 @@ IF (my_rank > 0) THEN
 
         ! Bad solution in terms of sending an array from Rank 0 to Rank 0... Dunno whether this gets optimized
         ! Should be done right... 
-        CALL MPI_SEND(result_subarray, 1_mik, type_result_subarray, 0_mik, address-1_mik, MPI_COMM_WORLD, ierr )
+        CALL MPI_SEND(result_subarray, 1_mik, type_result_subarray, 0_mik, my_rank, MPI_COMM_WORLD, ierr )
 
         CALL MPI_TYPE_FREE(type_result_subarray) 
 ELSE
         ALLOCATE( result_array(dims_reduced(1), dims_reduced(2), dims_reduced(3) ) )
 
+        ! result_subarray already without padding!
         result_array    (border : border + vox_per_dir_and_sec(1) - 1_ik,    &
                          border : border + vox_per_dir_and_sec(2) - 1_ik,    &
                          border : border + vox_per_dir_and_sec(3) - 1_ik ) = &
@@ -424,24 +423,25 @@ ELSE
 
         IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "RESULT Address: ", address, " My Rank: ",my_rank
 
-        subarray_origin = (sections-1_ik) * (vox_per_dir_and_sec) + border
+        subarray_origin = (sections-1_ik) * vox_per_dir_and_sec + border
 
         IF (address .NE. 1_ik) THEN
-                CALL MPI_RECV(subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
+                CALL MPI_RECV(result_subarray, SIZE(result_subarray), MPI_INTEGER, address-1_mik, &
+                address-1_mik, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
         END IF
 
         result_array (subarray_origin(1) : subarray_origin(1) + vox_per_dir_and_sec(1) - 1_ik, &
                       subarray_origin(2) : subarray_origin(2) + vox_per_dir_and_sec(2) - 1_ik, &
-                      subarray_origin(3) : subarray_origin(3) + vox_per_dir_and_sec(3) - 1_ik  ) = subarray
+                      subarray_origin(3) : subarray_origin(3) + vox_per_dir_and_sec(3) - 1_ik  ) = result_subarray
 
-        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, I15)') "My Rank: ", address-1_ik, " Size of Subarray:", SIZE(vox_per_dir_and_sec)
- 
+        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, 3I7)') "My Rank: ", address-1_ik, " Size of Subarray:", vox_per_dir_and_sec
+ write(*,*)"im here"
                         END DO
                 END DO
         END DO 
 ENDIF
 
-DEALLOCATE(subarray)
+DEALLOCATE(result_subarray)
 
 ! Collect the data of the histogram pre filtering
 CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
@@ -451,21 +451,21 @@ CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, 65536_mik, MPI_INT, 
 
 IF (my_rank .EQ. 0_ik) THEN
 
-        ! Export Histogram of Scalar Array pre Filtering
-        OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
-                WRITE(fl_un_H_pre,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
-                DO ii=-3276, 3277
-                        WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
-                END DO
-        CLOSE(fl_un_H_pre)
+        ! ! Export Histogram of Scalar Array pre Filtering
+        ! OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
+        !         WRITE(fl_un_H_pre,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
+        !         DO ii=1, SIZE(histogram_pre__F_global)
+        !                 WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
+        !         END DO
+        ! CLOSE(fl_un_H_pre)
         
-        ! Export Histogram of Scalar Array post Filtering
-        OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
-                WRITE(fl_un_H_post,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
-                DO ii=-3276, 3277       
-                     WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
-                END DO
-        CLOSE(fl_un_H_post)
+        ! ! Export Histogram of Scalar Array post Filtering
+        ! OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
+        !         WRITE(fl_un_H_post,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
+        !         DO ii=1, SIZE(histogram_post_F_global)
+        !              WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
+        !         END DO
+        ! CLOSE(fl_un_H_post)
 
         ! Export VTK file (testing)
         WRITE(*,'(A)') 'VTK File export started'

@@ -31,7 +31,7 @@ INTEGER  (KIND=ik)    , DIMENSION(3)                                            
 
 ! Calculate Notation of the histogram - done by slave processes to save time during communication
 ! Histogram is scaled to INT2 because 65.535 entries are sufficient to calculate and print any histogram
-IF( -3276700_ik > hbnds(1) .OR.  3276600 < hbnds(2)) THEN   ! bounds - 1 and *100 to scale
+IF( (-3276700_ik > hbnds(1)) .OR.  (3276600 < hbnds(2)) ) THEN   ! bounds - 1 and *100 to scale
   array = array / REAL(ABS(hbnds(3)), KIND= REAL64) * 3276700._rk     ! ABS to preserve sign
 END IF
 
@@ -42,7 +42,7 @@ shp = SHAPE(array)
 DO ii=1, shp(1)
   DO jj=1, shp(2)
     DO kk=1, shp(3)
-      histogram(INT(array(ii, jj, kk)/100_ik)) = histogram(INT(array(ii, jj, kk)/100_ik))+1_ik
+      histogram(INT(array(ii, jj, kk)/10000_ik)) = histogram(INT(array(ii, jj, kk)/10000_ik))+1_ik
     END DO
   END DO
 END DO
