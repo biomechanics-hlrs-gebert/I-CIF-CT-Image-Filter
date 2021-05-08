@@ -2,10 +2,11 @@ PROGRAM main
 !-------------------------------
 ! Image processing
 !
-! Author: Benjamin Schnabel, M.Sc.
-! Author: Johannes Gebert - HLRS - NUM
-! GitHub: https://github.com/bennyschnabel/image_processing
-! Date: 23.04.2021
+! Author:  Benjamin Schnabel, M.Sc.
+! Author:  Johannes Gebert - HLRS - NUM
+! GitHub:  https://github.com/bennyschnabel/image_processing
+! Date:    23.04.2021
+! LastMod: 09.05.2021
 !-------------------------------
 
 USE ISO_FORTRAN_ENV
