@@ -59,7 +59,7 @@ ifeq ($(PE),gnu)
 endif
 # --------------------------------------------------------------------------------------------------
 # Executable
-MAIN_bin = $(bin_dir)Image_Processing_$(trgt_arch)_$(trgt_vrsn)_$(bin_suf)
+MAIN_bin = $(bin_dir)HLRS_NUM_3D_Convolusional_Filtering_$(trgt_arch)_$(trgt_vrsn)_$(bin_suf)
 # --------------------------------------------------------------------------------------------------
 # Generate objects
 #

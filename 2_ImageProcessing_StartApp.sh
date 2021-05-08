@@ -29,17 +29,17 @@ if [ $do_not_start -eq 0 ]; then
 		if [ $IP_ARCH == "julius" ]; then
 			echo "Start Parallel Image Processing."
 			echo
-			mpirun $IP_COMP_DBG -np $1  $IP_PREFIX"/bin/Image_Processing_"$IP_ARCH"_"$IP_VRSN"_x86_64" 	 \
-																							$IP_DATA_IN  \
-																							$IP_LOG      \
-																							$IP_MODE_K   \
-																							$IP_SELECT_K \
-																							$IP_SIZE_K   \
-																							$IP_GS       \
-																							$IP_VRSN	 \
-																							$IP_CSV_TEX
-																							# 
-			status=$?
+			mpirun $IP_COMP_DBG -np $1  $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_ARCH"_"$IP_VRSN"_x86_64" 	 \
+																										$IP_DATA_IN  \
+																										$IP_LOG      \
+																										$IP_MODE_K   \
+																										$IP_SELECT_K \
+																										$IP_SIZE_K   \
+																										$IP_GS       \
+																										$IP_VRSN	 \
+																										$IP_CSV_TEX
+																										# 
+			status=$?			
 		elif [ $IP_ARCH == "vulcan" ]; then
 ############################################################################
 # VERY! raw. MODIFY BEFORE USE. 
