@@ -443,11 +443,11 @@ ENDIF
 
 DEALLOCATE(result_subarray)
 
-! Collect the data of the histogram pre filtering
-CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+! ! Collect the data of the histogram pre filtering
+! CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
-! Collect the data of the histogram post filtering
-CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+! ! Collect the data of the histogram post filtering
+! CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 IF (my_rank .EQ. 0_ik) THEN
 
