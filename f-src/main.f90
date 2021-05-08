@@ -22,9 +22,10 @@ IMPLICIT NONE
 ! MPI: Kind=32 Bit / 4 Byte / ik=4 - Change in «working_directory/f-src/mod_standards.f90 
 
 ! Parameter
-INTEGER  (KIND = ik), PARAMETER                                 :: debug = 2
-INTEGER  (KIND = ik), PARAMETER                                 :: fun1 = 5     ! File unit
-INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    ! File unit
+INTEGER  (KIND = ik), PARAMETER                                 :: debug = 1
+INTEGER  (KIND = ik), PARAMETER                                 :: fun1 = 5     ! File unit h pre
+INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    ! File unit h post
+INTEGER  (KIND = ik), PARAMETER                                 :: fun3 = 15    ! File unit tex
 
 ! Internal Variables
 CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
@@ -49,6 +50,7 @@ CHARACTER(LEN =  10)                                            :: time
 ! Histogram Variables
 CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter 
 CHARACTER(LEN = mcl)                                            :: histogram_filename_post_Filter
+CHARACTER(LEN = mcl)                                            :: histogram_filename_tex_Filter
 INTEGER  (KIND = ik), PARAMETER                                 :: fl_un_H_pre=41, fl_un_H_post=42
 INTEGER  (KIND = ik)                                            :: histo_bound_global_lo, histo_bound_global_hi
 INTEGER  (KIND = ik)                                            :: histo_bound_local_lo, histo_bound_local_hi
@@ -64,7 +66,7 @@ TYPE(MPI_DATATYPE)                                              :: type_subarray
 
 ! Debug Variables
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
-CHARACTER(LEN = mcl)                                            :: log_file
+CHARACTER(LEN = mcl)                                            :: log_file, csv_tex_file
 LOGICAL                                                         :: log_exist = .FALSE.
 
 !----------------------------------
@@ -121,6 +123,8 @@ IF (my_rank .EQ. 0) THEN
 
         CALL GET_COMMAND_ARGUMENT(7, version)    
 
+        CALL GET_COMMAND_ARGUMENT(8, csv_tex_file)    
+
         !----------------------------------
         ! Calculation
         !----------------------------------
@@ -174,9 +178,9 @@ IF (my_rank .EQ. 0) THEN
         WRITE(*,'(A)') 'VTK File import done'
 
         ! Get the output Filenames of the Histograms
-        histogram_filename_pre__Filter = TRIM(log_file(1:(LEN_TRIM(log_file)-4)))//"_hist_PRE__FILTER.csv"
-        histogram_filename_post_Filter = TRIM(log_file(1:(LEN_TRIM(log_file)-4)))//"_hist_POST_FILTER.csv"
-
+        histogram_filename_pre__Filter = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_hist_PRE__FILTER.csv"
+        histogram_filename_post_Filter = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_hist_POST_FILTER.csv"
+        histogram_filename_tex_Filter  = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_Filter_Histogram.tex"
 ENDIF ! (my_rank .EQ. 0)
 
 CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
@@ -225,6 +229,7 @@ IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
         WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
         WRITE(rd_o,'(A, 3I5)') "vox_per_dir_and_sec:    ", vox_per_dir_and_sec
+        WRITE(rd_o,'(A)')      std_lnbrk
 END IF
 
 ALLOCATE( subarray(vox_dir_padded(1), vox_dir_padded(2), vox_dir_padded(3) ) )
@@ -308,11 +313,17 @@ histo_bound_local_lo = MINVAL(subarray)
 histo_bound_local_hi = MAXVAL(subarray)
 
 CALL MPI_REDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_REDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INTEGER, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_REDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (                      histo_bound_global_lo, 1_mik, MPI_INTEGER,          0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (                      histo_bound_global_hi, 1_mik, MPI_INTEGER,          0_mik, MPI_COMM_WORLD, ierr)
 
 hbnds    = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_hi - histo_bound_global_lo /)
+
+IF (my_rank .EQ. 0_ik) THEN
+        WRITE(rd_o,'(A)')      "Histogramm  FLOOR(min | max / 10) defines boundaries of Histogramm Files."
+        WRITE(rd_o,'(A, 3I8)') "Histogramm min/max/delta:", hbnds
+        CLOSE(rd_o); OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="old")
+END IF
 
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
@@ -416,37 +427,42 @@ ENDIF
 
 DEALLOCATE(result_subarray)
 
+! Collect the data of the histogram pre filtering
+IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_pre__F_global(SIZE(histogram_pre__F)))
 
-! IF (my_rank == 0) THEN        
+CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
+        MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
-! Allocate(array(dims(1)-1, dims(2), dims(3)))
-! array=result_array(1:dims(1)-1, 1:dims(2), 1:dims(3))
-! end if
+! Collect the data of the histogram post filtering
+IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_post_F_global(SIZE(histogram_post_F)))
 
+CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
+        MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
-! ! Collect the data of the histogram pre filtering
-! CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
-
-! ! Collect the data of the histogram post filtering
-! CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 IF (my_rank .EQ. 0_ik) THEN
 
-        ! ! Export Histogram of Scalar Array pre Filtering
-        ! OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
-        !         WRITE(fl_un_H_pre,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
-        !         DO ii=1, SIZE(histogram_pre__F_global)
-        !                 WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
-        !         END DO
-        ! CLOSE(fl_un_H_pre)
+        ! Export Histogram of Scalar Array pre Filtering
+        OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
+                WRITE(fl_un_H_pre,'(A)') "scaledHU, Voxels"
+                DO ii=1, SIZE(histogram_pre__F_global)
+                        WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
+                END DO
+        CLOSE(fl_un_H_pre)
         
-        ! ! Export Histogram of Scalar Array post Filtering
-        ! OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
-        !         WRITE(fl_un_H_post,'(A)') "Scalar value / 100, Amount of Voxels per Scalar value"
-        !         DO ii=1, SIZE(histogram_post_F_global)
-        !              WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
-        !         END DO
-        ! CLOSE(fl_un_H_post)
+        ! Export Histogram of Scalar Array post Filtering
+        OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
+                WRITE(fl_un_H_post,'(A)') "scaledHU, Voxels"
+                DO ii=1, SIZE(histogram_post_F_global)
+                     WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
+                END DO
+        CLOSE(fl_un_H_post)
+
+        CALL write_tex_for_histogram (fun3, &
+                histogram_filename_tex_Filter, &
+                histogram_filename_pre__Filter, &
+                histogram_filename_post_Filter )
+
 
         ! Export VTK file (testing)
         WRITE(*,'(A)') 'VTK File export started'

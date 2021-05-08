@@ -4,7 +4,7 @@
 #
 # Author:          Johannes Gebert «gebert@hlrs.de»
 # Created:         25.04.2021
-# Last edit:       25.04.2021
+# Last edit:       09.05.2021
 # ------------------------------------------------------------------------------
 do_not_start=0
 #
@@ -36,7 +36,8 @@ if [ $do_not_start -eq 0 ]; then
 																							$IP_SELECT_K \
 																							$IP_SIZE_K   \
 																							$IP_GS       \
-																							$IP_VRSN
+																							$IP_VRSN	 \
+																							$IP_CSV_TEX
 																							# 
 			status=$?
 		elif [ $IP_ARCH == "vulcan" ]; then
@@ -64,17 +65,35 @@ fi
 # Use this lines for basic postprocessing directives
 if [ $do_not_start -eq 0 ]; then
 	if [ $status -eq 0 ]; then
-	echo ""
-	echo "Parallel Image Processing successfully finished."
-	echo "Currently, no postprocessing required."
-	#     ii=1
-	#     for file in $PWD/tex/*.tex
-	#     do
-	#       pdflatex -synctex=1 -interaction=nonstopmode -shell-escape -output-directory=$PWD/tex/ $file >> $PWD/tex/"pdflatex_compile_"$ii"_.log"
-	#       let ii=$ii+1
-	#     done
+		echo
+		echo "Parallel Image Processing finished successfully."
+		echo "Postprocessing of Tex files started."
+		echo
+
+		which pdflatex > /dev/null 2> /dev/null
+		if [ $? -eq 1 ]; then
+			echo "Pdflatex not available."
+			echo "Postprocessing stopped."
+		else
+
+			pdflatex -shell-escape -interaction nonstopmode -halt-on-error -file-line-error -output-directory=$PWD/tex/  $IP_CSV_TEX"_Filter_Histogram.tex" > $PWD/tex/"pdflatex_compile_"$ii"_.log"			
+			
+			if [ $? -eq 0 ]; then
+				cd tex
+				./TEX_clean_ignore.sh
+				cd ..
+			fi
+
+			echo
+			if [ $? -eq 1 ]; then
+				echo "Postprocessing of Tex files crashed."
+			else
+				echo "Postprocessing of Tex files finished successfully."
+			fi
+		fi
 	else
-	    echo "Last command did not succeed. Postprocessing stopped."
+		echo
+	    echo "Convolusional Filtering did not succeed. Postprocessing stopped."
 	fi
 fi
 

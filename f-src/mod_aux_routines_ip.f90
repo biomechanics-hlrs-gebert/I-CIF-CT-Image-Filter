@@ -27,22 +27,30 @@ INTEGER  (KIND=ik)    , DIMENSION(:)    , ALLOCATABLE          , INTENT(OUT)    
 
 ! Internal variables
 INTEGER  (KIND=ik)                                                                 :: ii, jj, kk
+INTEGER  (KIND=ik)                                                                 :: entries, hmin, hmax, decimals, divisor
 INTEGER  (KIND=ik)    , DIMENSION(3)                                               :: shp
+CHARACTER(LEN=mcl)                                                                 :: evalstring
 
-! Calculate Notation of the histogram - done by slave processes to save time during communication
-! Histogram is scaled to INT2 because 65.535 entries are sufficient to calculate and print any histogram
-IF( (-3276700_ik > hbnds(1)) .OR.  (3276600 < hbnds(2)) ) THEN   ! bounds - 1 and *100 to scale
-  array = array / REAL(ABS(hbnds(3)), KIND= REAL64) * 3276700._rk     ! ABS to preserve sign
-END IF
+WRITE( evalstring, "(I10)" )  hbnds(3)
 
-ALLOCATE(histogram(-32768_ik:32767_ik))
+decimals = LEN(TRIM(evalstring))
+
+divisor = 10_ik * (decimals-2)    ! Get entries in the magnitude of the hundreds (decimals - 2)
+
+! Calculate Histogram boundaries
+hmin = hbnds(1) / divisor - 10_ik ! Ensures filtered image can be mapped
+hmax = hbnds(2) / divisor + 10_ik ! Integer division. Truncates towards .0     
+entries = hmax - hmin
+
+ALLOCATE(histogram(entries))
 
 shp = SHAPE(array)
 
+! Take care of sign of hmin!! Not that intuitive
 DO ii=1, shp(1)
   DO jj=1, shp(2)
     DO kk=1, shp(3)
-      histogram(INT(array(ii, jj, kk)/10000_ik)) = histogram(INT(array(ii, jj, kk)/10000_ik))+1_ik
+      histogram( array(ii, jj, kk) / divisor  - hmin ) = histogram(  array(ii, jj, kk) / divisor  - hmin  ) + 1_ik
     END DO
   END DO
 END DO
@@ -109,5 +117,49 @@ SUBROUTINE TD_Array_Scatter (size_mpi, sections)
   END SELECT
 
 END SUBROUTINE TD_Array_Scatter
+
+SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
+
+  INTEGER    (KIND = ik) , INTENT(IN)        :: fun
+  CHARACTER  (LEN  = mcl), INTENT(IN)        :: flnm_tex, flnm_pre, flnm_post
+
+  OPEN( UNIT = fun, file = TRIM(flnm_tex), action="WRITE", status="new")
+
+  WRITE(fun, '(A)')  "\documentclass{standalone}"
+  WRITE(fun, '(A)')  "\usepackage{pgfplots}"
+  WRITE(fun, '(A)')  ""
+  WRITE(fun, '(A)')  "\definecolor{hlrsblue1}{RGB}{40, 172, 226}"
+  WRITE(fun, '(A)')  "\definecolor{hlrsgray1}{RGB}{128, 128, 128}"
+  WRITE(fun, '(A)')  ""
+  WRITE(fun, '(A)')  "\begin{document}"
+  WRITE(fun, '(A)')  ""
+  WRITE(fun, '(A)')  "\begin{tikzpicture}"
+  WRITE(fun, '(A)')  "    \begin{axis}["
+  WRITE(fun, '(A)')  "        xmode=log,"
+  WRITE(fun, '(A)')  "        ymode=log,"
+  WRITE(fun, '(A)')  "        xlabel=$scaledHU$,"
+  WRITE(fun, '(A)')  "        ylabel=$Amount of Voxels$ (-),"
+  WRITE(fun, '(A)')  "        title=Histograms of ImageProcessing,"
+  WRITE(fun, '(A)')  "        grid=both,"
+  WRITE(fun, '(A)')  "        minor grid style={gray!15},"
+  WRITE(fun, '(A)')  "        major grid style={gray!15},"
+  WRITE(fun, '(A)')  "        width=0.75\linewidth,"
+  WRITE(fun, '(A)')  "        legend style={at={(1.03,0.5)},anchor=west},"
+  WRITE(fun, '(A)')  "        legend cell align={left},"
+  WRITE(fun, '(A)')  "        no marks]"
+  WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsgray1] %"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(flnm_pre),"};"
+  WRITE(fun, '(A)')  "    \addlegendentry{Histogram PRE Filter};"
+  WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsblue1] %"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(flnm_post),"};"
+  WRITE(fun, '(A)')  "    \addlegendentry{Histogram POST Filter};"
+  WRITE(fun, '(A)')  "    \end{axis}"
+  WRITE(fun, '(A)')  "    \end{tikzpicture}"
+  WRITE(fun, '(A)')  ""
+  WRITE(fun, '(A)')  "\end{document}"
+
+  CLOSE(fun)
+
+END SUBROUTINE write_tex_for_histogram
 
 END MODULE aux_routines_IP

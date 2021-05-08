@@ -337,3 +337,9 @@ TSWLatexianTemp*
 
 # vscode workspace
 .vscode
+
+# Additional working files
+*.txt
+*.tex
+*.csv
+*.pdf

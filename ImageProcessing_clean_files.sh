@@ -21,14 +21,17 @@ declare -a files=(  "./datasets/Knochenprobe_2_77_Kernel_0.vtk"   \
                     "./datasets/Knochenprobe_2_77_Kernel_3.vtk"   \
                     "./datasets/hk1_B60f_cCT_Kernel_3.vtk"        \
                     "$(date +"%m-%d-%y")_log_ImageProcessing.txt" \
-                    "$(date +"%m-%d-%y")_log_ImageProcessing_hist_PRE__FILTER.csv" \
-                    "$(date +"%m-%d-%y")_log_ImageProcessing_hist_POST_FILTER.csv" \
+                    "./tex/$(date +"%m-%d-%y")_ImageProcessing_hist_PRE__FILTER.csv" \
+                    "./tex/$(date +"%m-%d-%y")_ImageProcessing_hist_POST_FILTER.csv" \
+                    "./tex/$(date +"%m-%d-%y")_ImageProcessing_Filter_Histogram.tex" \
+                    "./tex/$(date +"%m-%d-%y")_ImageProcessing_Filter_Histogram.pdf" \
                     )
 # ------------------------------------------------------------------------------
-#
-#
-#
-#
+if [[ -f "./tex/TEX_clean_ignore.sh" ]]; then
+    cd tex
+    bash ./TEX_clean_ignore.sh
+    cd ..
+fi
 # ------------------------------------------------------------------------------
 which $program > /dev/null 2> /dev/null
 if [ $? -eq 1 ]; then
@@ -50,3 +53,4 @@ else
         fi
     done
 fi
+# ------------------------------------------------------------------------------

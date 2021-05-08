@@ -4,7 +4,7 @@
 #
 # Author:          Johannes Gebert - HLRS - NUM «gebert@hlrs.de»
 # Created:         25.04.2021
-# Last edit:       06.05.2021
+# Last edit:       09.05.2021
 #
 # Usage: source «this script»
 # ----------------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 # vulcan  - NEC Cluster
 # julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU
 export IP_ARCH="julius"
-export IP_VRSN="V0.4.0" # Filtering works like intended
+export IP_VRSN="V1.0.0" # First fully funcitonal Version
 # ----------------------------------------------------------------------------------------
 #
 # Base path of the Spatial Registration Tool
@@ -36,6 +36,7 @@ export IP_GS="1.0"             # Sigma of Gauß Kernel
 # ----------------------------------------------------------------------------------------
 # Set a filename for the log file. Empty --> stdout / shell
 export IP_LOG=$IP_PREFIX/$(date +"%m-%d-%y")"_log_ImageProcessing.txt"
+export IP_CSV_TEX=$IP_PREFIX"/tex/"$(date +"%m-%d-%y")"_ImageProcessing"
 # ----------------------------------------------------------------------------------------
 #
 # Feature deprecated with Version V0.2.0 due to performance issues. Now set in Source
