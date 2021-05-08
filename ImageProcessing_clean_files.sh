@@ -16,9 +16,10 @@ program="trash"
 # ------------------------------------------------------------------------------
 #
 # List the files you like to delete with paths relative to this directory.
-declare -a files=(  "./datasets/Knochenprobe_2_77_Kernel_0.vtk" \
-                    "./datasets/Knochenprobe_2_77_Kernel_1.vtk" \
-                    "./datasets/Knochenprobe_2_77_Kernel_3.vtk"  \
+declare -a files=(  "./datasets/Knochenprobe_2_77_Kernel_0.vtk"   \
+                    "./datasets/Knochenprobe_2_77_Kernel_1.vtk"   \
+                    "./datasets/Knochenprobe_2_77_Kernel_3.vtk"   \
+                    "./datasets/hk1_B60f_cCT_Kernel_3.vtk"        \
                     "$(date +"%m-%d-%y")_log_ImageProcessing.txt" \
                     "$(date +"%m-%d-%y")_log_ImageProcessing_hist_PRE__FILTER.csv" \
                     "$(date +"%m-%d-%y")_log_ImageProcessing_hist_POST_FILTER.csv" \

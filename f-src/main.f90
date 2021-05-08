@@ -34,7 +34,7 @@ CHARACTER(LEN = mcl)                                            :: selectKernel,
 
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, subarray_origin, clipboard
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, vox_per_dir_and_sec
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, vox_dir_padded
 
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
 REAL     (KIND = rk)                                            :: sigma, start, finish, accumulator
@@ -185,9 +185,9 @@ CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
 CALL TD_Array_Scatter (size_mpi, sections)
 
 ! Calculate Padding to decrease "size of array" to a corresponding size
-! NOT the same as kernel_spec(2) !
-border                 = FLOOR(REAL(kernel_spec(2)) / 2)
-original_image_padding = border * 2
+! Size if Kernel always an odd number. Num-1 = Voxels on both sides of filtered Voxel
+original_image_padding =  kernel_spec(2)-1_ik             ! 1D Array
+border                 = (kernel_spec(2)-1_ik) / 2_ik     ! 0D Array (scalar)
 
 ! Remainder per direction gets almost fully ignored (!) 
 ! It's assumed, that even if we split into 32768 processes (/ 32, 32, 32 /) sections,
@@ -198,7 +198,7 @@ original_image_padding = border * 2
 
 remainder_per_dir = MODULO(dims, sections)
 
-IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
+IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
         WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
         WRITE(rd_o,'(A)')
         WRITE(rd_o,'(A, 3I5)') "sections:               ", sections
@@ -218,14 +218,16 @@ ELSE
         dims_reduced   = dims - remainder_per_dir
 END IF
 
-vox_per_dir_and_sec = (dims_reduced / sections) + original_image_padding
+vox_per_dir_and_sec = (dims_reduced / sections)
+vox_dir_padded      = vox_per_dir_and_sec + original_image_padding
 
 IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
-        WRITE(rd_o,'(A, 3I5)') "dims-orig_img_padding:  ", clipboard
         WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
         WRITE(rd_o,'(A, 3I5)') "vox_per_dir_and_sec:    ", vox_per_dir_and_sec
 END IF
+
+ALLOCATE( subarray(vox_dir_padded(1), vox_dir_padded(2), vox_dir_padded(3) ) )
 
 IF (my_rank .EQ. 0) THEN
         DO ii = 1, sections(1) 
@@ -237,35 +239,35 @@ IF (my_rank .EQ. 0) THEN
 
         IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "Address: ", address, " My Rank: ",my_rank
 
-        subarray_origin = (sections-1_ik) * (vox_per_dir_and_sec - original_image_padding) + border
-
-        ! MPI_TYPE_CREATE_DARRAY may fit better, however dealing with overlaps isn't clear
-        CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-        dims                                , & ! Original array as all the addresses must fit
-        vox_per_dir_and_sec                 , &
-        subarray_origin - 1_mik             , & ! array_of_starts indexed from 0
-        MPI_ORDER_FORTRAN                   , &
-        MPI_INTEGER                         , &
-        type_subarray                       , &
-        ierr)
-        CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+        subarray_origin = (( (/ ii, jj, kk /) -1_ik) * vox_per_dir_and_sec) + border !+ 1_ik
 
         IF (address .NE. 1_ik) THEN
-                CALL MPI_SEND(array, 1_mik, type_subarray, address-1_mik, address-1_mik, MPI_COMM_WORLD, ierr )
+                CALL MPI_SEND(array(subarray_origin(1): subarray_origin(1)+vox_dir_padded(1)-1_mik,  &
+                                    subarray_origin(2): subarray_origin(2)+vox_dir_padded(2)-1_mik,  &
+                                    subarray_origin(3): subarray_origin(3)+vox_dir_padded(3)-1_mik), &
+                                    vox_dir_padded(1) * vox_dir_padded(2) * vox_dir_padded(3),       &
+                                    MPI_INTEGER, address-1_mik, address-1_mik, MPI_COMM_WORLD, ierr )
         END IF
 
-        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, I15)') "My Rank: ", address-1_ik, " Size of Subarray:", SIZE(vox_per_dir_and_sec)
-
-        CALL MPI_TYPE_FREE(type_subarray)
+        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, I15)') "Target Rank: ", address-1_ik, &
+                " Size of Subarray:", SIZE(vox_per_dir_and_sec)
 
                         END DO
                 END DO
         END DO 
+
+        subarray = array &
+                (border : border + vox_dir_padded(1) - 1_ik, &
+                 border : border + vox_dir_padded(2) - 1_ik, &
+                 border : border + vox_dir_padded(3) - 1_ik  )
+
+        DEALLOCATE(array)
+        
+        rank_section = (/ 1_ik, 1_ik, 1_ik /)
 ENDIF
 
-ALLOCATE( subarray(vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
-
 IF (my_rank > 0) THEN        
+
         ! Calculate the rank_section out of my_rank and sections (/ x, y, z /)
         ! Tested via Octave. Not fully implemented by 20210503
         zremainder = MODULO(my_rank, sections(1)*sections(2))
@@ -284,16 +286,10 @@ IF (my_rank > 0) THEN
 
         IF ( debug .EQ. 2_ik ) THEN
                 WRITE(*,'(A)') "Initialize Recv to distribute array across ranks."
-                WRITE(*,'(A, I7, A, 3I5)') "My Rank: ", my_rank, " vox_per_dir_and_sec:    ", vox_per_dir_and_sec
+                WRITE(*,'(A, I7, A, 3I5)') "My Rank: ", my_rank, " vox_dir_padded:    ", vox_dir_padded
                 WRITE(*,'(A, I7, A, I15)') "My Rank: ", my_rank, " Size of Subarray:", SIZE(subarray)
         END IF
         CALL MPI_RECV(subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
-END IF
-
-
-IF (my_rank .EQ. 0_ik) THEN
-        DEALLOCATE(array)
-        rank_section = (/ 1_ik, 1_ik, 1_ik /)
 ENDIF
 
 ! Prepare collecting the subarrays to assemble a global vtk file.
@@ -301,10 +297,9 @@ ENDIF
 
 ! subarray_reduced_boundaries
 srb (1:3) = border + 1_ik
-srb (4:6) = vox_per_dir_and_sec - border - 1_ik
+srb (4:6) = border + vox_per_dir_and_sec
 
-vox_per_dir_and_sec = vox_per_dir_and_sec - original_image_padding
-subarray_origin     = vox_per_dir_and_sec * rank_section
+subarray_origin = vox_per_dir_and_sec * (rank_section-1_ik) + 1_ik 
 
 ALLOCATE( result_subarray (vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
 
@@ -336,17 +331,17 @@ IF (kernel_spec(1) .EQ. 2_ik) THEN
                 CASE DEFAULT;     CALL kernel_identity_2d(kernel2d, kernel_spec(2))
         END SELECT
 
-        DO ii = srb(3), vox_per_dir_and_sec(3)
-        DO jj = srb(2), vox_per_dir_and_sec(2)
-        DO kk = srb(1), vox_per_dir_and_sec(1)
+        DO ii = srb(1), srb(4)
+        DO jj = srb(2), srb(5)
+        DO kk = srb(3), srb(6)
                 accumulator = 0
                 DO ll = -border, border
                 DO mm = -border, border
                         accumulator = accumulator + (kernel2d( ll+border+1_ik, mm+border+1_ik ) * &
-                                        subarray(kk + ll, jj + mm, ii))
+                                        subarray(ii + ll, jj + mm, ii))
                 END DO
                 END DO
-                result_subarray(kk - border, jj - border, ii - border) = INT(accumulator, KIND=ik)
+                result_subarray(ii - border, jj - border, kk - border) = INT(accumulator, KIND=ik)
         END DO
         END DO
         END DO
@@ -359,19 +354,19 @@ ELSE
                 CASE DEFAULT;     CALL kernel_identity_3d(kernel3d, kernel_spec(2))
         END SELECT
         
-        DO ii = srb(3), vox_per_dir_and_sec(3)
-        DO jj = srb(2), vox_per_dir_and_sec(2)
-        DO kk = srb(1), vox_per_dir_and_sec(1)
+        DO ii = srb(1), srb(4)
+        DO jj = srb(2), srb(5)
+        DO kk = srb(3), srb(6)
                 accumulator = 0
                 DO ll = -border, border
                 DO mm = -border, border
                 DO nn = -border, border
                         accumulator = accumulator + (kernel3d( ll+border+1_ik, mm+border+1_ik, nn+border+1_ik) * &
-                                        subarray(kk + ll, jj + mm, ii))
+                                        subarray(ii + ll, jj + mm, kk + nn))
                 END DO
                 END DO
                 END DO
-                result_subarray(kk - border, jj - border, ii - border) = INT(accumulator, KIND=ik)
+                result_subarray(ii - border, jj - border, kk - border) = INT(accumulator, KIND=ik)
         END DO
         END DO
         END DO
@@ -385,35 +380,13 @@ CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)
 
 ! Collect data
 IF (my_rank > 0) THEN        
-
-        ! This routine simply sends the array as is without extracting any subarray. Done to clearly show its nature as 3D array.
-        CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-                INT(SHAPE(result_subarray), KIND=mik) , &
-                vox_per_dir_and_sec                   , &
-                (/ 0_mik, 0_mik, 0_mik/)              , & ! array_of_starts indexed from 0
-                MPI_ORDER_FORTRAN                     , &
-                MPI_INTEGER                           , &
-                type_result_subarray                  , &
-                ierr)
-
-        CALL MPI_TYPE_COMMIT(type_result_subarray, ierr)
-
-        ! Bad solution in terms of sending an array from Rank 0 to Rank 0... Dunno whether this gets optimized
-        ! Should be done right... 
-        CALL MPI_SEND(result_subarray, 1_mik, type_result_subarray, 0_mik, my_rank, MPI_COMM_WORLD, ierr )
-
-        CALL MPI_TYPE_FREE(type_result_subarray) 
+        CALL MPI_SEND(result_subarray, SIZE(result_subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, ierr )
 ELSE
-        ALLOCATE( result_array(dims_reduced(1), dims_reduced(2), dims_reduced(3) ) )
+        ! ALLOCATE( result_array(dims_reduced(1), dims_reduced(2), dims_reduced(3) ) )
 
-        ! result_subarray already without padding!
-        result_array    (border : border + vox_per_dir_and_sec(1) - 1_ik,    &
-                         border : border + vox_per_dir_and_sec(2) - 1_ik,    &
-                         border : border + vox_per_dir_and_sec(3) - 1_ik ) = &
-        result_subarray (border : border + vox_per_dir_and_sec(1) - 1_ik,    &
-                         border : border + vox_per_dir_and_sec(2) - 1_ik,    &
-                         border : border + vox_per_dir_and_sec(3) - 1_ik )
- 
+        ALLOCATE( result_array(dims(1), dims(2), dims(3) ) )
+        ! result_array = 0_ik
+
         DO ii = 1, sections(1) 
                 DO jj = 1, sections(2) 
                         DO kk = 1, sections(3) 
@@ -423,25 +396,33 @@ ELSE
 
         IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "RESULT Address: ", address, " My Rank: ",my_rank
 
-        subarray_origin = (sections-1_ik) * vox_per_dir_and_sec + border
-
-        IF (address .NE. 1_ik) THEN
+        IF (address .NE. 1_ik) THEN     ! First address will be 1 (!) Cant hide first corner of 3 loops
                 CALL MPI_RECV(result_subarray, SIZE(result_subarray), MPI_INTEGER, address-1_mik, &
                 address-1_mik, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
         END IF
 
-        result_array (subarray_origin(1) : subarray_origin(1) + vox_per_dir_and_sec(1) - 1_ik, &
-                      subarray_origin(2) : subarray_origin(2) + vox_per_dir_and_sec(2) - 1_ik, &
-                      subarray_origin(3) : subarray_origin(3) + vox_per_dir_and_sec(3) - 1_ik  ) = result_subarray
+        subarray_origin = ( (/ ii, jj, kk /) - 1_ik ) * vox_per_dir_and_sec + 1_ik + border
+
+        result_array (subarray_origin(1) : subarray_origin(1) + vox_per_dir_and_sec(1)  - 1_ik , &
+                      subarray_origin(2) : subarray_origin(2) + vox_per_dir_and_sec(2)  - 1_ik , &
+                      subarray_origin(3) : subarray_origin(3) + vox_per_dir_and_sec(3)  - 1_ik ) = result_subarray
 
         IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, 3I7)') "My Rank: ", address-1_ik, " Size of Subarray:", vox_per_dir_and_sec
- write(*,*)"im here"
+
                         END DO
                 END DO
         END DO 
 ENDIF
 
 DEALLOCATE(result_subarray)
+
+
+! IF (my_rank == 0) THEN        
+
+! Allocate(array(dims(1)-1, dims(2), dims(3)))
+! array=result_array(1:dims(1)-1, 1:dims(2), 1:dims(3))
+! end if
+
 
 ! ! Collect the data of the histogram pre filtering
 ! CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, 65536_mik, MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
@@ -473,7 +454,7 @@ IF (my_rank .EQ. 0_ik) THEN
 
         fileNameExportVtk = fileName(1:LEN_TRIM(fileName)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
 
-        CALL write_vtk(fun2, fileNameExportVtk, result_array, spcng, dims_reduced)
+        CALL write_vtk(fun2, fileNameExportVtk, result_array, spcng, dims)
 
         WRITE(*,'(A)') 'VTK File export done'
 

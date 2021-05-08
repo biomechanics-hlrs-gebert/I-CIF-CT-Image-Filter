@@ -14,7 +14,7 @@
 # vulcan  - NEC Cluster
 # julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU
 export IP_ARCH="julius"
-export IP_VRSN="V0.3.0"
+export IP_VRSN="V0.4.0" # Filtering works like intended
 # ----------------------------------------------------------------------------------------
 #
 # Base path of the Spatial Registration Tool
@@ -22,14 +22,15 @@ export IP_PREFIX=$PWD
 # ----------------------------------------------------------------------------------------
 #
 # Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
-export IP_DATA_IN=$IP_PREFIX/datasets/"Knochenprobe_2_77.vtk"
+# export IP_DATA_IN=$IP_PREFIX/datasets/"Knochenprobe_2_77.vtk"
+export IP_DATA_IN=$IP_PREFIX/datasets/"hk1_B60f_cCT.vtk"
 # export IP_DATA_IN=$IP_PREFIX/datasets/"Knochenprobe_2_7.vtk"
 # ----------------------------------------------------------------------------------------
 #
 # Steering parameters
 #
 export IP_MODE_K="3"           # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
-export IP_SELECT_K="Identity"  # Select Kernel      ['Identity', 'Gaussian']
+export IP_SELECT_K="Gaussian"  # Select Kernel      ['Identity', 'Gaussian']
 export IP_SIZE_K="3"           # Size of Kernel
 export IP_GS="1.0"             # Sigma of Gauß Kernel
 # ----------------------------------------------------------------------------------------
