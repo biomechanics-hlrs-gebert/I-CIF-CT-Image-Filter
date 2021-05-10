@@ -23,14 +23,16 @@ IMPLICIT NONE
 ! MPI: Kind=32 Bit / 4 Byte / ik=4 - Change in «working_directory/f-src/mod_standards.f90 
 
 ! Parameter
-INTEGER  (KIND = ik), PARAMETER                                 :: debug = 1
-INTEGER  (KIND = ik), PARAMETER                                 :: fun1 = 5     ! File unit h pre
-INTEGER  (KIND = ik), PARAMETER                                 :: fun2 = 10    ! File unit h post
-INTEGER  (KIND = ik), PARAMETER                                 :: fun3 = 15    ! File unit tex
+INTEGER  (KIND = ik), PARAMETER                                 :: debug     = 1
+INTEGER  (KIND = ik), PARAMETER                                 :: fun_input = 999   ! Unit of Input file
+INTEGER  (KIND = ik), PARAMETER                                 :: fun1      = 5     ! File unit h pre
+INTEGER  (KIND = ik), PARAMETER                                 :: fun2      = 10    ! File unit h post
+INTEGER  (KIND = ik), PARAMETER                                 :: fun3      = 15    ! File unit tex
 
 ! Internal Variables
 CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
-INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address, border, yremainder, zremainder
+INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address
+INTEGER  (KIND = ik)                                            :: counter, border, yremainder, zremainder
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
 CHARACTER(LEN = mcl)                                            :: selectKernel, sizekernel_str, KernelMode_str
 
@@ -61,6 +63,11 @@ INTEGER  (KIND = ik)           , DIMENSION(3)                   :: hbnds
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
 
+! Read Input file
+CHARACTER(len=mcl)                                              :: suf, line, inputfile, prefix
+INTEGER  (KIND=ik)                                              :: io_status, ntokens
+CHARACTER(len=mcl)                                              :: tokens(100)
+
 ! MPI Variables
 INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi
 TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
@@ -68,7 +75,7 @@ TYPE(MPI_DATATYPE)                                              :: type_subarray
 ! Debug Variables
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
 CHARACTER(LEN = mcl)                                            :: log_file, csv_tex_file
-LOGICAL                                                         :: log_exist = .FALSE.
+LOGICAL                                                         :: log_exist = .FALSE., inp_exist = .FALSE.
 
 !----------------------------------
 ! Initialize MPI Environment
@@ -96,8 +103,57 @@ IF (my_rank .EQ. 0) THEN
         ! Read input (from environment sh)
         !---------------------------------- 
 
-        !-- Create log-file
-        CALL GET_COMMAND_ARGUMENT(2, log_file)
+        CALL GET_COMMAND_ARGUMENT(1, prefix)
+
+        CALL GET_COMMAND_ARGUMENT(2, inputfile)
+
+        INQUIRE(FILE=TRIM(prefix)//TRIM(inputfile), EXIST=inp_exist)
+
+        IF ( inp_exist .EQV. .TRUE. ) THEN
+
+                suf=inputfile(LEN_TRIM(inputfile)-4 : LEN_TRIM(inputfile))
+                IF (suf .EQ. "input" ) THEN
+
+                        OPEN(UNIT=fun_input, FILE=TRIM(inputfile), STATUS="OLD")
+
+                        counter = 0_ik
+                        DO
+                            READ(fun_input, '(A)', iostat=io_status) line
+                            if ( io_status .NE. 0_ik ) exit
+                            counter = counter + 1_ik
+                        END DO
+
+                        DO ii=1, counter
+                                READ(fun_input,'(A)') line
+                              
+                                CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
+                                
+                                IF (ntokens > 0) THEN
+                    
+                                        SELECT CASE( tokens(1) )
+                                                CASE("IP_DATA_IN");     fileName = TRIM(prefix)//tokens(2)
+                                                CASE("IP_MODE_K");      READ(tokens(2),'(I4)') kernel_spec(1)
+                                                CASE("IP_SELECT_K");    selectKernel = tokens(2)
+                                                CASE("IP_SIZE_K");      READ(tokens(2),'(I4)') kernel_spec(2)
+                                                CASE("IP_GS");          READ(tokens(2),'(F8.3)') sigma
+                                                CASE("IP_CSV_TEX");     csv_tex_file = TRIM(prefix)//tokens(2)              
+                                        END SELECT
+                                END IF
+
+                        END DO
+
+                        CLOSE(fun_input)
+                ELSE
+                        WRITE(*,'(A)') "No valid input file given."
+                        CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
+                END IF
+                
+        ELSE
+                WRITE(*,'(A)') "Input file already exits."
+                CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_FILE_EXISTS, ierr)
+        ENDIF
+
+        log_file  = TRIM(fileName(1:(LEN_TRIM(fileName) - 4_ik )))//".log"
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
 
@@ -108,39 +164,12 @@ IF (my_rank .EQ. 0) THEN
               OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
         ENDIF
 
-        ! VTK file name
-        CALL GET_COMMAND_ARGUMENT(1, fileName)
-        ! Kernel Mode - 2D/3D 
-        CALL GET_COMMAND_ARGUMENT(3, KernelMode_str)
-        READ(KernelMode_str,'(I4)') kernel_spec(1)
-        ! Kernel for image processing ['0': Identity kernel, '1': Gaussian filter]
-        CALL GET_COMMAND_ARGUMENT(4, selectKernel)
-        ! Kernel size
-        CALL GET_COMMAND_ARGUMENT(5, sizeKernel_str)
-        READ(sizeKernel_str,'(I4)') kernel_spec(2)
-        ! For gaussian filter kernel, sigma is required
-        CALL GET_COMMAND_ARGUMENT(6, sigma_str)
-        READ(sigma_str,'(F8.3)') sigma
-
-        CALL GET_COMMAND_ARGUMENT(7, version)    
-
-        CALL GET_COMMAND_ARGUMENT(8, csv_tex_file)    
-
         !----------------------------------
         ! Calculation
         !----------------------------------
 
         ! Track calculation time
         CALL CPU_TIME(start)
-
-        ! Titlescreen - Switched to Layout from standards.f90 - Can be changed without an issue
-        WRITE(*,'(A)')  std_lnbrk
-        WRITE(*,'(A)')  'Image Processing'
-        WRITE(*,'(A)')  ''
-        WRITE(*,'(A)')  'Authors: Benjamin Schnabel, Johannes Gebert | HLRS - NUM'
-        WRITE(*,'(2A)') 'Version: ', TRIM(version)
-        WRITE(*,'(A)')  std_lnbrk
-        WRITE(*,'(A)')
 
         CALL DATE_AND_TIME(date, time)
 
@@ -174,9 +203,7 @@ IF (my_rank .EQ. 0) THEN
         ! Logfile suffices because type of Filter is controlled outside pretty clearly
 
         ! Import VTK file
-        WRITE(*,'(A)') 'VTK File import started'
         CALL read_vtk(fun1, fileName, array, dims, spcng)
-        WRITE(*,'(A)') 'VTK File import done'
 
         ! Get the output Filenames of the Histograms
         histogram_filename_pre__Filter = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_hist_PRE__FILTER.csv"
@@ -466,14 +493,11 @@ IF (my_rank .EQ. 0_ik) THEN
 
 
         ! Export VTK file (testing)
-        WRITE(*,'(A)') 'VTK File export started'
         WRITE(n2s,*) kernel_spec(1)
 
         fileNameExportVtk = fileName(1:LEN_TRIM(fileName)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
 
         CALL write_vtk(fun2, fileNameExportVtk, result_array, spcng, dims)
-
-        WRITE(*,'(A)') 'VTK File export done'
 
         DEALLOCATE(result_array)
         

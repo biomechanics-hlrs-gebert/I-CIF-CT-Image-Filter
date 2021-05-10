@@ -1,0 +1,27 @@
+# ----------------------------------------------------------------------------------------
+# Set Steering Parameters for Image Processig / 3D Convolusional Filtering
+#
+# Author:          Johannes Gebert - HLRS - NUM «gebert@hlrs.de»
+# Created:         10.05.2021
+# Last edit:       10.05.2021
+#
+# ----------------------------------------------------------------------------------------
+#
+# Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
+#
+# IP_DATA_IN   /datasets/"Knochenprobe_2_77.vtk"
+# IP_DATA_IN   /datasets/"hk1_B60f_cCT.vtk"
+  IP_DATA_IN   /datasets/Knochenprobe2.int1.stream.vtk
+# IP_DATA_IN   /datasets/"Knochenprobe_2_7.vtk"
+# ----------------------------------------------------------------------------------------
+#
+# Steering parameters
+#
+IP_MODE_K     3            # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
+IP_SELECT_K   Gaussian     # Select Kernel      ['Identity', 'Gaussian']
+IP_SIZE_K     3            # Size of Kernel
+IP_GS         1.0          # Sigma of Gauß Kernel
+# ----------------------------------------------------------------------------------------
+# Set a relative path for the tex files. 
+IP_CSV_TEX    /tex/
+# ----------------------------------------------------------------------------------------

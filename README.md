@@ -2,7 +2,7 @@
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
-![version](https://img.shields.io/badge/version-0.1.0-red)
+![version](https://img.shields.io/badge/version-1.0.0-green)
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
 ![Contributors](https://img.shields.io/badge/Contributors-2-blue)
 
@@ -19,7 +19,7 @@ Currently, it's under development. Terms like "Scalar Fields", "Voxel Grids" and
 ... are transfered via file exchange and are not pushed into the repository. 
 
 ## Primary target of this program
-Simply put, Image Processing aims at filtering Computed Tomography Scans (basically scalar fields) according to our need of exposing a proper histogram for thresholding and binarizing in subsequent programs.
+Simply put, Image Processing aims at filtering Computed Tomography Scans (basically scalar fields) according to our need of exposing a proper histogram for thresholding and binarizing in subsequent programs.git
 
 ## Development of new features
 All new features or parts of the tool are developed via branches. At any time, a version which compiles and executes and which does not necessarily crash is kept on the Repo's master branch.
@@ -62,7 +62,7 @@ The program may be ported to other architectures. Maybe not :-)
 ## Build/Install
 It's tested and therefore recommended to build and rund the program as follows.
 ### Set up the Environment variables within 
-```./1_ImageProcessing_Environment.sh```
+```./source2set_Environment.sh```
 
 1. Set an Architecture
 2. Define the Hardware Architecture; optional:
@@ -72,7 +72,7 @@ It's tested and therefore recommended to build and rund the program as follows.
 
 ### Run make:
 ```
-source 1_ImageProcessing_Environment.sh
+source source2set_Environment.sh
 make
 ```
 ### Uninstall:
@@ -84,20 +84,12 @@ rm -r «your program directory»
 ## Usage
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible.
 ### Set up the parametrization with proper parameters within 
-```source 1_ImageProcessing_Environment.sh```
+```bin/ImageProcessing_Parameters.input```
 
-1. (Set an Architecture)
-2. Set a base path - usually the one this README.md is located in
-3. Give the absolute path of an input dataset
-5. Define steering parameters
-6. Set a filename to write the log to
-7. Define a Debugging level 
+1. Give the absolute path of an input dataset
+2. Define steering parameters
 
-   * 0 = Production
-   * 1 = Standard development debugging level
-   * 2 = Detailed output of some subroutines and steps.
-
-```./2_ImageProcessing_StartApp.sh```
+```./bin/HLRS_NUM_3D_Convolusional_Filtering.run```
 
 You may need to manually remove result files. It's strongly recommended not to delete these data automatically, due to results of lots of compute hours, which may be lost.
 

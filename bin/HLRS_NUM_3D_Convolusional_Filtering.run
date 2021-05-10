@@ -1,0 +1,111 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# Image Processing - Start Application
+#
+# Author:          Johannes Gebert «gebert@hlrs.de»
+# Created:         25.04.2021
+# Last edit:       10.05.2021
+# ------------------------------------------------------------------------------
+#
+err {
+  echo "Please source the environment file before."
+  exit 1
+}
+#
+# Check whether all requirements are met
+if [ -z $IP_PREFIX ] || [ -z $IP_ARCH ]; then
+    err
+fi
+#
+if [ -z $1 ]; then
+    echo
+    echo "Please specify the amount of processors required:"
+    echo "./this_script «amount of processors»"
+    echo
+    echo "At least 2, at max. the amount of processors of your computer."
+    echo
+    exit 1
+fi
+# -----------------------------------------------------------------------------
+#
+# Start program
+case $IP_ARCH in
+
+julius)
+    echo "Start Parallel Image Processing."
+    echo
+    mpirun $IP_COMP_DBG -np $1  $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
+                                                                                    $IP_PREFIX         \
+                                                                                    $IP_DATA_IN
+                                                                                    # 
+    postprocessing=$?			
+    ;;
+
+vulcan)
+    #PBS -N run_Image_Processing
+    #PBS -l select=2:node_type=skl:mpiprocs=40
+    #PBS -l walltime=00:20:00
+
+    # Change to the direcotry that the job was submitted from
+    cd $PBS_O_WORKDIR
+
+    # using the INTEL MPI module
+    module load mpi/openmpi/4.0.5-gnu-10.2.0
+
+    # Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
+    mpirun -np $1 $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
+                                                                       $IP_PREFIX        \
+                                                                       $IP_DATA_IN
+    postprocessing=99999	
+    ;;
+
+hawk)
+    echo "Please test and implement on Hawk as well :-)"
+    echo "Sorry for the inconvenience atm."
+    exit 1
+    ;;
+
+*)
+    err
+    ;;
+esac
+# ------------------------------------------------------------------------------
+#
+# Use this lines for basic postprocessing directives. Only valid on Julius.
+if [ $postprocessing -eq 0 ]; then
+    echo
+    echo "Parallel Image Processing finished successfully."
+    echo "Postprocessing of Tex files started."
+    echo
+
+    which pdflatex > /dev/null 2> /dev/null
+    if [ $? -eq 1 ]; then
+        echo "Pdflatex not available."
+        echo "Postprocessing stopped."
+    else
+
+        pdflatex -shell-escape -interaction nonstopmode -halt-on-error -file-line-error -output-directory=$PWD/tex/  $IP_CSV_TEX"_Filter_Histogram.tex" > $PWD/tex/"pdflatex_compile_"$ii"_.log"			
+        
+        if [ $? -eq 0 ]; then
+            cd tex
+            ./TEX_clean_ignore.sh
+            cd ..
+        fi
+
+        echo
+        if [ $? -eq 1 ]; then
+            echo "Postprocessing of Tex files crashed."
+        else
+            echo "Postprocessing of Tex files finished successfully."
+        fi
+    fi
+elif [ postprocessing -eq 99999 ]; then
+    echo 
+    echo "The Program was run on "$IP_ARCH". Therefore, the texfiles were not compiled."
+    echo 
+else
+    echo
+    echo "Convolusional Filtering did not succeed. Postprocessing stopped."
+fi
+
+
