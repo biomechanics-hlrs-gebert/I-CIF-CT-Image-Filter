@@ -66,20 +66,16 @@ else
         mpi_prefix="/opt/mpi/openmpi-4.1.0"
         export PATH=${mpi_prefix}/bin:$PATH
         export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
-        export IP_PREFIX_BIN     = $IP_PREFIX'/bin'
-        export IP_PREFIX_CSV_TEX = $IP_PREFIX'/tex'
-        export IP_PREFIX_DATA    = $IP_PREFIX'/datasets'
         ;;
 
     vulcan)
         module load mpi/openmpi/4.1.0-gnu-10.3.0 > /dev/null 2> /dev/null
 
+        which mpirun  > /dev/null 2> /dev/null
+
         if [ $? -eq 0 ]; then
             export PATH=${mpi_prefix}/bin:$PATH
             export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
-            export IP_PREFIX_BIN     = $IP_PREFIX
-            export IP_PREFIX_CSV_TEX = $IP_PREFIX
-            export IP_PREFIX_DATA    = $IP_PREFIX
         else
             err
         fi

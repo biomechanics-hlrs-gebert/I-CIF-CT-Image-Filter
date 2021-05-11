@@ -6,7 +6,7 @@ PROGRAM main
 ! Author:  Johannes Gebert - HLRS - NUM
 ! GitHub:  https://github.com/bennyschnabel/image_processing
 ! Date:    23.04.2021
-! LastMod: 09.05.2021
+! LastMod: 12.05.2021
 !-------------------------------
 
 USE ISO_FORTRAN_ENV
