@@ -8,7 +8,7 @@
 # ----------------------------------------------------------------------------------------
 #
 # Set current Version
-export IP_VRSN="V1.0.0" # First fully funcitonal Version
+export IP_VRSN="V2.0.0" # First Vulcan compatible Version
 # ----------------------------------------------------------------------------------------
 #
 #
@@ -66,6 +66,9 @@ else
         mpi_prefix="/opt/mpi/openmpi-4.1.0"
         export PATH=${mpi_prefix}/bin:$PATH
         export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
+        export IP_PREFIX_BIN     = $IP_PREFIX'/bin'
+        export IP_PREFIX_CSV_TEX = $IP_PREFIX'/tex'
+        export IP_PREFIX_DATA    = $IP_PREFIX'/datasets'
         ;;
 
     vulcan)
@@ -74,6 +77,9 @@ else
         if [ $? -eq 0 ]; then
             export PATH=${mpi_prefix}/bin:$PATH
             export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
+            export IP_PREFIX_BIN     = $IP_PREFIX
+            export IP_PREFIX_CSV_TEX = $IP_PREFIX
+            export IP_PREFIX_DATA    = $IP_PREFIX
         else
             err
         fi

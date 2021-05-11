@@ -42,7 +42,7 @@ INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced,
 
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
 REAL     (KIND = rk)                                            :: sigma, start, finish, accumulator
-CHARACTER(LEN = mcl)                                            :: sigma_str, version
+CHARACTER(LEN = mcl)                                            :: sigma_str, version, basename
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
 REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
@@ -51,7 +51,7 @@ CHARACTER(LEN =   8)                                            :: date
 CHARACTER(LEN =  10)                                            :: time
 
 ! Histogram Variables
-CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter 
+CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter
 CHARACTER(LEN = mcl)                                            :: histogram_filename_post_Filter
 CHARACTER(LEN = mcl)                                            :: histogram_filename_tex_Filter
 INTEGER  (KIND = ik), PARAMETER                                 :: fl_un_H_pre=41, fl_un_H_post=42
@@ -64,23 +64,20 @@ INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
 
 ! Read Input file
-CHARACTER(len=mcl)                                              :: suf, line, inputfile, prefix
-INTEGER  (KIND=ik)                                              :: io_status, ntokens
+CHARACTER(len=mcl)                                              :: suf, line, parameterfile, prefix
+INTEGER  (KIND=ik)                                              :: io_status, ntokens, cmd_stt
 CHARACTER(len=mcl)                                              :: tokens(100)
 
 ! MPI Variables
-INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi
+INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi, status
 TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
 
 ! Debug Variables
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
-CHARACTER(LEN = mcl)                                            :: log_file, csv_tex_file
+CHARACTER(LEN = mcl)                                            :: log_file, csv_tex_dir, bin_dir, data_dir
 LOGICAL                                                         :: log_exist = .FALSE., inp_exist = .FALSE.
 
-!----------------------------------
 ! Initialize MPI Environment
-!----------------------------------
-
 CALL MPI_INIT(ierr)
 CALL MPI_ERR(ierr,"MPI_INIT didn't succeed")
 
@@ -96,77 +93,66 @@ IF (size_mpi < 2) THEN
         CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
 END IF
 
-! Start serialized sequence
+! Initialize program itself
 IF (my_rank .EQ. 0) THEN
 
-        !----------------------------------
-        ! Read input (from environment sh)
-        !---------------------------------- 
-
         CALL GET_COMMAND_ARGUMENT(1, prefix)
+        CALL GET_COMMAND_ARGUMENT(2, parameterfile)
 
-        CALL GET_COMMAND_ARGUMENT(2, inputfile)
+        ! Check validity of the input file
+        IF ( parameterfile(1:1) .EQ. '.'  ) parameterfile = parameterfile ( 2:LEN_TRIM(parameterfile) )
 
-        INQUIRE(FILE=TRIM(prefix)//TRIM(inputfile), EXIST=inp_exist)
+        parameterfile = TRIM(prefix)//'/'//TRIM(parameterfile)
 
-        IF ( inp_exist .EQV. .TRUE. ) THEN
+        CALL check_file_exist( filename = parameterfile, must_exist=1_ik, mpi=.TRUE.)
+               
+        ! Open the input file
+        OPEN(UNIT=fun_input, FILE=TRIM(parameterfile), STATUS="OLD")
 
-                suf=inputfile(LEN_TRIM(inputfile)-4 : LEN_TRIM(inputfile))
-                IF (suf .EQ. "input" ) THEN
+        ! Count lines of input file
+        counter = 0_ik
+        DO
+                READ(fun_input, '(A)', iostat=io_status) line
+                if ( io_status .NE. 0_ik ) exit
+                counter = counter + 1_ik
+        END DO
 
-                        OPEN(UNIT=fun_input, FILE=TRIM(inputfile), STATUS="OLD")
+        CLOSE(fun_input)
+        OPEN(UNIT=fun_input, FILE=TRIM(parameterfile), STATUS="OLD")
 
-                        counter = 0_ik
-                        DO
-                            READ(fun_input, '(A)', iostat=io_status) line
-                            if ( io_status .NE. 0_ik ) exit
-                            counter = counter + 1_ik
-                        END DO
-
-                        DO ii=1, counter
-                                READ(fun_input,'(A)') line
-                              
-                                CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
-                                
-                                IF (ntokens > 0) THEN
-                    
-                                        SELECT CASE( tokens(1) )
-                                                CASE("IP_DATA_IN");     fileName = TRIM(prefix)//tokens(2)
-                                                CASE("IP_MODE_K");      READ(tokens(2),'(I4)') kernel_spec(1)
-                                                CASE("IP_SELECT_K");    selectKernel = tokens(2)
-                                                CASE("IP_SIZE_K");      READ(tokens(2),'(I4)') kernel_spec(2)
-                                                CASE("IP_GS");          READ(tokens(2),'(F8.3)') sigma
-                                                CASE("IP_CSV_TEX");     csv_tex_file = TRIM(prefix)//tokens(2)              
-                                        END SELECT
-                                END IF
-
-                        END DO
-
-                        CLOSE(fun_input)
-                ELSE
-                        WRITE(*,'(A)') "No valid input file given."
-                        CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
-                END IF
+        ! Parse input file
+        DO ii=1, counter
+                READ(fun_input,'(A)') line
                 
-        ELSE
-                WRITE(*,'(A)') "Input file already exits."
-                CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_FILE_EXISTS, ierr)
-        ENDIF
+                CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
+                
+                IF (ntokens > 0) THEN
+        
+                        SELECT CASE( tokens(1) )
+                                CASE("IP_DATA_IN");     fileName = TRIM(prefix)//tokens(2)
+                                CASE("IP_MODE_K");      READ(tokens(2),'(I4)') kernel_spec(1)
+                                CASE("IP_SELECT_K");    selectKernel = tokens(2)
+                                CASE("IP_SIZE_K");      READ(tokens(2),'(I4)') kernel_spec(2)
+                                CASE("IP_GS");          READ(tokens(2),'(F8.3)') sigma
+                        END SELECT
+                END IF
+         END DO
+       
+        CLOSE(fun_input)
 
+        ! Get basename of vtk file
+        CALL parse( str=fileName, delims="/", args=tokens, nargs=ntokens)
+
+        basename = tokens(ntokens)
+        basename = TRIM(fileName(1:(LEN_TRIM(fileName) - 4_ik )))
+
+        ! Log in dir of vtk - not its basename!!
         log_file  = TRIM(fileName(1:(LEN_TRIM(fileName) - 4_ik )))//".log"
+        CALL check_file_exist( filename = log_file, must_exist=0_ik, mpi=.TRUE.)
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
 
-        IF ( log_exist .EQV. .TRUE. ) THEN
-              WRITE(*,'(A)') "Log file already exists! Program aborted."
-              CALL MPI_ABORT(MPI_COMM_WORLD, MPI_ERR_FILE_EXISTS, ierr)
-        ELSE
-              OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
-        ENDIF
-
-        !----------------------------------
-        ! Calculation
-        !----------------------------------
+        OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
 
         ! Track calculation time
         CALL CPU_TIME(start)
@@ -196,19 +182,13 @@ CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, M
 CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD)
 
 IF (my_rank .EQ. 0) THEN
- 
-        WRITE(*,'(A)')
-
-        ! Write kernel to terminal
-        ! Logfile suffices because type of Filter is controlled outside pretty clearly
-
-        ! Import VTK file
+         ! Import VTK file
         CALL read_vtk(fun1, fileName, array, dims, spcng)
 
         ! Get the output Filenames of the Histograms
-        histogram_filename_pre__Filter = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_hist_PRE__FILTER.csv"
-        histogram_filename_post_Filter = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_hist_POST_FILTER.csv"
-        histogram_filename_tex_Filter  = TRIM(csv_tex_file(1:(LEN_TRIM(csv_tex_file))))//"_Filter_Histogram.tex"
+        histogram_filename_pre__Filter = TRIM(basename)//'_hist_PRE__FILTER.csv'
+        histogram_filename_post_Filter = TRIM(basename)//'_hist_POST_FILTER.csv'
+        histogram_filename_tex_Filter  = TRIM(basename)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank .EQ. 0)
 
 CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
@@ -508,10 +488,6 @@ IF (my_rank .EQ. 0_ik) THEN
         ENDIF
 
         CALL CPU_TIME(finish)
-
-        WRITE(*,*)
-        WRITE(*,'(A7, F8.3, A8)') 'Time = ', (finish - start) / 60,' Minutes'
-        WRITE(*,'(A)')
 
         IF ( (debug .GE. 0_ik) .AND. (my_rank .EQ. 0_ik)) THEN
                 WRITE(rd_o,'(A)')            std_lnbrk
