@@ -38,6 +38,8 @@ if [ $? -eq 1 ]; then
     echo "Please make «$program» available."
     if [ "$program" == "trash" ]; then
         echo "You may download it here: https://github.com/andreafrancia/trash-cli"
+        echo 
+        echo "You can also change this script to use 'rm' via a variable at the top"
     fi
 else
     for i in "${files[@]}"

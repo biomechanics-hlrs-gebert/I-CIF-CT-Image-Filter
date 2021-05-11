@@ -21,7 +21,7 @@
 MODULE file_routines
 
 USE ISO_FORTRAN_ENV
-USE MPI_F08
+USE MPI
 USE standards
 USE strings
 
@@ -61,6 +61,7 @@ end subroutine mpi_err
    INTEGER  (KIND=ik)    , INTENT(OUT), OPTIONAL          :: status
    !-- Internal Variables
    LOGICAL                                                :: exist=.FALSE.
+   INTEGER  (KIND=ik)                                     :: ierr
 
    INQUIRE (FILE = TRIM(filename), EXIST = exist)
 
@@ -70,7 +71,7 @@ end subroutine mpi_err
          WRITE(*,'(2A)') TRIM(filename), ' already exists! Program aborted.'; WRITE(*,'(A)')
 
          IF ( mpi .EQV. .TRUE. ) THEN
-            CALL MPI_ABORT(MPI_COMM_WORLD, 28_mik)
+            CALL MPI_ABORT(MPI_COMM_WORLD, 28_mik, ierr) ! ierr is de facto a dummy
          ELSE
             STOP
          END IF
@@ -82,7 +83,7 @@ end subroutine mpi_err
          WRITE(*,'(2A)') TRIM(filename), ' does not exist! Program aborted.'; WRITE(*,'(A)')
 
          IF ( mpi .EQV. .TRUE. ) THEN
-            CALL MPI_ABORT(MPI_COMM_WORLD, 42_mik)
+            CALL MPI_ABORT(MPI_COMM_WORLD, 42_mik, ierr) ! ierr is de facto a dummy
          ELSE
             STOP
          END IF

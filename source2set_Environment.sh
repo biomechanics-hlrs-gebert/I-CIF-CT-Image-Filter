@@ -63,7 +63,7 @@ else
     case $IP_ARCH in
 
     julius)
-        mpi_prefix="/opt/mpi/openmpi-4.1.0"
+        mpi_prefix="/opt/mpi/openmpi-NO_F08-4.1.0"
         export PATH=${mpi_prefix}/bin:$PATH
         export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
         ;;

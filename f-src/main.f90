@@ -10,7 +10,7 @@ PROGRAM main
 !-------------------------------
 
 USE ISO_FORTRAN_ENV
-USE MPI_F08
+USE MPI
 USE file_routines     
 USE kernels
 USE strings
@@ -70,7 +70,8 @@ CHARACTER(len=mcl)                                              :: tokens(100)
 
 ! MPI Variables
 INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi, status
-TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
+! Obsolete but noted....
+! TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
 
 ! Debug Variables
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
@@ -147,7 +148,7 @@ IF (my_rank .EQ. 0) THEN
         basename = TRIM(fileName(1:(LEN_TRIM(fileName) - 4_ik )))
 
         ! Log in dir of vtk - not its basename!!
-        log_file  = TRIM(fileName(1:(LEN_TRIM(fileName) - 4_ik )))//".log"
+        log_file  = TRIM(basename)//".log"
         CALL check_file_exist( filename = log_file, must_exist=0_ik, mpi=.TRUE.)
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
@@ -177,9 +178,9 @@ IF (my_rank .EQ. 0) THEN
 ENDIF ! (my_rank .EQ. 0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
-CALL MPI_BCAST (kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
-CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD)
-CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD)
+CALL MPI_BCAST (kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
 
 IF (my_rank .EQ. 0) THEN
          ! Import VTK file
@@ -191,7 +192,7 @@ IF (my_rank .EQ. 0) THEN
         histogram_filename_tex_Filter  = TRIM(basename)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank .EQ. 0)
 
-CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD)
+CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
 
 ! Get sections per direction
 CALL TD_Array_Scatter (size_mpi, sections)

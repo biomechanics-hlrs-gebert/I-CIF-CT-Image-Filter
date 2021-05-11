@@ -54,9 +54,6 @@ vulcan)
     # Change to the direcotry that the job was submitted from
     cd $PBS_O_WORKDIR
 
-    # using the INTEL MPI module
-    module load mpi/openmpi/4.0.5-gnu-10.2.0
-
     # Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
     mpirun -np $1 $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
                                                                        $IP_PREFIX        \
@@ -104,7 +101,7 @@ if [ $postprocessing -eq 0 ]; then
             echo "Postprocessing of Tex files finished successfully."
         fi
     fi
-elif [ postprocessing -eq 99999 ]; then
+elif [ $postprocessing -eq 99999 ]; then
     echo 
     echo "The Program was run on "$IP_ARCH". Therefore, the texfiles were not compiled."
     echo 
