@@ -4,7 +4,7 @@
 #
 # Author:          Johannes Gebert «gebert@hlrs.de»
 # Created:         25.04.2021
-# Last edit:       10.05.2021
+# Last edit:       12.05.2021
 # ------------------------------------------------------------------------------
 #
 errsource ()
@@ -86,7 +86,7 @@ if [ $postprocessing -eq 0 ]; then
         echo "Postprocessing stopped."
     else
 
-        pdflatex -shell-escape -interaction nonstopmode -halt-on-error -file-line-error -output-directory=$PWD/datasets/  $IP_CSV_TEX"_Filter_Histogram.tex" > $PWD/datasets/"pdflatex_compile_"$ii"_.log"			
+        pdflatex -shell-escape -interaction nonstopmode -halt-on-error -file-line-error -output-directory=$PWD/datasets/  "./datasets/"*".tex" > $PWD/datasets/"pdflatex_compile_"$ii"_.log"			
         
         if [ $? -eq 0 ]; then
             # cd datasets

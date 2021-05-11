@@ -4,11 +4,11 @@
 #
 # Author:          Johannes Gebert - HLRS - NUM «gebert@hlrs.de»
 # Created:         10.05.2021
-# Last edit:       10.05.2021
+# Last edit:       12.05.2021
 # ----------------------------------------------------------------------------------------
 #
 # Set current Version
-export IP_VRSN="V2.0.0" # First Vulcan compatible Version
+export IP_VRSN="V2.1.0" # Fully Vulcan compatible Version
 # ----------------------------------------------------------------------------------------
 #
 #

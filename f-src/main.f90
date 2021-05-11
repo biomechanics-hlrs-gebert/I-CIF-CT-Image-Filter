@@ -331,7 +331,6 @@ hbnds    = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_
 IF (my_rank .EQ. 0_ik) THEN
         WRITE(rd_o,'(A)')      "Histogramm  FLOOR(min | max / 10) defines boundaries of Histogramm Files."
         WRITE(rd_o,'(A, 3I8)') "Histogramm min/max/delta:", hbnds
-        CLOSE(rd_o); OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="old")
 END IF
 
 ! Prior to image filtering
@@ -490,11 +489,9 @@ IF (my_rank .EQ. 0_ik) THEN
 
         CALL CPU_TIME(finish)
 
-        IF ( (debug .GE. 0_ik) .AND. (my_rank .EQ. 0_ik)) THEN
-                WRITE(rd_o,'(A)')            std_lnbrk
-                WRITE(rd_o,'(A7, F8.3, A8)') 'Time = ', (finish - start) / 60,' Minutes'
-                CLOSE(rd_o)
-        END IF      
+        WRITE(rd_o,'(A)')            std_lnbrk
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Time = ', (finish - start) / 60,' Minutes'
+        CLOSE(rd_o)     
 
 ENDIF 
 
