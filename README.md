@@ -71,12 +71,16 @@ It's tested and therefore recommended to build and rund the program as follows.
    2. Alternatively give the proper module names of your compute cluster
 
 ### Run make:
-```make```
+```
+source ./source2set_Environment.sh «Architecture»
+make
+```
 ### Uninstall:
 ```make clean && rm -r «your program directory»```
 
 ## Usage
-It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible.
+It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible. To run the binary, you have to source the Environment file, too.
+
 ### Set up the parametrization with proper parameters within 
 ```./bin/ImageProcessing_Parameters.input```
 
