@@ -78,13 +78,13 @@ It's tested and therefore recommended to build and rund the program as follows.
 ## Usage
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible.
 ### Set up the parametrization with proper parameters within 
-```bin/ImageProcessing_Parameters.input```
+```./bin/ImageProcessing_Parameters.input```
 
 1. Give the absolute path of an input dataset
 2. Define steering parameters
 3. Depending on the architecture, define proper parameters in
 
-```bin/HLRS_NUM_3D_Convolusional_Filtering.pbs```
+```./bin/HLRS_NUM_3D_Convolusional_Filtering.pbs```
 
 ### Start the program
 
