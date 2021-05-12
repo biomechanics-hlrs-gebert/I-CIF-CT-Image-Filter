@@ -60,7 +60,7 @@ Required: MPI - compiled with integer 4 and mpi_f08 - simply run ```./Open-MPI_i
 The program may be ported to other architectures. Maybe not :-)
 
 ## Build/Install
-It's tested and therefore recommended to build and rund the program as follows.
+It's tested and therefore recommended to build and run the program as follows.
 ### Set up the Environment variables within 
 ```./source2set_Environment.sh```
 
