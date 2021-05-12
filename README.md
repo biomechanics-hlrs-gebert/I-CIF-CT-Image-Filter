@@ -2,7 +2,7 @@
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
-![version](https://img.shields.io/badge/version-1.0.0-green)
+![version](https://img.shields.io/badge/version-2.1.0-green)
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
 ![Contributors](https://img.shields.io/badge/Contributors-2-blue)
 
@@ -71,15 +71,9 @@ It's tested and therefore recommended to build and rund the program as follows.
    2. Alternatively give the proper module names of your compute cluster
 
 ### Run make:
-```
-source source2set_Environment.sh
-make
-```
+```make```
 ### Uninstall:
-```
-make clean
-rm -r «your program directory»
-```
+```make clean && rm -r «your program directory»```
 
 ## Usage
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible.
@@ -88,6 +82,11 @@ It's recommended to use the BASh scripts to control program flow. However, manua
 
 1. Give the absolute path of an input dataset
 2. Define steering parameters
+3. Depending on the architecture, define proper parameters in
+
+```bin/HLRS_NUM_3D_Convolusional_Filtering.pbs```
+
+### Start the program
 
 ```./bin/HLRS_NUM_3D_Convolusional_Filtering.run```
 
