@@ -71,8 +71,6 @@ else
     vulcan)
         module load mpi/openmpi/4.1.0-gnu-10.3.0 > /dev/null 2> /dev/null
 
-        which mpirun  > /dev/null 2> /dev/null
-
         if [ $? -eq 0 ]; then
             export PATH=${mpi_prefix}/bin:$PATH
             export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH

@@ -16,7 +16,7 @@ errsource ()
 errinput ()
 {
     echo
-    echo "Please specify the amount of processors required:"
+    echo "Please specify the amount of processors required. Even on Clusters, despite the Processors are defined within this file (!) It's a double check."
     echo "./this_script «amount of processors»"
     echo
     echo "At least 2, at max. the amount of processors of your computer."
@@ -29,7 +29,7 @@ if [ -z $IP_PREFIX ] || [ -z $IP_ARCH ]; then
     errsource
 fi
 #
-if [ -z $1 ] || [ -z $2 ]; then
+if [ -z $1 ] || [ -z $2 ] && [ "$IP_ARCH" == "julius" ]; then
     errinput
 fi
 # -----------------------------------------------------------------------------
@@ -47,17 +47,8 @@ julius)
     ;;
 
 vulcan)
-    #PBS -N run_Image_Processing
-    #PBS -l select=2:node_type=skl:mpiprocs=40
-    #PBS -l walltime=00:20:00
+    qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.pbs
 
-    # Change to the direcotry that the job was submitted from
-    cd $PBS_O_WORKDIR
-
-    # Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
-    mpirun -np $1 $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
-                                                                       $IP_PREFIX        \
-                                                                       $2
     postprocessing=99999	
     ;;
 
