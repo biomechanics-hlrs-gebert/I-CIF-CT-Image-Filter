@@ -1,3 +1,4 @@
+#!/bin/bash
 # ----------------------------------------------------------------------------------------
 # Set Steering Parameters for Image Processig / 3D Convolusional Filtering
 #
@@ -7,18 +8,26 @@
 #
 # ----------------------------------------------------------------------------------------
 #
+# This file acts as an input file for reading Parameters into 3D Convolusional Filtering.
+# However, it's a bash script as well. 
+# 
+# IMPORTANT: 
+# 1) Only lines containing an uncommented (exported) variable are read by the program. 
+# 2) Ensure, there always is a space ' ' between '#' and a variable/'export' 
+# ----------------------------------------------------------------------------------------
+#
 # Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
 #
-# IP_DATA_IN   /datasets/Knochenprobe_2_77.vtk
-  IP_DATA_IN   /datasets/hk1_B60f_cCT.vtk
-# IP_DATA_IN   /datasets/Knochenprobe2.int1.stream.vtk
-# IP_DATA_IN   /datasets/Knochenprobe_2_7.vtk
+# export IP_DATA_IN=/datasets/Knochenprobe_2_77.vtk
+  export IP_DATA_IN=/datasets/hk1_B60f_cCT.vtk
+# export IP_DATA_IN=/datasets/Knochenprobe2.int1.stream.vtk
+# export IP_DATA_IN=/datasets/Knochenprobe_2_7.vtk
 # ----------------------------------------------------------------------------------------
 #
 # Steering parameters
 #
-IP_MODE_K     3            # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
-IP_SELECT_K   Gaussian     # Select Kernel      ['Identity', 'Gaussian']
-IP_SIZE_K     3            # Size of Kernel
-IP_GS         1.0          # Sigma of Gauß Kernel
+export IP_SELECT_K=Gaussian   # Select Kernel      ['Identity', 'Gaussian']
+export IP_MODE_K=3            # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
+export IP_SIZE_K=3            # Size of Kernel
+export IP_GS=1.0              # Sigma of Gauß Kernel
 # ----------------------------------------------------------------------------------------

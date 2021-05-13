@@ -8,7 +8,7 @@
 # ----------------------------------------------------------------------------------------
 #
 # Set current Version
-export IP_VRSN="V2.1.0" # Fully Vulcan compatible Version
+export IP_VRSN="V2.1.1" # Fully Vulcan compatible Version
 # ----------------------------------------------------------------------------------------
 #
 #

@@ -67,6 +67,8 @@ INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre
 CHARACTER(len=mcl)                                              :: suf, line, parameterfile, prefix
 INTEGER  (KIND=ik)                                              :: io_status, ntokens, cmd_stt
 CHARACTER(len=mcl)                                              :: tokens(100)
+CHARACTER(len=mcl)                                              :: tkns(100)
+
 
 ! MPI Variables
 INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi, status
@@ -129,13 +131,18 @@ IF (my_rank .EQ. 0) THEN
                 
                 IF (ntokens > 0) THEN
         
-                        SELECT CASE( tokens(1) )
-                                CASE("IP_DATA_IN");     fileName = TRIM(prefix)//tokens(2)
-                                CASE("IP_MODE_K");      READ(tokens(2),'(I4)') kernel_spec(1)
-                                CASE("IP_SELECT_K");    selectKernel = tokens(2)
-                                CASE("IP_SIZE_K");      READ(tokens(2),'(I4)') kernel_spec(2)
-                                CASE("IP_GS");          READ(tokens(2),'(F8.3)') sigma
-                        END SELECT
+                        IF ( tokens(1) .NE. "#" ) THEN
+
+                                CALL parse(str=tokens(2), delims="=", args=tkns, nargs=ntokens)
+
+                                SELECT CASE( tkns(1) )
+                                        CASE("IP_DATA_IN");     fileName = TRIM(prefix)//tkns(2)
+                                        CASE("IP_MODE_K");      READ(tkns(2),'(I4)') kernel_spec(1)
+                                        CASE("IP_SELECT_K");    selectKernel = tkns(2)
+                                        CASE("IP_SIZE_K");      READ(tkns(2),'(I4)') kernel_spec(2)
+                                        CASE("IP_GS");          READ(tkns(2),'(F8.3)') sigma
+                                END SELECT
+                        END IF
                 END IF
          END DO
        
