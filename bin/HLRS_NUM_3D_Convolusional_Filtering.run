@@ -16,7 +16,7 @@ errsource ()
 errinput ()
 {
     echo
-    echo "Please specify the amount of processors required. Even on Clusters, despite the Processors are defined within this file (!) It's a double check."
+    echo "Please specify the amount of processors required."
     echo "./this_script «amount of processors»"
     echo
     echo "At least 2, at max. the amount of processors of your computer."
@@ -28,16 +28,16 @@ errinput ()
 if [ -z $IP_PREFIX ] || [ -z $IP_ARCH ]; then
     errsource
 fi
-#
-if [ -z $1 ] || [ -z $2 ] && [ "$IP_ARCH" == "julius" ]; then
-    errinput
-fi
 # -----------------------------------------------------------------------------
 #
 # Start program
 case $IP_ARCH in
 
 julius)
+    #
+    if [ -z $1 ] || [ -z $2 ]; then
+        errinput
+    fi
     echo "Start Parallel Image Processing."
     echo
     mpirun $IP_COMP_DBG -np $1  $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
@@ -48,12 +48,12 @@ julius)
 
 vulcan)
     qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.vulcan.pbs
-    postprocessing=99999	
+    exit 0
     ;;
 
 hawk)
     qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.hawk.pbs
-    postprocessing=99999	
+    exit 0	
     ;;
 
 *)
@@ -88,10 +88,6 @@ if [ $postprocessing -eq 0 ]; then
             echo "Postprocessing of Tex files finished successfully."
         fi
     fi
-elif [ $postprocessing -eq 99999 ]; then
-    echo 
-    echo "The Program was run on "$IP_ARCH". Therefore, the texfiles were not compiled."
-    echo 
 else
     echo
     echo "Convolusional Filtering did not succeed. Postprocessing stopped."

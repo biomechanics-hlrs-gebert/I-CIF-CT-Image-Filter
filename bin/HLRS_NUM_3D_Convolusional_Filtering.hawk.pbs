@@ -7,7 +7,7 @@
 # Last edit:       15.05.2021
 # ------------------------------------------------------------------------------
 #PBS -N run_Image_Processing
-#PBS -l select=2:node_type=rome:mpiprocs=64:node_type_mem=256gb
+#PBS -l select=2:node_type=rome:mpiprocs=128:node_type_mem=256gb
 #PBS -l walltime=00:20:00
 
 # Change to the direcotry that the job was submitted from

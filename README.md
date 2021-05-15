@@ -6,26 +6,34 @@
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
 ![Contributors](https://img.shields.io/badge/Contributors-2-blue)
 
-
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS *.vtk files and filters them according to specific convolutional matrices/Kernels.
 
 Currently, it's under development. Terms like "Scalar Fields", "Voxel Grids" and "Array (of Field Quantities)" are context dependent but in some ways interchangable synonyms.
 
-- [x] All documentation is done in :us: to quickly accomodate non-native speakers.
-- [x] Updates done to get to publication-readiness.
-- [ ] Publish repository for demonstrating current progress to partners and HLRS employees.
+## Table of contents
+- [Intent](#primary)
+- [Development](#development)
+- [Requirements](#requirements)
+- [Build](#build)
+- [Usage](#usage)
+- [Additional Information](additional-information)
 
-## Datasets and other large files...
-... are transfered via file exchange and are not pushed into the repository. 
-
-## Primary target of this program
+## Intent of this program
 Simply put, Image Processing aims at filtering Computed Tomography Scans (basically scalar fields) according to our need of exposing a proper histogram for thresholding and binarizing in subsequent programs.git
 
-## Development of new features
+## Development
 All new features or parts of the tool are developed via branches. At any time, a version which compiles and executes and which does not necessarily crash is kept on the Repo's master branch.
 
 Developing new features and calculations with C or Fortran may render a cumbersome undertaking. Utilizing an interpreted language or interpreting framework like MatLab, Octave, Python or sth. else is welcomed. However, please push *all* of the development files into this repository/testing/A... directory structure.
 
+### Testcases
+Create new testcases in ./testing.
+Some of the Testprograms are written in Fortran and compiled with a BASh-Script (not with a makefile).
+
+```
+sudo chmod +x «compile_testcase.f90»
+./«compile_testcase.f90»
+```
 ### We apply *a slightly modified* [semantic versioning](https://semver.org):
 
 Given a version number MAJOR.MINOR.PATCH, increment the:
@@ -59,7 +67,7 @@ Required: MPI - compiled with integer 4 and mpi_f08 - simply run ```./Open-MPI_i
 
 The program may be ported to other architectures. Maybe not :-)
 
-## Build/Install
+## Build
 It's tested and therefore recommended to build and run the program as follows.
 ### Set up the Environment variables within 
 ```./source2set_Environment.sh```
@@ -102,20 +110,24 @@ To get the best result on HLRS Hawk, you may want to exploit spatial locality vi
 
 However this is an assumption, which is not tested by end of April 2021.
 
-### Create Testcases
-Create new testcases in ./testing.
-Some of the Testprograms are written in Fortran and compiled with a BASh-Script (not with a makefile).
+### Datasets
+... are transfered via file exchange and are not pushed into the repository. 
 
-```
-sudo chmod +x «compile_testcase.f90»
-./«compile_testcase.f90»
-```
-## Developers
+
+## Additional Information
+### Developers
 | Surname   | Name     | Department   |
 |-----------| ---------| -------------|
 | Schnabel  | Benjamin | HLRS - NUM   |
 | Gebert    | Johannes | HLRS - NUM   |
-## Limits
+### External Sources
+Plain text headers are parsed via a [strings module](https://gbenthien.net/strings/index.html) by George Benthien from San Diego.
+### ToDo
+- [x] All documentation is done in :us: to quickly accomodate non-native speakers.
+- [x] Updates done to get to publication-readiness.
+- [ ] Publish repository for demonstrating current progress to partners and HLRS employees.
+### Limits
 Will follow.
-## Arbitrary
+### Arbitrary
 Use this program at your own risk.
+
