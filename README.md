@@ -116,10 +116,28 @@ However this is an assumption, which is not tested by end of April 2021.
 
 ## Additional Information
 ### Developers
-| Surname   | Name     | Department   |
-|-----------| ---------| -------------|
-| Schnabel  | Benjamin | HLRS - NUM   |
-| Gebert    | Johannes | HLRS - NUM   |
+<table>
+<thead>
+  <tr>
+    <th>Surname</th>
+    <th>Name</th>
+    <th>Department</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Schnabel</td>
+    <td>Benjamin</td>
+    <td>HLRS - NUM</td>
+  </tr>
+  <tr>
+    <td>Gebert</td>
+    <td>Johannes</td>
+    <td>HLRS - NUM</td>
+  </tr>
+</tbody>
+</table>
+
 ### External Sources
 Plain text headers are parsed via a [strings module](https://gbenthien.net/strings/index.html) by George Benthien from San Diego.
 ### ToDo
