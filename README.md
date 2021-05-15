@@ -116,27 +116,37 @@ However this is an assumption, which is not tested by end of April 2021.
 
 ## Additional Information
 ### Developers
-<table>
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-09zz{background-color:#FFF;border-color:#ffffff;color:#28ace2;font-weight:bold;text-align:center;vertical-align:middle}
+.tg .tg-cerr{background-color:#FFF;border-color:#ffffff;color:#24292E;text-align:left;vertical-align:middle}
+</style>
+<table class="tg">
 <thead>
   <tr>
-    <th>Surname</th>
-    <th>Name</th>
-    <th>Department</th>
+    <th class="tg-09zz"><span style="font-weight:600">Surname</span></th>
+    <th class="tg-09zz"><span style="font-weight:600">Name</span></th>
+    <th class="tg-09zz"><span style="font-weight:600">Department</span></th>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td>Schnabel</td>
-    <td>Benjamin</td>
-    <td>HLRS - NUM</td>
+    <td class="tg-cerr">Schnabel</td>
+    <td class="tg-cerr">Benjamin</td>
+    <td class="tg-cerr">HLRS - NUM</td>
   </tr>
   <tr>
-    <td>Gebert</td>
-    <td>Johannes</td>
-    <td>HLRS - NUM</td>
+    <td class="tg-cerr">Gebert</td>
+    <td class="tg-cerr">Johannes</td>
+    <td class="tg-cerr">HLRS - NUM</td>
   </tr>
 </tbody>
 </table>
+
 
 ### External Sources
 Plain text headers are parsed via a [strings module](https://gbenthien.net/strings/index.html) by George Benthien from San Diego.
