@@ -47,15 +47,13 @@ julius)
     ;;
 
 vulcan)
-    qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.pbs
-
+    qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.vulcan.pbs
     postprocessing=99999	
     ;;
 
 hawk)
-    echo "Please test and implement on Hawk as well :-)"
-    echo "Sorry for the inconvenience atm."
-    exit 1
+    qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.hawk.pbs
+    postprocessing=99999	
     ;;
 
 *)
@@ -80,9 +78,7 @@ if [ $postprocessing -eq 0 ]; then
         pdflatex -shell-escape -interaction nonstopmode -halt-on-error -file-line-error -output-directory=$PWD/datasets/  "./datasets/"*".tex" > $PWD/datasets/"pdflatex_compile_"$ii"_.log"			
         
         if [ $? -eq 0 ]; then
-            # cd datasets
             ./datasets/TEX_clean_ignore.sh
-            # cd ..
         fi
 
         echo
