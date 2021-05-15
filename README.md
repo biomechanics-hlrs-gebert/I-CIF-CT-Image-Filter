@@ -116,33 +116,24 @@ However this is an assumption, which is not tested by end of April 2021.
 
 ## Additional Information
 ### Developers
-<style type="text/css">
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-09zz{background-color:#FFF;border-color:#ffffff;color:#28ace2;font-weight:bold;text-align:center;vertical-align:middle}
-.tg .tg-cerr{background-color:#FFF;border-color:#ffffff;color:#24292E;text-align:left;vertical-align:middle}
-</style>
-<table class="tg">
+<table>
 <thead>
   <tr>
-    <th class="tg-09zz"><span style="font-weight:600">Surname</span></th>
-    <th class="tg-09zz"><span style="font-weight:600">Name</span></th>
-    <th class="tg-09zz"><span style="font-weight:600">Department</span></th>
+    <th>Surname</th>
+    <th>Name</th>
+    <th>Department</th>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td class="tg-cerr">Schnabel</td>
-    <td class="tg-cerr">Benjamin</td>
-    <td class="tg-cerr">HLRS - NUM</td>
+    <td>Schnabel</td>
+    <td>Benjamin</td>
+    <td>HLRS - NUM</td>
   </tr>
   <tr>
-    <td class="tg-cerr">Gebert</td>
-    <td class="tg-cerr">Johannes</td>
-    <td class="tg-cerr">HLRS - NUM</td>
+    <td>Gebert</td>
+    <td>Johannes</td>
+    <td>HLRS - NUM</td>
   </tr>
 </tbody>
 </table>
