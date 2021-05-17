@@ -1,4 +1,4 @@
-# Image Processing - 3D Convolusional Filtering
+# 3D Convolusional Filtering
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
