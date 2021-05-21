@@ -30,6 +30,9 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fun2      = 1
 INTEGER  (KIND = ik), PARAMETER                                 :: fun3      = 15    ! File unit tex
 
 ! Internal Variables
+REAL     (KIND = rk)                                            :: global_start, global_finish, Collect_data 
+REAL     (KIND = rk)                                            :: calculation, read_t_vtk, mpi_comm_1, init_finish
+REAL     (KIND = rk)                                            :: array_distribution, prep_distribution
 CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
 INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address
 INTEGER  (KIND = ik)                                            :: counter, border, yremainder, zremainder
@@ -41,7 +44,7 @@ INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, ran
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, vox_dir_padded
 
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
-REAL     (KIND = rk)                                            :: sigma, start, finish, accumulator
+REAL     (KIND = rk)                                            :: sigma, accumulator
 CHARACTER(LEN = mcl)                                            :: sigma_str, version, basename
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
@@ -98,6 +101,9 @@ END IF
 
 ! Initialize program itself
 IF (my_rank .EQ. 0) THEN
+
+        ! Initialization
+        CALL CPU_TIME(global_start)
 
         CALL GET_COMMAND_ARGUMENT(1, prefix)
         CALL GET_COMMAND_ARGUMENT(2, parameterfile)
@@ -160,10 +166,7 @@ IF (my_rank .EQ. 0) THEN
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
 
-        OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
-
-        ! Track calculation time
-        CALL CPU_TIME(start)
+        OPEN(UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
 
         CALL DATE_AND_TIME(date, time)
 
@@ -181,6 +184,7 @@ IF (my_rank .EQ. 0) THEN
                 WRITE(rd_o,'(A)')      std_lnbrk
         END IF
         
+        CALL CPU_TIME(init_finish)
 
 ENDIF ! (my_rank .EQ. 0)
 
@@ -190,8 +194,14 @@ CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, M
 CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
 
 IF (my_rank .EQ. 0) THEN
+
+        CALL CPU_TIME(mpi_comm_1)
+
          ! Import VTK file
-        CALL read_vtk(fun1, fileName, array, dims, spcng)
+        CALL read_vtk(fun=fun1, fl=fileName, array=array, dims=dims, spcng=spcng, log_un=rd_o, status_o=status)
+        IF (status .EQ. 1_ik) CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)      
+
+        CALL CPU_TIME(read_t_vtk)
 
         ! Get the output Filenames of the Histograms
         histogram_filename_pre__Filter = TRIM(basename)//'_hist_PRE__FILTER.csv'
@@ -251,6 +261,8 @@ END IF
 ALLOCATE( subarray(vox_dir_padded(1), vox_dir_padded(2), vox_dir_padded(3) ) )
 
 IF (my_rank .EQ. 0) THEN
+        CALL CPU_TIME(prep_distribution)
+
         DO ii = 1, sections(1) 
                 DO jj = 1, sections(2) 
                         DO kk = 1, sections(3) 
@@ -285,6 +297,8 @@ IF (my_rank .EQ. 0) THEN
         DEALLOCATE(array)
         
         rank_section = (/ 1_ik, 1_ik, 1_ik /)
+
+        CALL CPU_TIME(array_distribution)
 ENDIF
 
 IF (my_rank > 0) THEN        
@@ -372,6 +386,8 @@ IF (kernel_spec(1) .EQ. 2_ik) THEN
         END DO
         END DO
 ELSE    
+        CALL CPU_TIME(calculation)
+
         ! 3D is considered a default
         ALLOCATE( kernel3d(kernel_spec(2), kernel_spec(2), kernel_spec(2)))
 
@@ -456,6 +472,7 @@ CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_p
 
 
 IF (my_rank .EQ. 0_ik) THEN
+        CALL CPU_TIME(Collect_data)
 
         ! Export Histogram of Scalar Array pre Filtering
         OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
@@ -494,10 +511,19 @@ IF (my_rank .EQ. 0_ik) THEN
                 DEALLOCATE(kernel3d)
         ENDIF
 
-        CALL CPU_TIME(finish)
+        CALL CPU_TIME(global_finish)
 
-        WRITE(rd_o,'(A)')            std_lnbrk
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Time = ', (finish - start) / 60,' Minutes'
+        WRITE(rd_o,'(A)') std_lnbrk
+        WRITE(rd_o,'(A)') 
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Init and parsing        = ', (init_finish             - global_start)      ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Broadcast metadata      = ', (mpi_comm_1              - init_finish)       ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Read File               = ', (read_t_vtk              - mpi_comm_1)        ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Prep array distribution = ', (prep_distribution       - read_t_vtk)        ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Array      distribution = ', (array_distribution      - prep_distribution) ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Calculation             = ', (calculation             - array_distribution),' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Collect data            = ', (Collect_data            - calculation)       ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Write all data          = ', (global_finish           - Collect_data)      ,' Seconds'
+        WRITE(rd_o,'(A7, F8.3, A8)') 'Overall Time            = ', (global_finish           - global_start)      ,' Seconds'
         CLOSE(rd_o)     
 
 ENDIF 

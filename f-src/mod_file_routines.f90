@@ -346,49 +346,50 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
 
         OPEN(UNIT=fun, FILE=fl, CONVERT='LITTLE_ENDIAN', ACCESS="STREAM", FORM="UNFORMATTED", STATUS="OLD")
 
-        IF (TRIM(token(2)) == "float" .OR. TRIM(token(3)) == "float" ) THEN
+      IF (TRIM(token(2)) == "float" .OR. TRIM(token(3)) == "float" ) THEN
 
-           IF(knd==4_ik) THEN
-              ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
-              READ(UNIT=fun, POS=hdr_lngth) array_r_four(:,:,:)
-              array = INT(array_r_four, KIND=ik)
-              DEALLOCATE(array_r_four)
-           END IF
+      IF(knd==4_ik) THEN
+         ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array_r_four(:,:,:)
+         array = INT(array_r_four, KIND=ik)
+         DEALLOCATE(array_r_four)
+      END IF
 
-        ELSE IF (TRIM(token(2)) == "double" .OR. TRIM(token(3)) == "double" ) THEN
+      ELSE IF (TRIM(token(2)) == "double" .OR. TRIM(token(3)) == "double" ) THEN
 
-           IF(knd==8_ik) THEN
+      IF(knd==8_ik) THEN
+         ALLOCATE(array_r_eight(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array_r_eight(:,:,:)
+         array = INT(array_r_eight, KIND=ik)
+         DEALLOCATE(array_r_eight)
+      END IF
 
-            ALLOCATE(array_r_eight(dims(1),dims(2),dims(3)))
-            READ(UNIT=fun, POS=hdr_lngth) array_r_eight(:,:,:)
-            array = INT(array_r_eight, KIND=ik)
-            DEALLOCATE(array_r_eight)
-
-           END IF
-
-        ELSE IF (TRIM(token(2)) == "short" .OR. TRIM(token(3)) == "short") THEN
-
+      ELSE IF (TRIM(token(2)) == "short" .OR. TRIM(token(3)) == "short") THEN
          ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
          READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
-         array = REAL(array_i_two, KIND=ik)
+         array = REAL(array_i_two, KIND=ik) 
          DEALLOCATE(array_i_two)
+      ELSE IF (TRIM(token(2)) == "unsigned_short" .OR. TRIM(token(3)) == "unsigned_short") THEN
 
-        ELSE IF (TRIM(token(2)) == "unsigned_short" .OR. TRIM(token(3)) == "unsigned_short") THEN
-
-         ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
+      ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
          READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
-         WHERE (array_i_two > 2**3-1) array_i_two = array_i_two-2**4+1
+
+         IF (MINVAL(array_i_two) .LT. 0_ik) THEN
+            WRITE(log_un,'(A)') 'INVALID INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
+            status_o = 1_ik
+         END IF 
+
          array = INT(array_i_two, KIND=ik)
-         DEALLOCATE(array_i_two)
+      DEALLOCATE(array_i_two)
 
-        ELSE IF (TRIM(token(2)) == "int" .OR. TRIM(token(3)) == "int") THEN
-           ALLOCATE(array(dims(1),dims(2),dims(3)))
-           READ(UNIT=fun, POS=hdr_lngth) array(:,:,:)
-        ELSE
-           status = 4
-           WRITE(lui,'(3A)')    "The data type of the input file ",fl," was not identified."
-           WRITE(lui,'(A)')    "Check header/input file. Program aborted."
-        END IF ! if token ==  for data type, allocation and reading
+      ELSE IF (TRIM(token(2)) == "int" .OR. TRIM(token(3)) == "int") THEN
+         ALLOCATE(array(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array(:,:,:)
+      ELSE
+         status = 4
+         WRITE(lui,'(3A)')    "The data type of the input file ",fl," was not identified."
+         WRITE(lui,'(A)')    "Check header/input file. Program aborted."
+      END IF ! if token ==  for data type, allocation and reading
 
         CLOSE(fun)
 
