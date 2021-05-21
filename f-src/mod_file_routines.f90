@@ -351,7 +351,7 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
            IF(knd==4_ik) THEN
               ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
               READ(UNIT=fun, POS=hdr_lngth) array_r_four(:,:,:)
-              array = REAL(array_r_four, KIND=REAL64)
+              array = INT(array_r_four, KIND=ik)
               DEALLOCATE(array_r_four)
            END IF
 
@@ -371,6 +371,14 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
          ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
          READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
          array = REAL(array_i_two, KIND=ik)
+         DEALLOCATE(array_i_two)
+
+        ELSE IF (TRIM(token(2)) == "unsigned_short" .OR. TRIM(token(3)) == "unsigned_short") THEN
+
+         ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
+         WHERE (array_i_two > 2**3-1) array_i_two = array_i_two-2**4+1
+         array = INT(array_i_two, KIND=ik)
          DEALLOCATE(array_i_two)
 
         ELSE IF (TRIM(token(2)) == "int" .OR. TRIM(token(3)) == "int") THEN
@@ -453,9 +461,6 @@ SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
   INTEGER  (KIND=ik)                                                               :: lui
   INTEGER  (KIND=INT64)                                                            :: file_size
 
-  CALL CPU_TIME(start)
-
-  !-- General
   INQUIRE(FILE=TRIM(fl), EXIST=exist, SIZE=file_size)
   log_exist = PRESENT(log_un)
 
@@ -480,7 +485,7 @@ SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
 
         IF(kind==4_ik) THEN
            ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
-           READ(fun) array_r_four(:,:,:)
+           READ(fun) array_r_four(:,:,:)    
            array = REAL(array_r_four, KIND=REAL64)
            DEALLOCATE(array_r_four)
         ELSE IF(kind==8_ik) THEN
