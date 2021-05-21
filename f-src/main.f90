@@ -199,7 +199,10 @@ IF (my_rank .EQ. 0) THEN
 
          ! Import VTK file
         CALL read_vtk(fun=fun1, fl=fileName, array=array, dims=dims, spcng=spcng, log_un=rd_o, status_o=status)
-        IF (status .EQ. 1_ik) CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)      
+        IF (status .EQ. 1_ik) THEN
+                CLOSE(rd_o)     
+                CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)      
+        ENDIF
 
         CALL CPU_TIME(read_t_vtk)
 
