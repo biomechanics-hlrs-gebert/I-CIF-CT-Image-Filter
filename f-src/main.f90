@@ -518,15 +518,16 @@ IF (my_rank .EQ. 0_ik) THEN
 
         WRITE(rd_o,'(A)') std_lnbrk
         WRITE(rd_o,'(A)') 
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Init and parsing        = ', (init_finish             - global_start)      ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Broadcast metadata      = ', (mpi_comm_1              - init_finish)       ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Read File               = ', (read_t_vtk              - mpi_comm_1)        ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Prep array distribution = ', (prep_distribution       - read_t_vtk)        ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Array      distribution = ', (array_distribution      - prep_distribution) ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Calculation             = ', (calculation             - array_distribution),' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Collect data            = ', (Collect_data            - calculation)       ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Write all data          = ', (global_finish           - Collect_data)      ,' Seconds'
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Overall Time            = ', (global_finish           - global_start)      ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Init and parsing        = ', (init_finish             - global_start)      ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Broadcast metadata      = ', (mpi_comm_1              - init_finish)       ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Read File               = ', (read_t_vtk              - mpi_comm_1)        ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Prep array distribution = ', (prep_distribution       - read_t_vtk)        ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Array      distribution = ', (array_distribution      - prep_distribution) ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Calculation             = ', (calculation             - array_distribution),' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Collect data            = ', (Collect_data            - calculation)       ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Write all data          = ', (global_finish           - Collect_data)      ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time            = ', (global_finish           - global_start)      ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time            = ', (global_finish           - global_start) / 60 ,' Minutes'
         CLOSE(rd_o)     
 
 ENDIF 

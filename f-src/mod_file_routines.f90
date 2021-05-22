@@ -365,6 +365,7 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
       END IF
 
       ELSE IF (TRIM(token(2)) == "short" .OR. TRIM(token(3)) == "short") THEN
+         knd = 2_ik
          ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
          READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
          array = REAL(array_i_two, KIND=ik) 
@@ -372,6 +373,8 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
       ELSE IF (TRIM(token(2)) == "unsigned_short" .OR. TRIM(token(3)) == "unsigned_short") THEN
 
       ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
+         knd = -2_ik
+
          READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
 
          IF (MINVAL(array_i_two) .LT. 0_ik) THEN
@@ -412,7 +415,6 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
            WRITE(lui,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
            WRITE(lui,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
            CALL CPU_TIME(end)             ! deliberately put here to get most realistic impression
-           WRITE(lui,'(A,F9.4,A)')    "Time to read file:               ", end-start, " seconds"
         END IF  ! print log output
 
      ELSE
@@ -529,8 +531,8 @@ SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
         WRITE(lui,'(A)')
         WRITE(lui,'(A,A)')         "Input file                           ", TRIM(fl)
         WRITE(lui,'(A)')           "Read raw module assumes Little-Endian while reading array!"
-        CALL CPU_TIME(end)             ! deliberately put here to get most realistic impression
-        WRITE(lui,'(A,F9.4)')      "Time to read file:               ", end-start
+      !   CALL CPU_TIME(end)             ! deliberately put here to get most realistic impression
+      !   WRITE(lui,'(A,F9.4)')      "Time to read file:               ", end-start
      END IF  ! print log output
 
 ELSE
