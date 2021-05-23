@@ -58,22 +58,25 @@ END DO
 END SUBROUTINE extract_histogram_scalar_array
 
 
-SUBROUTINE TD_Array_Scatter (size_mpi, sections)
+SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
   ! Three-Dimensional Array Scatter Routine
   ! Calculate how many sections per direction are ideal to split an array via mpi
   ! It was written to scatter a 3D Array, however it may suit to differnt purposes
   ! IT IS HIGHLY RECOMMENDED TO PROVIDE A COMMON AMOUNT OF PROCESSORS AS SOME MAY BE UNUSED due to the nature of 3D arrays.
   
-  INTEGER(kind=ik)                , INTENT(IN)  :: size_mpi
-  INTEGER(kind=ik), DIMENSION(3)  , INTENT(OUT) :: sections
+  INTEGER(KIND = ik)                        , INTENT(IN)  :: domains
+  INTEGER(KIND = ik), DIMENSION(3)          , INTENT(OUT) :: sections
+  INTEGER(KIND = ik)              , OPTIONAL, INTENT(IN)  :: domain
+  INTEGER(KIND = ik), DIMENSION(3), OPTIONAL, INTENT(OUT) :: rank_section
 
   ! Internal Variables
-  INTEGER(KIND=ik)                              :: sw=0, true_size
+  INTEGER(KIND = ik)                                      :: sw=0, true_size
+  INTEGER(KIND = ik)                                      :: yremainder, zremainder
 
   ! Power of 2 is handled here, because with the algorithm of CASE DEFAULT, Greedy suboptimality kicks in!  
   ! Have a look at the corresponding Matlab/Octave testing file!
   ! In example at size_mpi = 128 Processors, where CASE DEFAULT will deliver 125 Processors!
-  SELECT CASE(size_mpi)
+  SELECT CASE(domains)
   CASE(2);     sections = (/  2,  1,  1 /)
   CASE(3);     sections = (/  3,  1,  1 /) ! Implementing it prevents crashing :)
   CASE(4);     sections = (/  2,  2,  1 /)
@@ -107,18 +110,43 @@ SUBROUTINE TD_Array_Scatter (size_mpi, sections)
   CASE(16384); sections = (/ 32, 32, 16 /)
   CASE(32768); sections = (/ 32, 32, 32 /)
   CASE DEFAULT
-      ! If no option fits - a power of 2 will suffice. A lot of the processors may not get utilized then(!)
-      true_size  = size_mpi - MODULO(size_mpi, 2_ik)
-      sections   = (/ 1, 1, 1 /)
-      DO WHILE (PRODUCT(sections) < true_size)
-                                              sections(1) = sections(1) + 1_ik; sw=1_ik
-            IF (PRODUCT(sections) < true_size) sections(2) = sections(2) + 1_ik; sw=2_ik
-            IF (PRODUCT(sections) < true_size) sections(3) = sections(3) + 1_ik; sw=3_ik
-      END DO
-      sections(sw) = sections(sw) - 1_ik 
+    ! If no option fits - a power of 2 will suffice. A lot of the processors may not get utilized then(!)
+    true_size  = domains - MODULO(domains, 2_ik)
+    sections   = (/ 1, 1, 1 /)
+    DO WHILE (PRODUCT(sections) < true_size)
+                                             sections(1) = sections(1) + 1_ik; sw=1_ik
+          IF (PRODUCT(sections) < true_size) sections(2) = sections(2) + 1_ik; sw=2_ik
+          IF (PRODUCT(sections) < true_size) sections(3) = sections(3) + 1_ik; sw=3_ik
+    END DO
+    sections(sw) = sections(sw) - 1_ik 
   END SELECT
 
-END SUBROUTINE TD_Array_Scatter
+  IF (PRESENT(domain)) THEN
+
+    IF ( domain .EQ. 1_ik ) THEN
+      rank_section = (/ 1_ik, 1_ik, 1_ik /)
+    ELSE
+      ! Calculate the rank_section out of my_rank and sections (/ x, y, z /)
+      ! Tested via Octave. Not fully implemented by 20210503
+      zremainder = MODULO(domain, sections(1)*sections(2))
+      IF (zremainder .EQ. 0_ik) THEN
+              rank_section = (/ sections(1), sections(2), (domain - zremainder) / (sections(1)*sections(2)) /)
+      ELSE
+              rank_section(3) = (domain - zremainder) / (sections(1) * sections(2)) 
+      yremainder = MODULO(zremainder, sections(1))
+
+      IF (yremainder .EQ. 0_ik) THEN
+              rank_section = (/ sections(1), (zremainder - yremainder) / sections(1), rank_section(3)+1 /)
+      ELSE
+              rank_section = (/ yremainder, (zremainder - yremainder) / sections(1) + 1_ik, rank_section(3) + 1_ik /)
+      END IF
+    END IF
+  END IF
+
+END IF
+
+
+END SUBROUTINE r3_array_sectioning
 
 SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
 

@@ -66,7 +66,7 @@ MAIN_bin = $(bin_dir)HLRS_NUM_3D_Convolusional_Filtering_$(trgt_vrsn)_$(bin_suf)
 f-objects = $(obj_dir)mod_standards$(obj_ext)                          \
 			$(obj_dir)mod_kernels$(obj_ext)                            \
 			$(obj_dir)mod_stringmod$(obj_ext)                          \
-			$(obj_dir)mod_file_routines$(obj_ext)  		               \
+			$(obj_dir)mod_file_routines_mpi$(obj_ext)  		           \
 			$(obj_dir)mod_aux_routines_ip$(obj_ext)  		           \
 			$(obj_dir)main$(obj_ext)
 # --------------------------------------------------------------------------------------------------
@@ -87,14 +87,13 @@ $(obj_dir)mod_kernels$(obj_ext):$(f-src_dir)mod_kernels$(f90_ext)
 	$(compiler) $(c_flags_f90) -c $< -o $@
 # --------------------------------------------------------------------------------------------------
 # Files routines module
-$(obj_dir)mod_file_routines$(obj_ext):$(mod_dir)standards$(mod_ext) $(f-src_dir)mod_file_routines$(f90_ext)
+$(obj_dir)mod_file_routines_mpi$(obj_ext):$(mod_dir)standards$(mod_ext) $(f-src_dir)mod_file_routines_mpi$(f90_ext)
 	@echo "---------------------------------------"
-	@echo "-- Compiles: " $(f-src_dir)mod_file_routines$(f90_ext) "--------------------"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_file_routines$(f90_ext) -o $@
+	@echo "-- Compiles: " $(f-src_dir)mod_file_routines_mpi$(f90_ext) "--------------------"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_file_routines_mpi$(f90_ext) -o $@
 # --------------------------------------------------------------------------------------------------
 # Histogram module
-$(obj_dir)mod_aux_routines_ip$(obj_ext):$(mod_dir)standards$(mod_ext) $(mod_dir)file_routines$(mod_ext) \
-														      $(f-src_dir)mod_aux_routines_ip$(f90_ext)
+$(obj_dir)mod_aux_routines_ip$(obj_ext):$(mod_dir)standards$(mod_ext) $(f-src_dir)mod_aux_routines_ip$(f90_ext)
 	@echo "---------------------------------------"
 	@echo "-- Compiles: " $(f-src_dir)mod_aux_routines_ip$(f90_ext) "--------------------"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_aux_routines_ip$(f90_ext) -o $@
@@ -108,7 +107,7 @@ $(obj_dir)mod_stringmod$(obj_ext):$(mod_dir)standards$(mod_ext)	$(ext_f-src)stri
 # MAIN OBJECT
 $(obj_dir)main$(obj_ext):$(mod_dir)standards$(mod_ext)			\
 						 $(mod_dir)kernels$(mod_ext)			\
-						 $(mod_dir)file_routines$(mod_ext)		\
+						 $(mod_dir)file_routines_mpi$(mod_ext)  \
  			             $(mod_dir)strings$(mod_ext)			\
 			             $(mod_dir)aux_routines_ip$(mod_ext)    \
 						 $(f-src_dir)main$(f90_ext)
