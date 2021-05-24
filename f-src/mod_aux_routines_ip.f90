@@ -70,7 +70,7 @@ SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
   INTEGER(KIND = ik), DIMENSION(3), OPTIONAL, INTENT(OUT) :: rank_section
 
   ! Internal Variables
-  INTEGER(KIND = ik)                                      :: sw=0, true_size
+  INTEGER(KIND = ik)                                      :: sw=0, true_size, rank
   INTEGER(KIND = ik)                                      :: yremainder, zremainder
 
   ! Power of 2 is handled here, because with the algorithm of CASE DEFAULT, Greedy suboptimality kicks in!  
@@ -123,29 +123,27 @@ SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
 
   IF (PRESENT(domain)) THEN
 
-    IF ( domain .EQ. 1_ik ) THEN
+    IF ( domain .EQ. 0_ik ) THEN
       rank_section = (/ 1_ik, 1_ik, 1_ik /)
     ELSE
+      rank = domain + 1_ik ! MPI start at 0
       ! Calculate the rank_section out of my_rank and sections (/ x, y, z /)
       ! Tested via Octave. Not fully implemented by 20210503
-      zremainder = MODULO(domain, sections(1)*sections(2))
+      zremainder = MODULO(rank, sections(1)*sections(2))
       IF (zremainder .EQ. 0_ik) THEN
-              rank_section = (/ sections(1), sections(2), (domain - zremainder) / (sections(1)*sections(2)) /)
+              rank_section = (/ sections(1), sections(2), (rank - zremainder) / (sections(1)*sections(2)) /)
       ELSE
-              rank_section(3) = (domain - zremainder) / (sections(1) * sections(2)) 
+              rank_section(3) = (rank - zremainder) / (sections(1) * sections(2)) 
       yremainder = MODULO(zremainder, sections(1))
-
-      IF (yremainder .EQ. 0_ik) THEN
-              rank_section = (/ sections(1), (zremainder - yremainder) / sections(1), rank_section(3)+1 /)
-      ELSE
-              rank_section = (/ yremainder, (zremainder - yremainder) / sections(1) + 1_ik, rank_section(3) + 1_ik /)
-      END IF
-    END IF
+      
+              IF (yremainder .EQ. 0_ik) THEN
+                      rank_section = (/ sections(1), (zremainder - yremainder) / sections(1), rank_section(3)+1 /)
+              ELSE
+                      rank_section = (/ yremainder, (zremainder - yremainder) / sections(1) + 1_ik, rank_section(3) + 1_ik /)
+              ENDIF
+      ENDIF
   END IF
-
 END IF
-
-
 END SUBROUTINE r3_array_sectioning
 
 SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)

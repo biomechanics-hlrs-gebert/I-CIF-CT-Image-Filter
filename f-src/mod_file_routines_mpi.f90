@@ -7,11 +7,12 @@
 ! \date 25.04.2021
 
 ! subroutine mpi_err(ierr, mssg)
-! SUBROUTINE check_file_exist(filename, todo, status)
-! SUBROUTINE write_vtk (fl_un, fl_nm, array, spcng, dims, debug, debug_u)
+! SUBROUTINE check_file_exist(filename, must_exist, mpi)
+! SUBROUTINE write_vtk (fl_un, fl_nm, array, spcng, dims, debug_in, debug_u_in)
 ! SUBROUTINE write_raw (fl_un, fl_m_nm, fl_d_nm, array, spcng, dims, debug, debug_u)
-! SUBROUTINE read_vtk(fun, fl, array, dims, spcng, size, fov, bnds, log_un, status)
-! SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
+! SUBROUTINE read_vtk_meta(fh, filename, dims, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
+! SUBROUTINE read_raw(fh, fl, kind, type, dims, array, log_un, status)
+! SUBROUTINE write_matrix(matrix, title, u, frmwrk)
 
 !-- Tex routines
 ! SUBROUTINE tikz_std_plot (un, fl_nm, part, dims, tick)
@@ -51,14 +52,12 @@ subroutine mpi_err(ierr, mssg)
 end subroutine mpi_err
 
  !---------------------------------------------------------------------------------------------------
- !---------------------------------------------------------------------------------------------------
 
- SUBROUTINE check_file_exist(filename, must_exist, mpi, status)
+ SUBROUTINE check_file_exist(filename, must_exist, mpi)
 
    INTEGER  (KIND=ik)    , INTENT(IN)                     :: must_exist
    CHARACTER(len=*)      , INTENT(IN)                     :: filename
    LOGICAL               , INTENT(IN)                     :: mpi
-   INTEGER  (KIND=ik)    , INTENT(OUT), OPTIONAL          :: status
    !-- Internal Variables
    LOGICAL                                                :: exist=.FALSE.
    INTEGER  (KIND=ik)                                     :: ierr
@@ -94,153 +93,139 @@ end subroutine mpi_err
  END SUBROUTINE check_file_exist
 
  !---------------------------------------------------------------------------------------------------
- !---------------------------------------------------------------------------------------------------
 
- SUBROUTINE write_vtk (fl_un, fl_nm, array, spcng, dims, debug_in, debug_u_in)
+ SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, dims)
 
-   ! It's HIGHLY recommended to check the existence of the output file prior to calling this
+   ! It's HIGHLY recommended to check the existence of the output file prior to CALLing this
    ! Subroutine! Otherwise the program will crash. It's not double-checkd here, because this
    ! sequence often is placed at the very end of a program, which may run some time.
 
-   INTEGER  (KIND=ik), INTENT(IN)                                    :: fl_un
-   CHARACTER(len=*)                                                  :: fl_nm
-   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(:,:,:)                  :: array
-   REAL     (KIND=rk), INTENT(IN), DIMENSION(3)                      :: spcng
-   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3)                      :: dims
-   !-- Debugging variables
-   INTEGER  (KIND=ik)                               , OPTIONAL       :: debug_in    ! debug request
-   INTEGER  (KIND=ik)                                                :: debug       ! debug request
-   INTEGER  (KIND=ik)                               , OPTIONAL       :: debug_u_in
-   INTEGER  (KIND=ik)                                                :: debug_u
-   REAL     (KIND=rk)                                                :: start, end
+   INTEGER  (KIND=ik), INTENT(IN)                             :: fh
+   CHARACTER(len=*)                                           :: filename
+   CHARACTER(LEN=*)  , INTENT(IN)              , OPTIONAL     :: type
+   LOGICAL           , INTENT(IN)                             :: atStart
+   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: spcng
+   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3), OPTIONAL     :: dims
 
-   CALL CPU_TIME(start)
+   IF (atStart .EQV. .TRUE.) THEN
+      OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='NEW')
 
-   IF (PRESENT(debug_in) .EQV. .FALSE.) THEN
-      debug = 0_ik
+      WRITE(fh,'(A)')            "# vtk DataFile Version 5.1"
+      WRITE(fh,'(A)')            "vtk output"
+      WRITE(fh,'(A)')            "BINARY"
+      WRITE(fh,'(A)')            "DATASET STRUCTURED_POINTS"
+      WRITE(fh,'(A,3(I5,A))')    "DIMENSIONS", dims(1)," ",dims(2)," ",dims(3),""
+      WRITE(fh,'(A,3(F11.6,A))') "SPACING ", spcng(1)," ",spcng(2)," ",spcng(3),""
+      WRITE(fh,'(A)')            "ORIGIN 0 0 0"
+      WRITE(fh,'(A, I11)')       "POINT_DATA", dims(1)*dims(2)*dims(3)
+
+      IF (TRIM(type) .EQ. 'int2') WRITE(fh,'(A)') "SCALARS DICOMImage short"    
+      IF (TRIM(type) .EQ. 'int4') WRITE(fh,'(A)') "SCALARS DICOMImage int"
+
+      WRITE(fh,'(A)')            "LOOKUP_TABLE default"
    ELSE
-      debug = debug_in
+      OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='OLD', POSITION='APPEND')
+      ! WRITE(fh ,'(A)')          ''
+      WRITE(fh ,'(A)')          "METADATA"
+      WRITE(fh ,'(A)')          "INFORMATION 0"
+      WRITE(fh ,'(A)')
    END IF
 
-   IF (PRESENT(debug_u_in) .EQV. .FALSE.) THEN
-      debug_u = 6_ik
-   ELSE
-      debug_u = debug_u_in
-   END IF
-
-   OPEN(UNIT=fl_un, FILE=TRIM(fl_nm), ACTION="write", STATUS="new")
-   WRITE(fl_un,'(A)')            "# vtk DataFile Version 5.1"
-   WRITE(fl_un,'(A)')            "vtk output"
-   WRITE(fl_un,'(A)')            "BINARY"
-   WRITE(fl_un,'(A)')            "DATASET STRUCTURED_POINTS"
-   WRITE(fl_un,'(A,3(I5,A))')    "DIMENSIONS", dims(1)," ",dims(2)," ",dims(3),""
-   WRITE(fl_un,'(A,3(F11.6,A))') "SPACING ", spcng(1)," ",spcng(2)," ",spcng(3),""
-   WRITE(fl_un,'(A)')            "ORIGIN 0 0 0"
-   WRITE(fl_un,'(A, I11)')       "POINT_DATA", dims(1)*dims(2)*dims(3)
-   WRITE(fl_un,'(A)')            "SCALARS DICOMImage short"
-   WRITE(fl_un,'(A)')            "LOOKUP_TABLE default"
-
-   CLOSE(UNIT=fl_un)
-
-   OPEN(UNIT=fl_un, FILE=TRIM(fl_nm),CONVERT='big_endian', &
-        ACCESS="stream", FORM="unformatted", STATUS="old", POSITION="append")
-
-   WRITE(UNIT=fl_un) INT( array(:,:,:), KIND=INT16)
-
-   CLOSE(UNIT=fl_un)
-
-   OPEN(UNIT=fl_un, FILE=TRIM(fl_nm), ACTION="write", STATUS="old", POSITION="append")
-
-   WRITE(fl_un ,'(A)')          "METADATA"
-   WRITE(fl_un ,'(A)')          "INFORMATION 0"
-   WRITE(fl_un ,'(A)')
-
-   CLOSE(UNIT=fl_un)
-
-   CALL CPU_TIME(end)
-
-   IF (debug >= 1_ik) THEN
-      WRITE(debug_u,'(A)')        std_lnbrk
-      WRITE(debug_u,'(A,A)')      "File name: ", TRIM(fl_nm)
-      WRITE(debug_u,'(A,F9.4,A)') "Time to write file:                 ", end-start,  " seconds."
-   END IF
-
- END SUBROUTINE write_vtk
+   CLOSE(UNIT=fh)
+ END SUBROUTINE write_vtk_meta
 
  !---------------------------------------------------------------------------------------------------
- !---------------------------------------------------------------------------------------------------
+ 
+ SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
+! type = 'real4', 'real8, 'int2', 'int4'
 
- SUBROUTINE write_raw (fl_un, fl_m_nm, fl_d_nm, array, spcng, dims, debug, debug_u)
+CHARACTER(LEN=*)                        , INTENT(IN)                         :: type
+INTEGER  (KIND=MPI_OFFSET_KIND)                                              :: hdr_lngth
+CHARACTER(LEN=*)                        , INTENT(IN)                         :: filename
+INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: dims
+INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_dims
+INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_origin
+INTEGER  (KIND=int16), DIMENSION (:,:,:)                                     :: subarray
 
-   ! It's HIGHLY recommended to check the existence of the output file prior to calling this
-   ! Subroutine! Otherwise the program will crash. It's not double-checkd here, because this
-   ! sequence often is placed at the very end of a program, which may run some time.
+! Internal Variables
+INTEGER  (KIND=ik)                                                           :: fh
 
-   INTEGER  (KIND=ik)    , INTENT(IN)                     :: fl_un
-   CHARACTER(LEN=*)      , INTENT(IN)                     :: fl_m_nm, fl_d_nm
-   REAL     (KIND=REAL64), INTENT(IN), DIMENSION(:,:,:)   :: array
-   REAL     (KIND=REAL64),             DIMENSION(3)       :: spcng
-   INTEGER  (KIND=ik)    , INTENT(IN), DIMENSION(3)       :: dims
-   !-- internal variables
-   INTEGER  (KIND=ik)                                     :: fl_m_un, fl_d_un
-   !-- Debugging variables
-   INTEGER  (KIND=ik)                               , OPTIONAL       :: debug    ! debug request
-   INTEGER  (KIND=ik)                               , OPTIONAL       :: debug_u
-   REAL     (KIND=rk)                                                :: start, end
+! MPI
+INTEGER  (KIND=ik)                                                           :: my_rank, size_mpi, ierr
+INTEGER  (KIND=ik)                                                           :: type_subarray
 
-   ! CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_APPEND + MPI_MODE_CREATE, MPI_INFO_NULL, fun, ierr)
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
+
+CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
+CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
+
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
+
+IF (TRIM(type) .EQ. 'int2') THEN
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_INTEGER2                        , &
+   type_subarray                       , &
+   ierr)
+
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+   CALL MPI_FILE_SET_VIEW( fh , &
+   hdr_lngth                  , &
+   MPI_INTEGER2               , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
+
+   CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
+
+ELSE IF (TRIM(type) .EQ. 'int4') THEN
+   ! CHANGE TYPE DEFINITION FIRST!
+
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_INTEGER                         , &
+   type_subarray                       , &
+   ierr)
+
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+
+   CALL MPI_FILE_SET_VIEW( fh , &
+   hdr_lngth                  , &
+   MPI_INTEGER                , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
+
+   CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+END IF
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+CALL MPI_FILE_CLOSE(fh, ierr)
 
 
-   CALL CPU_TIME(start)
 
-   IF (PRESENT(debug) .EQV. .FALSE.) THEN
-      IF(PRESENT(debug_u) .EQV. .FALSE.) THEN
-         debug   = 0_ik
-         debug_u = 6_ik
-      END IF
-   END IF
+! OPEN(UNIT=fl_d_un, FILE=TRIM(fl_d_nm), ACCESS="stream", FORM="unformatted", STATUS="new", POSITION="append")
 
-   fl_m_un=fl_un
-   fl_d_un=fl_un+1_ik
+! WRITE(UNIT=fl_d_un) INT( ANINT(array(:,:,:), KIND=REAL64), KIND=INT16)
 
-   spcng=spcng/1000._rk
+! CLOSE(UNIT=fl_d_un)
 
-   OPEN(UNIT=fl_m_un, FILE=TRIM(fl_m_nm), ACTION="write", STATUS="new")
-
-   WRITE(fl_m_un,'(A)')          "# raw DataFile"
-   WRITE(fl_m_un,'(A)')          "raw output"
-   WRITE(fl_m_un,'(A)')          "BINARY"
-   WRITE(fl_m_un,'(A)')          "DATASET STRUCTURED_POINTS"
-   WRITE(fl_m_un,'(A,3I5)')      "DIMENSIONS", dims(1)," ",dims(2)," ",dims(3),""
-   WRITE(fl_m_un,'(A,3(F11.6))') "SPACING ", spcng(1)," ",spcng(2)," ",spcng(3),""
-   WRITE(fl_m_un,'(A)')          "ORIGIN 0 0 0"
-   WRITE(fl_m_un,'(A, I11)')     "POINT_DATA", dims(1)*dims(2)*dims(3)
-   WRITE(fl_m_un,'(A)')          "# raw DataFile"
-   WRITE(fl_m_un,'(A)')          "raw output"
-
-   CLOSE(UNIT=fl_m_un)
-
-   OPEN(UNIT=fl_d_un, FILE=TRIM(fl_d_nm), ACCESS="stream", FORM="unformatted", STATUS="new", POSITION="append")
-
-   WRITE(UNIT=fl_d_un) INT( ANINT(array(:,:,:), KIND=REAL64), KIND=INT16)
-
-   CLOSE(UNIT=fl_d_un)
-
-   CALL CPU_TIME(end)
-
-   IF (debug >= 1) THEN
-      WRITE(debug_u,'(A,A)')      "File name of meta data file: ", fl_m_nm
-      WRITE(debug_u,'(A,A)')      "File name of      data file: ", fl_d_nm
-      WRITE(debug_u,'(A,F9.4,A)') "Time to write file:          ", end-start,  " seconds."
-      WRITE(debug_u,'(A)')        std_lnbrk
-   END IF
-
-END SUBROUTINE write_raw
+END SUBROUTINE write_raw_mpi
 
 !---------------------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_vtk_meta(fun, filename, dims, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
+SUBROUTINE read_vtk_meta(fh, filename, dims, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
 ! log_un exists means "print log"!
 ! status  = 0 - everything is ok
 ! status /= 0 - Error
@@ -248,7 +233,7 @@ SUBROUTINE read_vtk_meta(fun, filename, dims, spcng, typ, displacement, sze_o, f
 ! status  = 2 - not a *.vtk file
 ! status  = 3 - file does not contain STRUCTURED_POINTS
 
-INTEGER  (KIND=ik)                                                            :: fun
+INTEGER  (KIND=ik)                                                            :: fh
 CHARACTER(len=*)                                                , INTENT(IN)  :: filename
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(OUT) :: dims
 REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: spcng
@@ -277,12 +262,12 @@ IF (PRESENT(bnds_o)  ) bnds   = bnds_o
 IF (PRESENT(status_o)) status = status_o
 IF (PRESENT(rd_o)    ) lui=rd_o
 
-OPEN(UNIT=fun, FILE=TRIM(filename), STATUS="OLD")
+OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 
 hdr_lngth=0
 
 DO ii=1,10
-   READ(fun,'(A)') line
+   READ(fh,'(A)') line
    hdr_lngth=hdr_lngth+LEN(TRIM(line))+2_ik                   ! eol characters, whitechar
    CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
    IF (ntokens > 0) THEN
@@ -310,12 +295,15 @@ DO ii=1,10
          !-- Get data type of the vtk-file
          token(2) = tokens(2)
          token(3) = tokens(3)
-         typ      = tokens(3)
+         IF (TRIM(token(2)) .EQ. "float"  .OR. TRIM(token(3)) .EQ. "float")  typ = 'real4'
+         IF (TRIM(token(2)) .EQ. "double" .OR. TRIM(token(3)) .EQ. "double") typ = 'real8'
+         IF (TRIM(token(2)) .EQ. "short"  .OR. TRIM(token(3)) .EQ. "short")  typ = 'int2'
+         IF (TRIM(token(2)) .EQ. "int"    .OR. TRIM(token(3)) .EQ. "int")    typ = 'int4'
       END IF
    END IF !ntokens <0
 END DO
 
-CLOSE(fun)
+CLOSE(fh)
 
 fov = dims*spcng
 
@@ -344,42 +332,35 @@ IF (PRESENT(sze_o)   ) sze_o    = sze
 IF (PRESENT(fov_o)   ) fov_o    = fov
 IF (PRESENT(bnds_o)  ) bnds_o   = bnds
 IF (PRESENT(status_o)) status_o = status
+IF (PRESENT(displacement)) displacement = hdr_lngth
 
 END SUBROUTINE read_vtk_meta
 
 !---------------------------------------------------------------------------------------------------
-!---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_raw_mpi(fun, filename, type, dims, subarray_dims, subarray, displacement, log_un, status_o)
+SUBROUTINE read_raw_mpi(filename, type, hdr_lngth, dims, subarray_dims, subarray_origin, subarray, displacement, log_un, status_o)
 ! MPI Parallel read always reads subarrays.
 ! log_un exists means "print log"!
-! type = "real" or "int"
-! status  = 0 - everything is oka
-! status /= 0 - Error
-! status  = 1 - file does not exist
-! status  = 2 - not a *.raw file
-! status  = 3 - not a valid kind
-! status  = 4 - not a valid type
+! type = 'real4', 'real8, 'int2', 'int4'
 
-INTEGER  (KIND=ik)                                                               :: fun
-CHARACTER(len=*)                                                , INTENT(IN)     :: filename
-CHARACTER(len=*)                                                , INTENT(IN)     :: type
+CHARACTER(LEN=*)                                                , INTENT(IN)     :: filename
+CHARACTER(LEN=*)                                                , INTENT(IN)     :: type
+INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: hdr_lngth
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: dims
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_dims
+INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_origin
 INTEGER  (KIND=ik)    , DIMENSION (:,:,:), ALLOCATABLE          , INTENT(OUT)    :: subarray
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: displacement
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: log_un
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT)    :: status_o
-!-- Internal Variables
+
+! Internal Variables
 INTEGER  (KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_two
 INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_four
-INTEGER  (KIND=INT64) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_eight
+REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_eight
 REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_four
-INTEGER  (KIND=ik)                                                               :: status, rd_o
-INTEGER  (KIND=ik)                                                               :: kind
-INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: hdr_lngth
-INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: file_size
-INTEGER  (KIND=ik)    , DIMENSION(3)                                             :: subarray_origin
+INTEGER  (KIND=ik)                                                               :: status=0, rd_o
+INTEGER  (KIND=ik)                                                               :: fh
 
 ! MPI
 INTEGER  (KIND=ik)                                                               :: my_rank, size_mpi, ierr
@@ -394,117 +375,137 @@ CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
 CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-dims                                , & ! Original array as all the addresses must fit
-subarray_dims                       , &
-subarray_origin - 1_mik             , & ! array_of_starts indexed from 0
-MPI_ORDER_FORTRAN                   , &
-MPI_INTEGER                         , &
-type_subarray                       , &
-ierr)
+CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
-CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+IF (TRIM(type) .EQ. 'real4') THEN
 
-! OPEN(UNIT=fun, FILE=filename, CONVERT='LITTLE_ENDIAN', ACCESS="STREAM", FORM="UNFORMATTED", STATUS="OLD")
-CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fun, ierr)
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_REAL                            , &
+   type_subarray                       , &
+   ierr)
 
-CALL MPI_FILE_GET_SIZE(fun, file_size, ierr)
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-kind = NINT( REAL((file_size-hdr_lngth), KIND=rk) / REAL(dims(1)*dims(2)*dims(3), KIND=rk))
+   CALL MPI_FILE_SET_VIEW( fh , &
+   hdr_lngth                  , &
+   MPI_REAL                   , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
 
-! File Read
+   ALLOCATE( array_r_four( subarray_dims(1), subarray_dims(2), subarray_dims(3) ))
+   CALL MPI_FILE_READ_ALL(fh, array_r_four, SIZE(array_r_four), MPI_REAL, MPI_STATUS_IGNORE, ierr)
 
-!-- Allocate memory an read array
+   subarray = INT(FLOOR(array_r_four), KIND=INT32)
+   DEALLOCATE(array_r_four)
 
-! OPEN(UNIT=fun, FILE=fl, ACCESS="STREAM", FORM="UNFORMATTED", STATUS="OLD")
+ELSE IF (TRIM(type) .EQ. 'real8') THEN
 
-IF (TRIM(type) .EQ. "real") THEN
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_DOUBLE_PRECISION                , &
+   type_subarray                       , &
+   ierr)
 
-      IF(kind .EQ. 4_ik) THEN
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-         ALLOCATE( array_r_four( subarray_dims(1), subarray_dims(2), subarray_dims(3) ))
-         READ(fun) array_r_four(:,:,:)    
-         subarray = REAL(array_r_four, KIND=REAL64)
-         DEALLOCATE(array_r_four)
+   CALL MPI_FILE_SET_VIEW( fh , &
+   hdr_lngth                  , &
+   MPI_DOUBLE_PRECISION       , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
 
-      ELSE IF(kind .EQ. 8_ik) THEN
+   ALLOCATE( array_r_eight( subarray_dims(1), subarray_dims(2), subarray_dims(3) ))
+   CALL MPI_FILE_READ_ALL(fh, array_r_eight, SIZE(array_r_eight), MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierr)
 
-         ALLOCATE( subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3) ))
-         READ(fun) subarray(:,:,:)
+   subarray = INT(FLOOR(array_r_four), KIND=INT32)
+   DEALLOCATE(array_r_four)
 
-      ELSE
-         status = 3
-      END IF
+   WRITE(rd_o,'(A)') 'WARNING: Converted real 8 to integer 4 during file read. Check validity.'
 
-   ELSE IF (TRIM(type) .EQ. "int") THEN
+ELSE IF (TRIM(type) .EQ. 'int2') THEN
 
-      IF(kind .EQ. 2_ik) THEN
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_INTEGER2                        , &
+   type_subarray                       , &
+   ierr)
 
-         ALLOCATE( array_i_two(subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
-         READ(UNIT=fun) array_i_two(:,:,:)
-         subarray = REAL(array_i_two, KIND=REAL64)
-         DEALLOCATE(array_i_two)
-                     
-      ELSE IF(kind .EQ. -2_ik) THEN
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-         ALLOCATE( array_i_two( subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
+   CALL MPI_FILE_SET_VIEW( fh , &
+   hdr_lngth                  , &
+   MPI_INTEGER2               , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
 
-         READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
+   ALLOCATE( array_i_two( subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
+   CALL MPI_FILE_READ_ALL(fh, array_i_two, SIZE(array_i_two), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
+   
+   subarray = INT(array_i_two, KIND=INT32)
 
-         IF (MINVAL(array_i_two) .LT. 0_ik) THEN
-            WRITE(rd_o,'(A)') 'INVALID INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
-            status_o = 1_ik
-         END IF 
-
-         ! Input Copy/Pasted. Maybe reading of unsigned int will be implemented...
-         subarray = INT(array_i_two, KIND=ik)
-         DEALLOCATE(array_i_two)
-
-
-      ELSE IF(kind .EQ. 4_ik) THEN
-
-         CALL MPI_FILE_SET_VIEW( fun, &
-         hdr_lngth,                   &
-         MPI_INTEGER,                 &
-         type_subarray,               &
-         'native',                    &
-         MPI_INFO_NULL,               &
-         ierr)
-
-         ALLOCATE( array_i_four( subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
-         READ(UNIT=fun) array_i_four(:,:,:)
-         subarray = REAL(array_i_four, KIND=REAL64)
-         DEALLOCATE(array_i_four)
-
-      ELSE IF(kind .EQ. 8_ik) THEN
-
-         ALLOCATE( array_i_eight( subarray_dims(1), subarray_dims(2), subarray_dims(3) ))
-         READ(UNIT=fun) array_i_eight(:,:,:)
-         subarray = REAL(array_i_eight, KIND=REAL64)
-         DEALLOCATE(array_i_eight)
-
-      ELSE
-         status = 3
-      END IF
-
-      CALl  MPI_FILE_READ(fun, subarray, 1_mik, type_subarray, MPI_STATUS_IGNORE, ierr)
-   ELSE
-      status = 4
+   IF (MINVAL(array_i_two) .GT. 32767_ik) THEN
+      WRITE(log_un,'(A)') 'WARNING: INVALID INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
+      status = 1_ik
    END IF
 
-   CLOSE(fun)
+   DEALLOCATE(array_i_two)
 
-   CALL MPI_TYPE_FREE(type_subarray, ierr)
+ELSE IF (TRIM(type) .EQ. 'int4') THEN
 
-   CALL MPI_FILE_CLOSE(fun, ierr)
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_INTEGER                         , &
+   type_subarray                       , &
+   ierr)
 
-   IF (PRESENT(log_un) .AND. my_rank .EQ. 0_ik) THEN
-      WRITE(log_un,'(A)')
-      WRITE(log_un,'(A,A)')         "Input file                           ", TRIM(filename)
-      WRITE(log_un,'(A)')           "Read raw module assumes Little-Endian while reading array!"
-   END IF  ! print log output
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-   IF (PRESENT(status_o)) status_o = status
+   CALL MPI_FILE_SET_VIEW( fh, &
+   hdr_lngth                  , &
+   MPI_INTEGER                , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
+
+   ALLOCATE( array_i_four( subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
+   CALL MPI_FILE_READ_ALL(fh, array_i_four, SIZE(array_i_four), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+
+   subarray = INT(array_i_four, KIND=INT16)
+
+   IF (MINVAL(array_i_four) .LT. -32768_ik .OR. MAXVAL(array_i_four) .GT. 32767_ik) THEN
+      WRITE(log_un,'(A)') 'WARNING: INVALID CONVERSION FROM INT4 TO INT2. CHECK DATA.'
+      status = 1_ik
+   END IF
+
+   DEALLOCATE(array_i_four)
+ELSE 
+   status = 1_ik
+END IF
+
+CALL MPI_TYPE_FREE(type_subarray, ierr)
+CALL MPI_FILE_CLOSE(fh, ierr)
+
+IF (PRESENT(status_o)) status_o = status
 END SUBROUTINE read_raw_mpi
 
 !---------------------------------------------------------------------------------------------------
@@ -545,115 +546,5 @@ SUBROUTINE write_matrix(matrix, title, u, frmwrk)
   END IF
 
   END SUBROUTINE write_matrix
-
-!---------------------------------------------------------------------------------------------------
-!---------------------------------------------------------------------------------------------------
-
-SUBROUTINE tikz_std_plot (un, fl_nm, part, dims, tick, HU)
-  !-- part =  1 Begin  a tikz picture
-  !-- part = 98 Finish a plot (\end{axis})
-  !-- part = 99 Finish a tikz picture
-  !-- part =  2 write  a 2D plot header
-  !-- part =  3 write  a 3D plot header
-  !-- part =  5 write  a Bar plot with HU
-
-  !-- Tikz export not always 100% precise. Debugging/Modifications on tikz source can be done afterwards.
-  INTEGER(KIND=ik)                             , INTENT(IN)      :: un, part
-  CHARACTER(len=*)                             , INTENT(IN)      :: fl_nm
-  !-- OPTIONAL
-  REAL     (KIND=rk) , DIMENSION(:,:), OPTIONAL, INTENT(IN)      :: dims        !-- (/ dims, min/max /)
-  REAL     (KIND=rk)                 , OPTIONAL, INTENT(IN)      :: tick
-  INTEGER  (KIND=ik) , DIMENSION(3)  , OPTIONAL, INTENT(IN)      :: HU
-  !-- Internal variables
-  INTEGER  (KIND=ik)                                             :: dd=2        !-- Default: 2D. Add 3D by hand if necessary
-
-
-  IF (part .EQ. 1_ik) THEN
-     OPEN(UNIT=un, FILE=TRIM(fl_nm), ACTION="write", STATUS="new")
-
-     WRITE(un,'(A)') "\documentclass[border=5mm]{report}    % slides, article, book, ..."
-     WRITE(un,'(A)') "\usepackage{tikz}"
-     WRITE(un,'(A)') "\usepackage{graphicx}"
-     WRITE(un,'(A)') "\usepackage{pgfplots}"
-     WRITE(un,'(A)') "\usepackage{caption}"
-     WRITE(un,'(A)') "\pgfplotsset{compat=1.8}"
-     WRITE(un,'(A)') "\definecolor{hlrsblue}{RGB}{19, 176, 243}"
-     WRITE(un,'(A)') "\usetikzlibrary{arrows.meta,shapes.misc}"
-     WRITE(un,'(A)') "\begin{document}"
-
-     !-- Define a coordinate system
-     WRITE(un,'(A)') "\begin{figure}"
-     WRITE(un,'(A)') "\centering"
-     WRITE(un,'(A)') "\tikzset{cross/.style={cross out, draw=black, fill=none, minimum &
-          &size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt}, cross/.default={2pt}}"
-  ELSE IF (part .EQ. 2_ik) THEN
-
-  ELSE IF (part .EQ. 3_ik) THEN
-     WRITE(un,'(A)') "\begin{tikzpicture}[]"
-     WRITE(un,'(A)') "\begin{axis}["
-     WRITE(un,'(A)') "%axis lines=center,"                          ! default: commented out
-     WRITE(un,'(A)') "width=12cm,height=12cm,"
-
-     IF (PRESENT(dims)) THEN
-        IF(SIZE(dims) .EQ. 6_ik) dd=3_ik                                ! check whether plot is 3D
-
-        WRITE(un,'(4(A,F6.3),A)') &
-             &  "xmin=",dims(1,2) ,&
-             & ",xmax=",dims(1,1) ,&
-             & ",ymin=",dims(2,2) ,&
-             & ",ymax=",dims(2,1), ","
-        IF (dd .EQ. 3_ik)  THEN
-           WRITE(un,'(2(A,F6.3),A)') &
-                &  "zmin=",dims(3,2) ,&
-                & ",zmax=",dims(3,1) ,","
-        END IF
-     END IF
-     IF (PRESENT(tick)) THEN
-        WRITE(un,'(3(A,F6.3),A)') "xtick={",-tick,", ", -tick/2._rk,",...,",tick,"},"
-        WRITE(un,'(3(A,F6.3),A)') "ytick={",-tick,", ", -tick/2._rk,",...,",tick,"},"
-        IF(dd .EQ. 3_ik) THEN
-           WRITE(un,'(3(A,F6.3),A)') "ztick={",-tick,", ", -tick/2._rk,",...,",tick,"},"
-        END IF
-     END IF
-     WRITE(un,'(A)') "minor x tick num=1,"                          ! default - maybe 4 is better - depends on plot
-     WRITE(un,'(A)') "xlabel=$x (mm)$,"
-     WRITE(un,'(A)') "ylabel=$y (mm)$,"
-     WRITE(un,'(A)') "zlabel=$z (mm)$,"
-     WRITE(un,'(A)') "title={Some random title},"
-     WRITE(un,'(A)') "grid=major]"
-  ELSE IF (part .EQ. 5_ik) THEN
-     IF (PRESENT(HU)) THEN
-        !-- Draw Colorbar Hounsfield units
-        WRITE(un,'(A)') "\begin{tikzpicture}[]"
-        WRITE(un,'(A)') "\begin{axis}["
-        WRITE(un,'(A)') "hide axis,"
-        WRITE(un,'(A)') "colormap={hlrscolormap}{rgb255=(255,255,255) rgb255=(19, 176, 243)},"
-        WRITE(un,'(A)') "colorbar horizontal,"
-        WRITE(un,'(A,I10,A)') "point meta min=",HU(1),","
-        WRITE(un,'(A,I10,A)') "point meta max=",HU(3),","
-        WRITE(un,'(A)') "colorbar style={"
-        WRITE(un,'(A)') "width=12cm,"
-        WRITE(un,'(A)') "xlabel=Hounsfield Units $H_U$,"
-        WRITE(un,'(3(A,I10),A)') "xtick={",HU(1) ,",",HU(1) +HU(2)  ,",...,",HU(3) ,"}"
-        WRITE(un,'(A)') "}]"
-        WRITE(un,'(A)') "\node [ below] at (axis cs: 0,-2) {$(HU)$};"
-        WRITE(un,'(A)') "\end{axis}"
-        WRITE(un,'(A)') "\end{tikzpicture}"
-     END IF
-  ELSE IF (part .EQ. 98_ik) THEN
-     WRITE(un,'(A)') "\end{axis}"
-     WRITE(un,'(A)') "\end{tikzpicture}"
-  ELSE IF (part .EQ. 99_ik) THEN
-     !-- End of Tikz Figure
-     WRITE(un,'(A)') "\caption{Please adjust the settings properly.} \label{fig:Prttp}"
-     WRITE(un,'(A)') "\end{figure}"
-
-     WRITE(un,'(A)') "\end{document}"
-
-     CLOSE(un)
-
-  END IF
-
-END SUBROUTINE tikz_std_plot
 
 END MODULE file_routines_mpi
