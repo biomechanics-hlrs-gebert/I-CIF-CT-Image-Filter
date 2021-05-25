@@ -73,7 +73,7 @@ CHARACTER(len=mcl)                                              :: tkns(100)
 
 ! MPI Variables
 INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi, status
-INTEGER  (KIND=MPI_OFFSET_KIND)                                 :: wr_vtk_hdr_lngth
+INTEGER  (KIND = mik)                                           :: wr_vtk_hdr_lngth
 
 ! Debug Variables
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
@@ -241,6 +241,7 @@ border                 = (kernel_spec(2)-1_ik) / 2_ik     ! 0D Array (scalar)
 remainder_per_dir = MODULO(dims, sections)
 
 IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
+        WRITE(rd_o,'(A)')      std_lnbrk
         WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
         WRITE(rd_o,'(A)')
         WRITE(rd_o,'(A, 3I5)') "sections:               ", sections
@@ -266,7 +267,7 @@ vox_dir_padded      = subarray_dims + original_image_padding
 IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
         WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
-        WRITE(rd_o,'(A, 3I5)') "subarray_dims:    ", subarray_dims
+        WRITE(rd_o,'(A, 3I5)') "subarray_dims:          ", subarray_dims
         WRITE(rd_o,'(A)')      std_lnbrk
 END IF
 
@@ -351,6 +352,8 @@ IF (kernel_spec(1) .EQ. 2_ik) THEN
         END DO
         END DO
         END DO
+
+        DEALLOCATE(kernel2d)
 ELSE    
         CALL CPU_TIME(calculation)
 
@@ -378,6 +381,8 @@ ELSE
         END DO
         END DO
         END DO
+
+        DEALLOCATE(kernel3d)
 ENDIF
 
 DEALLOCATE(subarray)
@@ -434,35 +439,31 @@ IF (my_rank .EQ. 0_ik) THEN
                                 type=TRIM(typ)                          , &
                                 atStart=.TRUE.                          , &
                                 spcng=spcng                             , &
-                                dims=dims)
+                                dims=sections*subarray_dims)
+
+        INQUIRE(FILE=filenameExportVtk, SIZE=wr_vtk_hdr_lngth)
+
 END IF ! (my_rank .EQ. 0_ik)
 
         ! BCAST used in some way of a Barrier.
-        CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-
-        CALL MPI_FILE_GET_SIZE( FH=fh_data_out, SIZE=wr_vtk_hdr_lngth, IERROR=ierr )
+        CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR   , 0_mik, MPI_COMM_WORLD, ierr)
+        CALL MPI_BCAST (wr_vtk_hdr_lngth , 1_mik             , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 
         CALL write_raw_mpi (    type=TRIM(typ)                          , &
-                                hdr_lngth=wr_vtk_hdr_lngth              , &
+                                hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8) , &
                                 filename=filenameExportVtk              , &
-                                dims=dims                               , &
+                                dims=sections*subarray_dims             , &
                                 subarray_dims=subarray_dims             , &
                                 subarray_origin=subarray_origin         , &
-                                subarray=result_subarray)
+                                subarray=INT(result_subarray, KIND=INT16))
+
+        DEALLOCATE(result_subarray)
 
 IF (my_rank .EQ. 0_ik) THEN
 
         CALL write_vtk_meta (   fh=fh_data_out                          , &
                                 filename=filenameExportVtk              , & 
                                 atStart=.FALSE.)
-
-        DEALLOCATE(result_subarray)
-        
-        IF (kernel_spec(1) .EQ. 2_ik) THEN
-                DEALLOCATE(kernel2d)
-        ELSE
-                DEALLOCATE(kernel3d)
-        ENDIF
 
         CALL CPU_TIME(global_finish)
 

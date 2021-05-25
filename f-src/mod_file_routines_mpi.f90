@@ -137,7 +137,7 @@ end subroutine mpi_err
  !---------------------------------------------------------------------------------------------------
  
  SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
-! type = 'real4', 'real8, 'int2', 'int4'
+! type = 'int2', 'int4'
 
 CHARACTER(LEN=*)                        , INTENT(IN)                         :: type
 INTEGER  (KIND=MPI_OFFSET_KIND)                                              :: hdr_lngth
@@ -162,7 +162,7 @@ CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
-IF (TRIM(type) .EQ. 'int2') THEN
+! IF (TRIM(type) .EQ. 'int2') THEN
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
@@ -184,41 +184,33 @@ IF (TRIM(type) .EQ. 'int2') THEN
 
    CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
-ELSE IF (TRIM(type) .EQ. 'int4') THEN
+! ELSE IF (TRIM(type) .EQ. 'int4') THEN
    ! CHANGE TYPE DEFINITION FIRST!
 
-   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-   dims                                , &
-   subarray_dims                       , &
-   subarray_origin - 1_mik             , &
-   MPI_ORDER_FORTRAN                   , &
-   MPI_INTEGER                         , &
-   type_subarray                       , &
-   ierr)
+   ! CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   ! dims                                , &
+   ! subarray_dims                       , &
+   ! subarray_origin - 1_mik             , &
+   ! MPI_ORDER_FORTRAN                   , &
+   ! MPI_INTEGER                         , &
+   ! type_subarray                       , &
+   ! ierr)
 
-   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+   ! CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-   CALL MPI_FILE_SET_VIEW( fh , &
-   hdr_lngth                  , &
-   MPI_INTEGER                , &
-   type_subarray              , &
-   'EXTERNAL32'               , &
-   MPI_INFO_NULL              , &
-   ierr)
+   ! CALL MPI_FILE_SET_VIEW( fh , &
+   ! hdr_lngth                  , &
+   ! MPI_INTEGER                , &
+   ! type_subarray              , &
+   ! 'EXTERNAL32'               , &
+   ! MPI_INFO_NULL              , &
+   ! ierr)
 
-   CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-END IF
+   ! CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+! END IF
 
 CALL MPI_TYPE_FREE(type_subarray, ierr)
 CALL MPI_FILE_CLOSE(fh, ierr)
-
-
-
-! OPEN(UNIT=fl_d_un, FILE=TRIM(fl_d_nm), ACCESS="stream", FORM="unformatted", STATUS="new", POSITION="append")
-
-! WRITE(UNIT=fl_d_un) INT( ANINT(array(:,:,:), KIND=REAL64), KIND=INT16)
-
-! CLOSE(UNIT=fl_d_un)
 
 END SUBROUTINE write_raw_mpi
 
@@ -308,7 +300,6 @@ CLOSE(fh)
 fov = dims*spcng
 
 IF (PRESENT(rd_o)) THEN
-   WRITE(rd_o,'(A)')           std_lnbrk
    WRITE(rd_o,'(A)')           "Input file"
    WRITE(rd_o,'(A)')           TRIM(filename)
    WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
