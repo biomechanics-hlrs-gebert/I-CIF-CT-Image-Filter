@@ -20,6 +20,7 @@
 #
 # export IP_DATA_IN=/datasets/Knochenprobe_2_77.vtk
   export IP_DATA_IN=/datasets/hk1_B60f_cCT.vtk
+# export IP_DATA_IN=/datasets/20201126_01_HK1.vtk
 # export IP_DATA_IN=/datasets/Knochenprobe2.int1.stream.vtk
 # export IP_DATA_IN=/datasets/Knochenprobe_2_7.vtk
 # ----------------------------------------------------------------------------------------

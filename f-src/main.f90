@@ -4,9 +4,9 @@ PROGRAM main
 !
 ! Author:  Benjamin Schnabel, M.Sc.
 ! Author:  Johannes Gebert - HLRS - NUM
-! GitHub:  https://github.com/bennyschnabel/image_processing
+! GitHub:  https://github.com/JoGebert/3D_Convolusional_Filtering
 ! Date:    23.04.2021
-! LastMod: 12.05.2021
+! LastMod: 25.05.2021
 !-------------------------------
 
 
@@ -31,8 +31,8 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fh_data_out =
 INTEGER  (KIND = ik), PARAMETER                                 :: fun3        = 15   ! write tex
 
 ! Internal Variables
-REAL     (KIND = rk)                                            :: global_start, global_finish, collect_data 
-REAL     (KIND = rk)                                            :: calculation, read_t_vtk, init_finish
+REAL     (KIND = rk)                                            :: global_start, init_finish, read_t_vtk, prep_Histo
+REAL     (KIND = rk)                                            :: calculation, extract_Histo, global_finish
 CHARACTER(LEN = mcl)                                            :: n2s, filename, filenameExportVtk, typ
 INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address, displacement, counter, border
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
@@ -322,6 +322,8 @@ END IF
 ! Get Histogram of Scalar Values
 CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)            
 
+IF (my_rank .EQ. 0_ik) CALL CPU_TIME(prep_Histo)
+
 ! Start image processing
 ! result_image is necessary, because otherwise, filtered Voxels will be used for filtering following voxels.
 ! Therefore, doesn't really work in place
@@ -352,8 +354,6 @@ IF (kernel_spec(1) .EQ. 2_ik) THEN
 
         DEALLOCATE(kernel2d)
 ELSE    
-        CALL CPU_TIME(calculation)
-
         ! 3D is considered a default
         ALLOCATE( kernel3d(kernel_spec(2), kernel_spec(2), kernel_spec(2)))
 
@@ -384,6 +384,8 @@ ENDIF
 
 DEALLOCATE(subarray)
 
+IF (my_rank .EQ. 0_ik) CALL CPU_TIME(calculation)
+
 ! After image filtering
 ! Get Histogram of Scalar Values
 CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)            
@@ -400,9 +402,9 @@ IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_post_F_global(SIZE(histogram_post_F)))
 CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
         MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
+CALL CPU_TIME(extract_Histo)
 
 IF (my_rank .EQ. 0_ik) THEN
-        CALL CPU_TIME(collect_data)
 
         ! Export Histogram of Scalar Array pre Filtering
         OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
@@ -466,13 +468,15 @@ IF (my_rank .EQ. 0_ik) THEN
 
         WRITE(rd_o,'(A         )')  std_lnbrk
         WRITE(rd_o,'(A         )')  
-        WRITE(rd_o,'(A, F8.3, A)') 'Init and parsing        = ', (init_finish             - global_start)      ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Broadcast metadata      = ', (read_t_vtk              - init_finish)       ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Calculation             = ', (calculation             - read_t_vtk)        ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Collect data            = ', (collect_data            - calculation)       ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Write all data          = ', (global_finish           - collect_data)      ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time            = ', (global_finish           - global_start)      ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time            = ', (global_finish           - global_start) / 60 ,' Minutes'
+        WRITE(rd_o,'(A, F8.3, A)') 'Init and parsing     = ', (init_finish        - global_start)                    ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Read File            = ', (read_t_vtk         - init_finish)                     ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)                              ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Calculation          = ', (calculation        - prep_Histo)                      ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)                          ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation),' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                   ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time         = ', (global_finish      - global_start)                    ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60               ,' Minutes'
         CLOSE(rd_o)     
 
 ENDIF 

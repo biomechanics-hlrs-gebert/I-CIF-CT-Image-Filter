@@ -163,7 +163,7 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   WRITE(fun, '(A)')  ""
   WRITE(fun, '(A)')  "\begin{tikzpicture}"
   WRITE(fun, '(A)')  "    \begin{axis}["
-  WRITE(fun, '(A)')  "        xmode=log,"
+  WRITE(fun, '(A)')  "        % xmode=log,"
   WRITE(fun, '(A)')  "        ymode=log,"
   WRITE(fun, '(A)')  "        xlabel=$scaledHU$,"
   WRITE(fun, '(A)')  "        ylabel=$Amount of Voxels$ (-),"

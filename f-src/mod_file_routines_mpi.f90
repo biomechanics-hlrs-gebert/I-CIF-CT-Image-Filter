@@ -285,12 +285,18 @@ DO ii=1,10
          END IF
       ELSEIF (tokens(1) .EQ. "SCALARS") THEN
          !-- Get data type of the vtk-file
-         token(2) = tokens(2)
          token(3) = tokens(3)
-         IF (TRIM(token(2)) .EQ. "float"  .OR. TRIM(token(3)) .EQ. "float")  typ = 'real4'
-         IF (TRIM(token(2)) .EQ. "double" .OR. TRIM(token(3)) .EQ. "double") typ = 'real8'
-         IF (TRIM(token(2)) .EQ. "short"  .OR. TRIM(token(3)) .EQ. "short")  typ = 'int2'
-         IF (TRIM(token(2)) .EQ. "int"    .OR. TRIM(token(3)) .EQ. "int")    typ = 'int4'
+
+         SELECT CASE( TRIM( token(3) ) )
+         CASE('float');          typ = 'real4'
+         CASE('double');         typ = 'real8'
+         CASE('int');            typ = 'int4'
+         CASE('short');          typ = 'int2'
+         CASE('unsigned_short'); typ = 'int2'
+         CASE DEFAULT
+            WRITE(*,'(A)') "No valid type given in *.vtk File." 
+            status = 1_ik   
+         END SELECT
       END IF
    END IF !ntokens <0
 END DO
