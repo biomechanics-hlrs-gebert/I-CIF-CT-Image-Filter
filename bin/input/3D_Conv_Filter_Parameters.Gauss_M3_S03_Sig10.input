@@ -4,7 +4,7 @@
 #
 # Author:          Johannes Gebert - HLRS - NUM «gebert@hlrs.de»
 # Created:         10.05.2021
-# Last edit:       10.05.2021
+# Last edit:       25.05.2021
 #
 # ----------------------------------------------------------------------------------------
 #
@@ -14,15 +14,16 @@
 # IMPORTANT: 
 # 1) Only lines containing an uncommented (exported) variable are read by the program. 
 # 2) Ensure, there always is a space ' ' between '#' and a variable/'export' 
+# 3) This files name will be used to extract the output filenaming!
+#    Therefore: Parameters. separated by a '.' are strongly recommended. Example:
+#
+#    "ImageProcessing_Parameters.Gauss_M3_S11_Sig10.input"
+#    Tex takes responsibility to postprocess the Histogram. Therefore, do not use a "ß" :)
 # ----------------------------------------------------------------------------------------
 #
 # Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
 #
-# export IP_DATA_IN=/datasets/Knochenprobe_2_77.vtk
-  export IP_DATA_IN=/datasets/hk1_B60f_cCT.vtk
-# export IP_DATA_IN=/datasets/20201126_01_HK1.vtk
-# export IP_DATA_IN=/datasets/Knochenprobe2.int1.stream.vtk
-# export IP_DATA_IN=/datasets/Knochenprobe_2_7.vtk
+export IP_DATA_IN=/datasets/20201126_01_HK1.vtk
 # ----------------------------------------------------------------------------------------
 #
 # Steering parameters

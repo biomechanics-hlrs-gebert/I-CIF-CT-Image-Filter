@@ -51,6 +51,7 @@ REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
 INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
 CHARACTER(LEN =   8)                                            :: date
 CHARACTER(LEN =  10)                                            :: time
+CHARACTER(LEN = mcl)                                            :: input_parametrization
 
 ! Histogram Variables
 CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter
@@ -208,9 +209,12 @@ IF (my_rank .EQ. 0) THEN
         ENDIF
        
         ! Get the output filenames of the Histograms
-        histogram_filename_pre__Filter = TRIM(basename)//'_hist_PRE__FILTER.csv'
-        histogram_filename_post_Filter = TRIM(basename)//'_hist_POST_FILTER.csv'
-        histogram_filename_tex_Filter  = TRIM(basename)//'_Filter_Histogram.tex'
+        CALL parse(str=parameterfile,delims=".",args=tokens,nargs=ntokens)
+        input_parametrization = tokens(2)
+
+        histogram_filename_pre__Filter = TRIM(basename)//'_'//TRIM(input_parametrization)//'_hist_PRE__FILTER.csv'
+        histogram_filename_post_Filter = TRIM(basename)//'_'//TRIM(input_parametrization)//'_hist_POST_FILTER.csv'
+        histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(input_parametrization)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank .EQ. 0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
@@ -431,7 +435,7 @@ IF (my_rank .EQ. 0_ik) THEN
         ! Export VTK file (testing)
         WRITE(n2s,*) kernel_spec(1)
 
-        filenameExportVtk = filename(1:LEN_TRIM(filename)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
+        filenameExportVtk = TRIM(basename)//'_'//TRIM(input_parametrization)//'.vtk'
 
         CALL write_vtk_meta (   fh=fh_data_out                          , &
                                 filename=filenameExportVtk              , & 
