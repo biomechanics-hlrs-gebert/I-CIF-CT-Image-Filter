@@ -47,7 +47,14 @@ julius)
     ;;
 
 vulcan)
-    qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig01.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig05.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig20.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S05_Sig10.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S07_Sig10.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S09_Sig10.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S11_Sig10.vulcan.pbs
     exit 0
     ;;
 

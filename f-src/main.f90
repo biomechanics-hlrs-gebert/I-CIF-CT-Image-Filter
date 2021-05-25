@@ -158,8 +158,11 @@ IF (my_rank .EQ. 0) THEN
         basename = tokens(ntokens)
         basename = TRIM(filename(1:(LEN_TRIM(filename) - 4_ik )))
 
+        CALL parse(str=parameterfile,delims=".",args=tokens,nargs=ntokens)
+        input_parametrization = tokens(2)
+
         ! Log in dir of vtk - not its basename!!
-        log_file  = TRIM(basename)//".log"
+        log_file  = TRIM(basename)//'_'//TRIM(input_parametrization)//".log"
         CALL check_file_exist( filename = log_file, must_exist=0_ik, mpi=.TRUE.)
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
@@ -209,9 +212,6 @@ IF (my_rank .EQ. 0) THEN
         ENDIF
        
         ! Get the output filenames of the Histograms
-        CALL parse(str=parameterfile,delims=".",args=tokens,nargs=ntokens)
-        input_parametrization = tokens(2)
-
         histogram_filename_pre__Filter = TRIM(basename)//'_'//TRIM(input_parametrization)//'_hist_PRE__FILTER.csv'
         histogram_filename_post_Filter = TRIM(basename)//'_'//TRIM(input_parametrization)//'_hist_POST_FILTER.csv'
         histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(input_parametrization)//'_Filter_Histogram.tex'
@@ -257,9 +257,9 @@ END IF
 
 ! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
 ! into the center of array. Then add the border. This way, no artifical padding is required.
-IF ((remainder_per_dir(1) < original_image_padding(1)) .OR. & 
-    (remainder_per_dir(2) < original_image_padding(2)) .OR. &
-    (remainder_per_dir(3) < original_image_padding(3))) THEN
+IF ((remainder_per_dir(1) <= original_image_padding(1)) .OR. & 
+    (remainder_per_dir(2) <= original_image_padding(2)) .OR. &
+    (remainder_per_dir(3) <= original_image_padding(3))) THEN
         dims_reduced   = dims - original_image_padding
 ELSE
         dims_reduced   = dims - remainder_per_dir
@@ -277,7 +277,7 @@ END IF
 
 ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
 
-subarray_origin = (rank_section-1_ik) * (subarray_dims) + border
+subarray_origin = (rank_section-1_ik) * (subarray_dims) + 1_ik
 
 CALL read_raw_mpi(      filename=filename                       , &
                         type=TRIM(typ)                          , &
