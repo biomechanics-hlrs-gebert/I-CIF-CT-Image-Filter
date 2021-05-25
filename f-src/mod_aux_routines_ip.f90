@@ -44,6 +44,8 @@ entries = hmax - hmin
 
 ALLOCATE(histogram(entries))
 
+histogram=0_ik
+
 shp = SHAPE(array)
 
 ! Take care of sign of hmin!! Not that intuitive
@@ -150,6 +152,11 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
 
   INTEGER    (KIND = ik) , INTENT(IN)        :: fun
   CHARACTER  (LEN  = mcl), INTENT(IN)        :: flnm_tex, flnm_pre, flnm_post
+  CHARACTER  (LEN  = mcl)                    :: title, titlemod
+
+  title = TRIM(flnm_tex(1:(LEN_TRIM(flnm_tex) - 4_ik )))
+
+  CALL underscore_to_blank_basepath(title, titlemod)
 
   OPEN( UNIT = fun, file = TRIM(flnm_tex), action="WRITE", status="new")
 
@@ -167,7 +174,7 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   WRITE(fun, '(A)')  "        ymode=log,"
   WRITE(fun, '(A)')  "        xlabel=$scaledHU$,"
   WRITE(fun, '(A)')  "        ylabel=$Amount of Voxels$ (-),"
-  WRITE(fun, '(A)')  "        title=Histograms of ImageProcessing,"
+  WRITE(fun, '(3A)') "        title=",TRIM(titlemod),","
   WRITE(fun, '(A)')  "        grid=both,"
   WRITE(fun, '(A)')  "        minor grid style={gray!15},"
   WRITE(fun, '(A)')  "        major grid style={gray!15},"
@@ -189,5 +196,23 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   CLOSE(fun)
 
 END SUBROUTINE write_tex_for_histogram
+
+!---------------------------------------------------------------------------------------------------
+
+SUBROUTINE underscore_to_blank_basepath (infile, outfile)
+  ! This whole subroutine is a workaround :-)
+  CHARACTER  (LEN = *), INTENT(IN)        :: infile
+  CHARACTER  (LEN = *), INTENT(OUT)       :: outfile
+  INTEGER    (KIND = ik)                  :: ii, blanks
+
+  outfile=infile
+  DO ii=1, LEN_TRIM(infile)
+    IF (infile(ii:ii) == '_')  outfile(ii:ii) = ' '
+    IF (infile(ii:ii) == '/')  blanks         = ii
+  END DO
+  outfile(1:blanks) = ' '
+
+  outfile=TRIM(outfile)
+END SUBROUTINE underscore_to_blank_basepath
 
 END MODULE aux_routines_IP

@@ -181,6 +181,7 @@ IF (my_rank .EQ. 0) THEN
                 WRITE(rd_o,'(A, I7)')  "Debug Level:            ", debug
                 WRITE(rd_o,'(A, I7)')  "Processors:             ", size_mpi  
                 WRITE(rd_o,'(A, I7)')  "Filter Dimension:       ", kernel_spec(1)
+                WRITE(rd_o,'(A, I7)')  "Filter Size:            ", kernel_spec(2)
                 WRITE(rd_o,'(2A)')     "Filter Kernel:          ", TRIM(selectKernel)
                 WRITE(rd_o,'(A)')      std_lnbrk
         END IF
@@ -413,8 +414,11 @@ IF (my_rank .EQ. 0_ik) THEN
         ! Export Histogram of Scalar Array pre Filtering
         OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
                 WRITE(fl_un_H_pre,'(A)') "scaledHU, Voxels"
-                DO ii=1, SIZE(histogram_pre__F_global)
-                        WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
+                DO ii=6, SIZE(histogram_pre__F_global)-5
+                        IF ( histogram_pre__F_global(ii) .GT. 0_ik ) THEN 
+                                ! SUM(histogram_pre__F_global(ii-5):histogram_pre__F_global(ii+5) )/11
+                                WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
+                        END IF
                 END DO
         CLOSE(fl_un_H_pre)
         
@@ -422,7 +426,9 @@ IF (my_rank .EQ. 0_ik) THEN
         OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
                 WRITE(fl_un_H_post,'(A)') "scaledHU, Voxels"
                 DO ii=1, SIZE(histogram_post_F_global)
-                     WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
+                        IF ( histogram_post_F_global(ii) .GT. 0_ik ) THEN 
+                             WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
+                        END IF
                 END DO
         CLOSE(fl_un_H_post)
 
