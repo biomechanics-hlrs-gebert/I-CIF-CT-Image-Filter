@@ -7,8 +7,7 @@
 ![Contributors](https://img.shields.io/badge/Contributors-2-blue)
 
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS *.vtk files and filters them according to specific convolutional matrices/Kernels.
-
-Currently, it's under development. Terms like "Scalar Fields", "Voxel Grids" and "Array (of Field Quantities)" are context dependent but in some ways interchangable synonyms.
+It's tested with up to 160 Processors (4 nodes) on Vulcan. Turnaround time of roughly 200 Seconds while computing on 18.5E09 Voxels stored with INTEGER2.
 
 ## Table of contents
 - [Intent](#primary)
@@ -141,10 +140,6 @@ However this is an assumption, which is not tested by end of April 2021.
 
 ### External Sources
 Plain text headers are parsed via a [strings module](https://gbenthien.net/strings/index.html) by George Benthien from San Diego.
-### ToDo
-- [x] All documentation is done in :us: to quickly accomodate non-native speakers.
-- [x] Updates done to get to publication-readiness.
-- [ ] Publish repository for demonstrating current progress to partners and HLRS employees.
 ### Limits
 Will follow.
 ### Arbitrary

@@ -4,14 +4,15 @@ PROGRAM main
 !
 ! Author:  Benjamin Schnabel, M.Sc.
 ! Author:  Johannes Gebert - HLRS - NUM
-! GitHub:  https://github.com/bennyschnabel/image_processing
+! GitHub:  https://github.com/JoGebert/3D_Convolusional_Filtering
 ! Date:    23.04.2021
-! LastMod: 12.05.2021
+! LastMod: 25.05.2021
 !-------------------------------
+
 
 USE ISO_FORTRAN_ENV
 USE MPI
-USE file_routines     
+USE file_routines_mpi  
 USE kernels
 USE strings
 USE aux_routines_ip
@@ -23,30 +24,31 @@ IMPLICIT NONE
 ! MPI: Kind=32 Bit / 4 Byte / ik=4 - Change in «working_directory/f-src/mod_standards.f90 
 
 ! Parameter
-INTEGER  (KIND = ik), PARAMETER                                 :: debug     = 1
-INTEGER  (KIND = ik), PARAMETER                                 :: fun_input = 999   ! Unit of Input file
-INTEGER  (KIND = ik), PARAMETER                                 :: fun1      = 5     ! File unit h pre
-INTEGER  (KIND = ik), PARAMETER                                 :: fun2      = 10    ! File unit h post
-INTEGER  (KIND = ik), PARAMETER                                 :: fun3      = 15    ! File unit tex
+INTEGER  (KIND = ik), PARAMETER                                 :: debug       = 1
+INTEGER  (KIND = ik), PARAMETER                                 :: fun_input   = 999
+INTEGER  (KIND = ik), PARAMETER                                 :: fh_data_in  = 5  
+INTEGER  (KIND = ik), PARAMETER                                 :: fh_data_out = 10   ! write vtk
+INTEGER  (KIND = ik), PARAMETER                                 :: fun3        = 15   ! write tex
 
 ! Internal Variables
-CHARACTER(LEN = mcl)                                            :: n2s, fileName, fileNameExportVtk
-INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address
-INTEGER  (KIND = ik)                                            :: counter, border, yremainder, zremainder
+REAL     (KIND = rk)                                            :: global_start, init_finish, read_t_vtk, prep_Histo
+REAL     (KIND = rk)                                            :: calculation, extract_Histo, global_finish
+CHARACTER(LEN = mcl)                                            :: n2s, filename, filenameExportVtk, typ
+INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address, displacement, counter, border
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
-CHARACTER(LEN = mcl)                                            :: selectKernel, sizekernel_str, KernelMode_str
+CHARACTER(LEN = mcl)                                            :: selectKernel
 
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, subarray_origin, clipboard
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, vox_per_dir_and_sec
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, vox_dir_padded
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, subarray_origin
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, subarray_dims
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, subarray_dims_overlap
 
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
-REAL     (KIND = rk)                                            :: sigma, start, finish, accumulator
-CHARACTER(LEN = mcl)                                            :: sigma_str, version, basename
+REAL     (KIND = rk)                                            :: sigma, accumulator
+CHARACTER(LEN = mcl)                                            :: version, basename
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
 REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
-INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: array, result_array, subarray, result_subarray 
+INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
 CHARACTER(LEN =   8)                                            :: date
 CHARACTER(LEN =  10)                                            :: time
 
@@ -64,21 +66,19 @@ INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
 
 ! Read Input file
-CHARACTER(len=mcl)                                              :: suf, line, parameterfile, prefix
-INTEGER  (KIND=ik)                                              :: io_status, ntokens, cmd_stt
+CHARACTER(len=mcl)                                              :: line, parameterfile, prefix
+INTEGER  (KIND=ik)                                              :: io_status, ntokens
 CHARACTER(len=mcl)                                              :: tokens(100)
 CHARACTER(len=mcl)                                              :: tkns(100)
 
-
 ! MPI Variables
 INTEGER  (KIND = mik)                                           :: ierr, my_rank, size_mpi, status
-! Obsolete but noted....
-! TYPE(MPI_DATATYPE)                                              :: type_subarray, type_result_subarray
+INTEGER  (KIND = mik)                                           :: wr_vtk_hdr_lngth
 
 ! Debug Variables
 INTEGER  (KIND = ik), PARAMETER                                 :: rd_o = 31    ! redirected StdOut
-CHARACTER(LEN = mcl)                                            :: log_file, csv_tex_dir, bin_dir, data_dir
-LOGICAL                                                         :: log_exist = .FALSE., inp_exist = .FALSE.
+CHARACTER(LEN = mcl)                                            :: log_file
+LOGICAL                                                         :: log_exist = .FALSE.
 
 ! Initialize MPI Environment
 CALL MPI_INIT(ierr)
@@ -98,6 +98,9 @@ END IF
 
 ! Initialize program itself
 IF (my_rank .EQ. 0) THEN
+
+        ! Initialization
+        CALL CPU_TIME(global_start)
 
         CALL GET_COMMAND_ARGUMENT(1, prefix)
         CALL GET_COMMAND_ARGUMENT(2, parameterfile)
@@ -136,7 +139,7 @@ IF (my_rank .EQ. 0) THEN
                                 CALL parse(str=tokens(2), delims="=", args=tkns, nargs=ntokens)
 
                                 SELECT CASE( tkns(1) )
-                                        CASE("IP_DATA_IN");     fileName = TRIM(prefix)//tkns(2)
+                                        CASE("IP_DATA_IN");     filename = TRIM(prefix)//tkns(2)
                                         CASE("IP_MODE_K");      READ(tkns(2),'(I4)') kernel_spec(1)
                                         CASE("IP_SELECT_K");    selectKernel = tkns(2)
                                         CASE("IP_SIZE_K");      READ(tkns(2),'(I4)') kernel_spec(2)
@@ -149,10 +152,10 @@ IF (my_rank .EQ. 0) THEN
         CLOSE(fun_input)
 
         ! Get basename of vtk file
-        CALL parse( str=fileName, delims="/", args=tokens, nargs=ntokens)
+        CALL parse( str=filename, delims="/", args=tokens, nargs=ntokens)
 
         basename = tokens(ntokens)
-        basename = TRIM(fileName(1:(LEN_TRIM(fileName) - 4_ik )))
+        basename = TRIM(filename(1:(LEN_TRIM(filename) - 4_ik )))
 
         ! Log in dir of vtk - not its basename!!
         log_file  = TRIM(basename)//".log"
@@ -160,10 +163,7 @@ IF (my_rank .EQ. 0) THEN
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
 
-        OPEN( UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
-
-        ! Track calculation time
-        CALL CPU_TIME(start)
+        OPEN(UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
 
         CALL DATE_AND_TIME(date, time)
 
@@ -181,28 +181,50 @@ IF (my_rank .EQ. 0) THEN
                 WRITE(rd_o,'(A)')      std_lnbrk
         END IF
         
+        CALL CPU_TIME(init_finish)
 
-ENDIF ! (my_rank .EQ. 0)
+        IF( filename(LEN_TRIM(filename)-2 : LEN_TRIM(filename)) .NE. "vtk" )  THEN
+                WRITE(rd_o,'(A)') 'Input file to read VTK subroutine has no vtk suffix. Therefor pressumably is none.'  
+                CLOSE(rd_o)  
+                CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
+        ENDIF
 
-! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
-CALL MPI_BCAST (kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+        CALL check_file_exist( filename=filename, must_exist=1_ik, mpi=.TRUE.)
 
-IF (my_rank .EQ. 0) THEN
-         ! Import VTK file
-        CALL read_vtk(fun1, fileName, array, dims, spcng)
+        ! Read VTK file header
+        CALL read_vtk_meta (    fh=fh_data_in                   , &
+                                filename=filename               , &
+                                dims=dims                       , &
+                                spcng=spcng                     , &
+                                typ=typ                         , &
+                                displacement=displacement       , &
+                                rd_o=rd_o                       , &
+                                status_o=status)
 
-        ! Get the output Filenames of the Histograms
+        IF (status .EQ. 1_ik) THEN
+                WRITE(rd_o,'(A)')  'Something went wrong while reading IP_DATA_IN header. Program Aborted.'
+                CLOSE(rd_o)     
+                CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)      
+        ENDIF
+       
+        ! Get the output filenames of the Histograms
         histogram_filename_pre__Filter = TRIM(basename)//'_hist_PRE__FILTER.csv'
         histogram_filename_post_Filter = TRIM(basename)//'_hist_POST_FILTER.csv'
         histogram_filename_tex_Filter  = TRIM(basename)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank .EQ. 0)
 
-CALL MPI_BCAST (dims       , 3_mik, MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
+! May be packed into less BCasts
+CALL MPI_BCAST (filename    , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (typ         , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (dims        , 3_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (displacement, 1_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
 
 ! Get sections per direction
-CALL TD_Array_Scatter (size_mpi, sections)
+CALL r3_array_sectioning (domains=size_mpi, sections=sections, domain=my_rank, rank_section=rank_section)
 
 ! Calculate Padding to decrease "size of array" to a corresponding size
 ! Size if Kernel always an odd number. Num-1 = Voxels on both sides of filtered Voxel
@@ -219,6 +241,7 @@ border                 = (kernel_spec(2)-1_ik) / 2_ik     ! 0D Array (scalar)
 remainder_per_dir = MODULO(dims, sections)
 
 IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
+        WRITE(rd_o,'(A)')      std_lnbrk
         WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
         WRITE(rd_o,'(A)')
         WRITE(rd_o,'(A, 3I5)') "sections:               ", sections
@@ -238,102 +261,57 @@ ELSE
         dims_reduced   = dims - remainder_per_dir
 END IF
 
-vox_per_dir_and_sec = (dims_reduced / sections)
-vox_dir_padded      = vox_per_dir_and_sec + original_image_padding
+subarray_dims         = (dims_reduced / sections)
+subarray_dims_overlap = subarray_dims + original_image_padding
 
 IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
         WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
-        WRITE(rd_o,'(A, 3I5)') "vox_per_dir_and_sec:    ", vox_per_dir_and_sec
+        WRITE(rd_o,'(A, 3I5)') "subarray_dims:          ", subarray_dims
         WRITE(rd_o,'(A)')      std_lnbrk
 END IF
 
-ALLOCATE( subarray(vox_dir_padded(1), vox_dir_padded(2), vox_dir_padded(3) ) )
+ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
 
-IF (my_rank .EQ. 0) THEN
-        DO ii = 1, sections(1) 
-                DO jj = 1, sections(2) 
-                        DO kk = 1, sections(3) 
+subarray_origin = (rank_section-1_ik) * (subarray_dims) + border
 
-        ! Converting address of subarray into rank is tested in Octave.
-        address = (kk-1)*sections(1)*sections(2) + (jj-1_ik)*sections(1) + ii
+CALL read_raw_mpi(      filename=filename                       , &
+                        type=TRIM(typ)                          , &
+                        hdr_lngth=INT(displacement, KIND=8)     , &
+                        dims=dims                               , &
+                        subarray_dims=subarray_dims_overlap     , &
+                        subarray_origin=subarray_origin         , &
+                        subarray=subarray                       , &
+                        displacement=displacement               , &
+                        log_un=rd_o                             , &
+                        status_o=status)
 
-        IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "Address: ", address, " My Rank: ",my_rank
-
-        subarray_origin = (( (/ ii, jj, kk /) -1_ik) * vox_per_dir_and_sec) + border !+ 1_ik
-
-        IF (address .NE. 1_ik) THEN
-                CALL MPI_SEND(array(subarray_origin(1): subarray_origin(1)+vox_dir_padded(1)-1_mik,  &
-                                    subarray_origin(2): subarray_origin(2)+vox_dir_padded(2)-1_mik,  &
-                                    subarray_origin(3): subarray_origin(3)+vox_dir_padded(3)-1_mik), &
-                                    vox_dir_padded(1) * vox_dir_padded(2) * vox_dir_padded(3),       &
-                                    MPI_INTEGER, address-1_mik, address-1_mik, MPI_COMM_WORLD, ierr )
-        END IF
-
-        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, I15)') "Target Rank: ", address-1_ik, &
-                " Size of Subarray:", SIZE(vox_per_dir_and_sec)
-
-                        END DO
-                END DO
-        END DO 
-
-        subarray = array &
-                (border : border + vox_dir_padded(1) - 1_ik, &
-                 border : border + vox_dir_padded(2) - 1_ik, &
-                 border : border + vox_dir_padded(3) - 1_ik  )
-
-        DEALLOCATE(array)
-        
-        rank_section = (/ 1_ik, 1_ik, 1_ik /)
-ENDIF
-
-IF (my_rank > 0) THEN        
-
-        ! Calculate the rank_section out of my_rank and sections (/ x, y, z /)
-        ! Tested via Octave. Not fully implemented by 20210503
-        zremainder = MODULO(my_rank, sections(1)*sections(2))
-        IF (zremainder .EQ. 0_ik) THEN
-                rank_section = (/ sections(1), sections(2), (my_rank - zremainder) / (sections(1)*sections(2)) /)
-        ELSE
-                rank_section(3) = (my_rank - zremainder) / (sections(1) * sections(2)) 
-        yremainder = MODULO(zremainder, sections(1))
-        
-                IF (yremainder .EQ. 0_ik) THEN
-                        rank_section = (/ sections(1), (zremainder - yremainder) / sections(1), rank_section(3)+1 /)
-                ELSE
-                        rank_section = (/ yremainder, (zremainder - yremainder) / sections(1) + 1_ik, rank_section(3) + 1_ik /)
-                ENDIF
-        ENDIF
-
-        IF ( debug .EQ. 2_ik ) THEN
-                WRITE(*,'(A)') "Initialize Recv to distribute array across ranks."
-                WRITE(*,'(A, I7, A, 3I5)') "My Rank: ", my_rank, " vox_dir_padded:    ", vox_dir_padded
-                WRITE(*,'(A, I7, A, I15)') "My Rank: ", my_rank, " Size of Subarray:", SIZE(subarray)
-        END IF
-        CALL MPI_RECV(subarray, SIZE(subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
-ENDIF
+IF (status .EQ. 1_ik) THEN
+        WRITE(rd_o,'(A)')  'Something during MPI File read went wrong. Please check/debug.'
+        CLOSE(rd_o)
+        CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
+END IF
 
 ! Prepare collecting the subarrays to assemble a global vtk file.
-! No Overlapping and no remainder.
+IF (my_rank .EQ. 0_ik) CALL CPU_TIME(read_t_vtk)
 
-! subarray_reduced_boundaries
-srb (1:3) = border + 1_ik
-srb (4:6) = border + vox_per_dir_and_sec
+! subarray_reduced_boundaries                   ! No Overlap
+srb (1:3) = 1_ik + border
+srb (4:6) = subarray_dims_overlap - border
 
-subarray_origin = vox_per_dir_and_sec * (rank_section-1_ik) + 1_ik 
+! Define new subarray_origin
+! subarray_origin = subarray_dims * (rank_section-1_ik) + 1_ik 
 
-ALLOCATE( result_subarray (vox_per_dir_and_sec(1), vox_per_dir_and_sec(2), vox_per_dir_and_sec(3) ) )
+ALLOCATE( result_subarray (subarray_dims(1), subarray_dims(2), subarray_dims(3) ) )
 
 ! Get information about the data range of the Histogram globally. 
 histo_bound_local_lo = MINVAL(subarray)
 histo_bound_local_hi = MAXVAL(subarray)
 
-CALL MPI_REDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_REDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (                      histo_bound_global_lo, 1_mik, MPI_INTEGER,          0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (                      histo_bound_global_hi, 1_mik, MPI_INTEGER,          0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_ALLREDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, ierr)
+CALL MPI_ALLREDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-hbnds    = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_hi - histo_bound_global_lo /)
+hbnds        = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_hi - histo_bound_global_lo /)
 
 IF (my_rank .EQ. 0_ik) THEN
         WRITE(rd_o,'(A)')      "Histogramm  FLOOR(min | max / 10) defines boundaries of Histogramm Files."
@@ -343,6 +321,8 @@ END IF
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
 CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)            
+
+IF (my_rank .EQ. 0_ik) CALL CPU_TIME(prep_Histo)
 
 ! Start image processing
 ! result_image is necessary, because otherwise, filtered Voxels will be used for filtering following voxels.
@@ -367,10 +347,12 @@ IF (kernel_spec(1) .EQ. 2_ik) THEN
                                         subarray(ii + ll, jj + mm, ii))
                 END DO
                 END DO
-                result_subarray(ii - border, jj - border, kk - border) = INT(accumulator, KIND=ik)
+                result_subarray(ii - border, jj - border, kk - border) = accumulator
         END DO
         END DO
         END DO
+
+        DEALLOCATE(kernel2d)
 ELSE    
         ! 3D is considered a default
         ALLOCATE( kernel3d(kernel_spec(2), kernel_spec(2), kernel_spec(2)))
@@ -392,55 +374,21 @@ ELSE
                 END DO
                 END DO
                 END DO
-                result_subarray(ii - border, jj - border, kk - border) = INT(accumulator, KIND=ik)
+                result_subarray(ii - border, jj - border, kk - border) = accumulator
         END DO
         END DO
         END DO
+
+        DEALLOCATE(kernel3d)
 ENDIF
 
 DEALLOCATE(subarray)
 
+IF (my_rank .EQ. 0_ik) CALL CPU_TIME(calculation)
+
 ! After image filtering
 ! Get Histogram of Scalar Values
 CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)            
-
-! Collect data
-IF (my_rank > 0) THEN        
-        CALL MPI_SEND(result_subarray, SIZE(result_subarray), MPI_INTEGER, 0_mik, my_rank, MPI_COMM_WORLD, ierr )
-ELSE
-        ! ALLOCATE( result_array(dims_reduced(1), dims_reduced(2), dims_reduced(3) ) )
-
-        ALLOCATE( result_array(dims(1), dims(2), dims(3) ) )
-        ! result_array = 0_ik
-
-        DO ii = 1, sections(1) 
-                DO jj = 1, sections(2) 
-                        DO kk = 1, sections(3) 
-
-        ! Converting address of subarray into rank is tested in Octave.
-        address = (kk-1)*sections(1)*sections(2) + (jj-1_ik)*sections(1) + ii
-
-        IF ( debug .EQ. 2_ik ) WRITE(*,'(2(A, I5))') "RESULT Address: ", address, " My Rank: ",my_rank
-
-        IF (address .NE. 1_ik) THEN     ! First address will be 1 (!) Cant hide first corner of 3 loops
-                CALL MPI_RECV(result_subarray, SIZE(result_subarray), MPI_INTEGER, address-1_mik, &
-                address-1_mik, MPI_COMM_WORLD, MPI_STATUS_IGNORE, ierr )
-        END IF
-
-        subarray_origin = ( (/ ii, jj, kk /) - 1_ik ) * vox_per_dir_and_sec + 1_ik + border
-
-        result_array (subarray_origin(1) : subarray_origin(1) + vox_per_dir_and_sec(1)  - 1_ik , &
-                      subarray_origin(2) : subarray_origin(2) + vox_per_dir_and_sec(2)  - 1_ik , &
-                      subarray_origin(3) : subarray_origin(3) + vox_per_dir_and_sec(3)  - 1_ik ) = result_subarray
-
-        IF ( debug .EQ. 2_ik ) WRITE(*,'(A, I7, A, 3I7)') "My Rank: ", address-1_ik, " Size of Subarray:", vox_per_dir_and_sec
-
-                        END DO
-                END DO
-        END DO 
-ENDIF
-
-DEALLOCATE(result_subarray)
 
 ! Collect the data of the histogram pre filtering
 IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_pre__F_global(SIZE(histogram_pre__F)))
@@ -454,6 +402,7 @@ IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_post_F_global(SIZE(histogram_post_F)))
 CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
         MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
+CALL CPU_TIME(extract_Histo)
 
 IF (my_rank .EQ. 0_ik) THEN
 
@@ -482,22 +431,52 @@ IF (my_rank .EQ. 0_ik) THEN
         ! Export VTK file (testing)
         WRITE(n2s,*) kernel_spec(1)
 
-        fileNameExportVtk = fileName(1:LEN_TRIM(fileName)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
+        filenameExportVtk = filename(1:LEN_TRIM(filename)-4) // '_Kernel_'// TRIM(ADJUSTL(n2s))  // '.vtk'
 
-        CALL write_vtk(fun2, fileNameExportVtk, result_array, spcng, dims)
+        CALL write_vtk_meta (   fh=fh_data_out                          , &
+                                filename=filenameExportVtk              , & 
+                                type=TRIM(typ)                          , &
+                                atStart=.TRUE.                          , &
+                                spcng=spcng                             , &
+                                dims=sections*subarray_dims)
 
-        DEALLOCATE(result_array)
-        
-        IF (kernel_spec(1) .EQ. 2_ik) THEN
-                DEALLOCATE(kernel2d)
-        ELSE
-                DEALLOCATE(kernel3d)
-        ENDIF
+        INQUIRE(FILE=filenameExportVtk, SIZE=wr_vtk_hdr_lngth)
 
-        CALL CPU_TIME(finish)
+END IF ! (my_rank .EQ. 0_ik)
 
-        WRITE(rd_o,'(A)')            std_lnbrk
-        WRITE(rd_o,'(A7, F8.3, A8)') 'Time = ', (finish - start) / 60,' Minutes'
+        ! BCAST used in some way of a Barrier.
+        CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR   , 0_mik, MPI_COMM_WORLD, ierr)
+        CALL MPI_BCAST (wr_vtk_hdr_lngth , 1_mik             , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+
+        CALL write_raw_mpi (    type=TRIM(typ)                          , &
+                                hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8) , &
+                                filename=filenameExportVtk              , &
+                                dims=sections*subarray_dims             , &
+                                subarray_dims=subarray_dims             , &
+                                subarray_origin=subarray_origin         , &
+                                subarray=INT(result_subarray, KIND=INT16))
+
+        DEALLOCATE(result_subarray)
+
+IF (my_rank .EQ. 0_ik) THEN
+
+        CALL write_vtk_meta (   fh=fh_data_out                          , &
+                                filename=filenameExportVtk              , & 
+                                atStart=.FALSE.)
+
+        CALL CPU_TIME(global_finish)
+
+        WRITE(rd_o,'(A         )')  std_lnbrk
+        WRITE(rd_o,'(A         )')  
+        WRITE(rd_o,'(A, F8.3, A)') 'Init and parsing     = ', (init_finish        - global_start)                    ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Read File            = ', (read_t_vtk         - init_finish)                     ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)                              ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Calculation          = ', (calculation        - prep_Histo)                      ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)                          ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation),' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                   ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time         = ', (global_finish      - global_start)                    ,' Seconds'
+        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60               ,' Minutes'
         CLOSE(rd_o)     
 
 ENDIF 

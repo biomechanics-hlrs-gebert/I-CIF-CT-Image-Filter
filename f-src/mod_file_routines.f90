@@ -346,41 +346,53 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
 
         OPEN(UNIT=fun, FILE=fl, CONVERT='LITTLE_ENDIAN', ACCESS="STREAM", FORM="UNFORMATTED", STATUS="OLD")
 
-        IF (TRIM(token(2)) == "float" .OR. TRIM(token(3)) == "float" ) THEN
+      IF (TRIM(token(2)) == "float" .OR. TRIM(token(3)) == "float" ) THEN
 
-           IF(knd==4_ik) THEN
-              ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
-              READ(UNIT=fun, POS=hdr_lngth) array_r_four(:,:,:)
-              array = REAL(array_r_four, KIND=REAL64)
-              DEALLOCATE(array_r_four)
-           END IF
+      IF(knd==4_ik) THEN
+         ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array_r_four(:,:,:)
+         array = INT(array_r_four, KIND=ik)
+         DEALLOCATE(array_r_four)
+      END IF
 
-        ELSE IF (TRIM(token(2)) == "double" .OR. TRIM(token(3)) == "double" ) THEN
+      ELSE IF (TRIM(token(2)) == "double" .OR. TRIM(token(3)) == "double" ) THEN
 
-           IF(knd==8_ik) THEN
+      IF(knd==8_ik) THEN
+         ALLOCATE(array_r_eight(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array_r_eight(:,:,:)
+         array = INT(array_r_eight, KIND=ik)
+         DEALLOCATE(array_r_eight)
+      END IF
 
-            ALLOCATE(array_r_eight(dims(1),dims(2),dims(3)))
-            READ(UNIT=fun, POS=hdr_lngth) array_r_eight(:,:,:)
-            array = INT(array_r_eight, KIND=ik)
-            DEALLOCATE(array_r_eight)
-
-           END IF
-
-        ELSE IF (TRIM(token(2)) == "short" .OR. TRIM(token(3)) == "short") THEN
-
+      ELSE IF (TRIM(token(2)) == "short" .OR. TRIM(token(3)) == "short") THEN
+         knd = 2_ik
          ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
          READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
-         array = REAL(array_i_two, KIND=ik)
+         array = REAL(array_i_two, KIND=ik) 
          DEALLOCATE(array_i_two)
+      ELSE IF (TRIM(token(2)) == "unsigned_short" .OR. TRIM(token(3)) == "unsigned_short") THEN
 
-        ELSE IF (TRIM(token(2)) == "int" .OR. TRIM(token(3)) == "int") THEN
-           ALLOCATE(array(dims(1),dims(2),dims(3)))
-           READ(UNIT=fun, POS=hdr_lngth) array(:,:,:)
-        ELSE
-           status = 4
-           WRITE(lui,'(3A)')    "The data type of the input file ",fl," was not identified."
-           WRITE(lui,'(A)')    "Check header/input file. Program aborted."
-        END IF ! if token ==  for data type, allocation and reading
+      ALLOCATE(array_i_two(dims(1),dims(2),dims(3)))
+         knd = -2_ik
+
+         READ(UNIT=fun, POS=hdr_lngth) array_i_two(:,:,:)
+
+         IF (MINVAL(array_i_two) .LT. 0_ik) THEN
+            WRITE(log_un,'(A)') 'INVALID INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
+            status_o = 1_ik
+         END IF 
+
+         array = INT(array_i_two, KIND=ik)
+      DEALLOCATE(array_i_two)
+
+      ELSE IF (TRIM(token(2)) == "int" .OR. TRIM(token(3)) == "int") THEN
+         ALLOCATE(array(dims(1),dims(2),dims(3)))
+         READ(UNIT=fun, POS=hdr_lngth) array(:,:,:)
+      ELSE
+         status = 4
+         WRITE(lui,'(3A)')    "The data type of the input file ",fl," was not identified."
+         WRITE(lui,'(A)')    "Check header/input file. Program aborted."
+      END IF ! if token ==  for data type, allocation and reading
 
         CLOSE(fun)
 
@@ -403,7 +415,6 @@ SUBROUTINE read_vtk(fun, fl, array, dims, spcng, sze_o, fov_o, bnds_o, log_un, s
            WRITE(lui,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
            WRITE(lui,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
            CALL CPU_TIME(end)             ! deliberately put here to get most realistic impression
-           WRITE(lui,'(A,F9.4,A)')    "Time to read file:               ", end-start, " seconds"
         END IF  ! print log output
 
      ELSE
@@ -453,9 +464,6 @@ SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
   INTEGER  (KIND=ik)                                                               :: lui
   INTEGER  (KIND=INT64)                                                            :: file_size
 
-  CALL CPU_TIME(start)
-
-  !-- General
   INQUIRE(FILE=TRIM(fl), EXIST=exist, SIZE=file_size)
   log_exist = PRESENT(log_un)
 
@@ -480,7 +488,7 @@ SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
 
         IF(kind==4_ik) THEN
            ALLOCATE( array_r_four(dims(1),dims(2),dims(3)))
-           READ(fun) array_r_four(:,:,:)
+           READ(fun) array_r_four(:,:,:)    
            array = REAL(array_r_four, KIND=REAL64)
            DEALLOCATE(array_r_four)
         ELSE IF(kind==8_ik) THEN
@@ -523,8 +531,8 @@ SUBROUTINE read_raw(fun, fl, kind, type, dims, array, log_un, status)
         WRITE(lui,'(A)')
         WRITE(lui,'(A,A)')         "Input file                           ", TRIM(fl)
         WRITE(lui,'(A)')           "Read raw module assumes Little-Endian while reading array!"
-        CALL CPU_TIME(end)             ! deliberately put here to get most realistic impression
-        WRITE(lui,'(A,F9.4)')      "Time to read file:               ", end-start
+      !   CALL CPU_TIME(end)             ! deliberately put here to get most realistic impression
+      !   WRITE(lui,'(A,F9.4)')      "Time to read file:               ", end-start
      END IF  ! print log output
 
 ELSE

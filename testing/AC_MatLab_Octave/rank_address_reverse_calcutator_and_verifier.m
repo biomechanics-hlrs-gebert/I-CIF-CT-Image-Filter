@@ -1,12 +1,13 @@
 clc
 clear
 
-for my_rank=1:128
+  sections = [  2,  2,  1  ]
+
+for my_rank=1:3
 
   # Check the addressing of ranks via the subarray within arrayfun
   # In this case - user input
   # my_rank = 128
-  sections = [  8,  4,  4  ];
   max_address_sections=sections(1)*sections(2)*sections(3);
 
   if (max_address_sections < my_rank)
@@ -14,7 +15,7 @@ for my_rank=1:128
   else
     
 ################################################################################
-# Calculate the rank_section out of my_rank and sections[x,y,z]     
+# Calculate the rank_section out of my_rank and sections[x,y,z]    
     zremainder = mod(my_rank, sections(1)*sections(2));
     if (zremainder == 0)
       rank_section = [ sections(1), sections(2), (my_rank - zremainder) / (sections(1)*sections(2)) ];   
@@ -30,7 +31,7 @@ for my_rank=1:128
     endif
 ################################################################################
 
-    rank_section;
+    rank_section
     
     calculated_rank = (rank_section(3)-1)*sections(1)*sections(2) + (rank_section(2)-1)*sections(1) + rank_section(1);
 
