@@ -432,11 +432,6 @@ ELSE IF (TRIM(type) .EQ. 'real8') THEN
 
 ELSE IF (TRIM(type) .EQ. 'int2') THEN
 
-   WRITE(*,*) "dims: ", dims
-   WRITE(*,*) "subarray_dims: ", subarray_dims
-   WRITE(*,*) "subarray_origin: ", subarray_origin-1
-   WRITE(*,'(A)') ""
-
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
