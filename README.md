@@ -89,13 +89,13 @@ make
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible. To run the binary, you have to source the Environment file, too.
 
 ### Set up the parametrization with proper parameters within 
-```./bin/ImageProcessing_Parameters.input```
+```./bin/input/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.input```
 
 1. Give the absolute path of an input dataset
 2. Define steering parameters
 3. Depending on the architecture, define proper parameters in
 
-```./bin/HLRS_NUM_3D_Convolusional_Filtering.pbs```
+```./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.vulcan.pbs```
 
 ### Start the program
 
