@@ -40,7 +40,7 @@ CHARACTER(LEN = mcl)                                            :: selectKernel
 
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, original_image_padding, subarray_origin
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, subarray_dims
-INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, vox_dir_padded
+INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, subarray_dims_overlap
 
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
 REAL     (KIND = rk)                                            :: sigma, accumulator
@@ -261,8 +261,8 @@ ELSE
         dims_reduced   = dims - remainder_per_dir
 END IF
 
-subarray_dims = (dims_reduced / sections)
-vox_dir_padded      = subarray_dims + original_image_padding
+subarray_dims         = (dims_reduced / sections)
+subarray_dims_overlap = subarray_dims + original_image_padding
 
 IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
         WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
@@ -271,16 +271,15 @@ IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
         WRITE(rd_o,'(A)')      std_lnbrk
 END IF
 
-ALLOCATE( subarray(vox_dir_padded(1), vox_dir_padded(2), vox_dir_padded(3) ) )
+ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
 
-! subarray_origin = (rank_section-1_ik) * (subarray_dims - original_image_padding) + border
 subarray_origin = (rank_section-1_ik) * (subarray_dims) + border
 
 CALL read_raw_mpi(      filename=filename                       , &
                         type=TRIM(typ)                          , &
                         hdr_lngth=INT(displacement, KIND=8)     , &
                         dims=dims                               , &
-                        subarray_dims=subarray_dims             , &
+                        subarray_dims=subarray_dims_overlap     , &
                         subarray_origin=subarray_origin         , &
                         subarray=subarray                       , &
                         displacement=displacement               , &
@@ -297,10 +296,8 @@ END IF
 IF (my_rank .EQ. 0_ik) CALL CPU_TIME(read_t_vtk)
 
 ! subarray_reduced_boundaries                   ! No Overlap
-! srb (1:3) = border + 1_ik
-! srb (4:6) = border + subarray_dims
 srb (1:3) = 1_ik + border
-srb (4:6) = subarray_dims - border
+srb (4:6) = subarray_dims_overlap - border
 
 ! Define new subarray_origin
 ! subarray_origin = subarray_dims * (rank_section-1_ik) + 1_ik 
