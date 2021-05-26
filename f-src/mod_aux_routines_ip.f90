@@ -6,8 +6,11 @@
 ! Date Original   12.01.2021
 ! Date Modified   09.05.2021
 
-! SUBROUTINE extract_histogram_scalar_array (array, hbnds, entries, histogram)
-! SUBROUTINE TD_Array_Scatter (size_mpi, sections)
+! SUBROUTINE extract_histogram_scalar_array (array, hbnds, histogram)
+! SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
+! SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
+! SUBROUTINE underscore_to_blank (infile, outfile)
+! SUBROUTINE basepath (infile, outfile)
 
 MODULE aux_routines_ip
 

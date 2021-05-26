@@ -1,23 +1,15 @@
 !---------------------------------------------------------------------------------------------------
 ! mod_file_routines.f90
-! Module with standard precision definitions
 !
-! \author Johannes Gebert
-! \date 04.01.2021
-! \date 25.04.2021
+! author Johannes Gebert
+! date 04.01.2021
+! date 25.05.2021
 
 ! subroutine mpi_err(ierr, mssg)
 ! SUBROUTINE check_file_exist(filename, must_exist, mpi)
-! SUBROUTINE write_vtk (fl_un, fl_nm, array, spcng, dims, debug_in, debug_u_in)
-! SUBROUTINE write_raw (fl_un, fl_m_nm, fl_d_nm, array, spcng, dims, debug, debug_u)
-! SUBROUTINE read_vtk_meta(fh, filename, dims, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
-! SUBROUTINE read_raw(fh, fl, kind, type, dims, array, log_un, status)
+! SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, dims)
+! SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
 ! SUBROUTINE write_matrix(matrix, title, u, frmwrk)
-
-!-- Tex routines
-! SUBROUTINE tikz_std_plot (un, fl_nm, part, dims, tick)
-! SUBROUTINE export_voxel_star_tex(vs, star, fl_nm, debug, debug_u)
-! SUBROUTINE export_tikz_vox_star_voxel(t ,u ,v ,vs , shp, cntr, hiR, fl_nm)
 
 MODULE file_routines_mpi
 

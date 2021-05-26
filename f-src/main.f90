@@ -437,10 +437,6 @@ IF (my_rank .EQ. 0_ik) THEN
                 histogram_filename_pre__Filter, &
                 histogram_filename_post_Filter )
 
-
-        ! Export VTK file (testing)
-        WRITE(n2s,*) kernel_spec(1)
-
         filenameExportVtk = TRIM(basename)//'_'//TRIM(input_parametrization)//'.vtk'
 
         CALL write_vtk_meta (   fh=fh_data_out                          , &
