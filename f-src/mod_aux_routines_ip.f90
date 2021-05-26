@@ -27,24 +27,10 @@ INTEGER  (KIND=ik)    , DIMENSION(:)    , ALLOCATABLE          , INTENT(OUT)    
 
 ! Internal variables
 INTEGER  (KIND=ik)                                                                 :: ii, jj, kk
-INTEGER  (KIND=ik)                                                                 :: entries, hmin, hmax, decimals, divisor
 INTEGER  (KIND=ik)    , DIMENSION(3)                                               :: shp
-CHARACTER(LEN=mcl)                                                                 :: evalstring
 
-WRITE( evalstring, "(I10)" )  hbnds(3)
-
-decimals = LEN(TRIM(evalstring))
-
-divisor = 10_ik * (decimals-2)    ! Get entries in the magnitude of the hundreds (decimals - 2)
-
-! Calculate Histogram boundaries
-hmin = hbnds(1) / divisor - 10_ik ! Ensures filtered image can be mapped
-hmax = hbnds(2) / divisor + 10_ik ! Integer division. Truncates towards .0     
-entries = hmax - hmin
-
-ALLOCATE(histogram(entries))
-
-histogram=0_ik
+ALLOCATE(histogram(hbnds(1):hbnds(2)))
+histogram(:) = 0_ik
 
 shp = SHAPE(array)
 
@@ -52,7 +38,7 @@ shp = SHAPE(array)
 DO ii=1, shp(1)
   DO jj=1, shp(2)
     DO kk=1, shp(3)
-      histogram( array(ii, jj, kk) / divisor  - hmin ) = histogram(  array(ii, jj, kk) / divisor  - hmin  ) + 1_ik
+      histogram( array(ii, jj, kk) ) = histogram(  array(ii, jj, kk) ) + 1_ik
     END DO
   END DO
 END DO
@@ -152,11 +138,15 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
 
   INTEGER    (KIND = ik) , INTENT(IN)        :: fun
   CHARACTER  (LEN  = mcl), INTENT(IN)        :: flnm_tex, flnm_pre, flnm_post
-  CHARACTER  (LEN  = mcl)                    :: title, titlemod
+  CHARACTER  (LEN  = mcl)                    :: title
 
   title = TRIM(flnm_tex(1:(LEN_TRIM(flnm_tex) - 4_ik )))
 
-  CALL underscore_to_blank_basepath(title, titlemod)
+  CALL underscore_to_blank(title, title)
+  CALL basepath(title, title)
+  CALL basepath(flnm_pre, flnm_pre)
+  CALL basepath(flnm_post, flnm_post)
+
 
   OPEN( UNIT = fun, file = TRIM(flnm_tex), action="WRITE", status="new")
 
@@ -174,7 +164,7 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   WRITE(fun, '(A)')  "        ymode=log,"
   WRITE(fun, '(A)')  "        xlabel=$scaledHU$,"
   WRITE(fun, '(A)')  "        ylabel=$Amount of Voxels$ (-),"
-  WRITE(fun, '(3A)') "        title=",TRIM(titlemod),","
+  WRITE(fun, '(3A)') "        title=",ADJUSTL(TRIM(title)),","
   WRITE(fun, '(A)')  "        grid=both,"
   WRITE(fun, '(A)')  "        minor grid style={gray!15},"
   WRITE(fun, '(A)')  "        major grid style={gray!15},"
@@ -183,10 +173,10 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   WRITE(fun, '(A)')  "        legend cell align={left},"
   WRITE(fun, '(A)')  "        no marks]"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsgray1] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(flnm_pre),"};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(flnm_pre)),"};"
   WRITE(fun, '(A)')  "    \addlegendentry{Histogram PRE Filter};"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsblue1] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(flnm_post),"};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(flnm_post)),"};"
   WRITE(fun, '(A)')  "    \addlegendentry{Histogram POST Filter};"
   WRITE(fun, '(A)')  "    \end{axis}"
   WRITE(fun, '(A)')  "    \end{tikzpicture}"
@@ -199,20 +189,35 @@ END SUBROUTINE write_tex_for_histogram
 
 !---------------------------------------------------------------------------------------------------
 
-SUBROUTINE underscore_to_blank_basepath (infile, outfile)
+SUBROUTINE underscore_to_blank (infile, outfile)
   ! This whole subroutine is a workaround :-)
-  CHARACTER  (LEN = *), INTENT(IN)        :: infile
-  CHARACTER  (LEN = *), INTENT(OUT)       :: outfile
-  INTEGER    (KIND = ik)                  :: ii, blanks
+  CHARACTER  (LEN = *)       :: infile
+  CHARACTER  (LEN = *)       :: outfile
+  INTEGER    (KIND = ik)     :: ii, blanks
 
   outfile=infile
   DO ii=1, LEN_TRIM(infile)
     IF (infile(ii:ii) == '_')  outfile(ii:ii) = ' '
+  END DO
+
+  outfile=ADJUSTL(TRIM(outfile))
+END SUBROUTINE underscore_to_blank
+
+!---------------------------------------------------------------------------------------------------
+
+SUBROUTINE basepath (infile, outfile)
+  ! This whole subroutine is a workaround :-)
+  CHARACTER  (LEN = *)      :: infile
+  CHARACTER  (LEN = *)      :: outfile
+  INTEGER    (KIND = ik)    :: ii, blanks
+
+  outfile=infile
+  DO ii=1, LEN_TRIM(infile)
     IF (infile(ii:ii) == '/')  blanks         = ii
   END DO
   outfile(1:blanks) = ' '
 
-  outfile=TRIM(outfile)
-END SUBROUTINE underscore_to_blank_basepath
+  outfile=ADJUSTL(TRIM(outfile))
+END SUBROUTINE basepath
 
 END MODULE aux_routines_IP

@@ -396,13 +396,13 @@ IF (my_rank .EQ. 0_ik) CALL CPU_TIME(calculation)
 CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)            
 
 ! Collect the data of the histogram pre filtering
-IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_pre__F_global(SIZE(histogram_pre__F)))
+IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_pre__F_global(hbnds(1):hbnds(2)))
 
 CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
         MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 ! Collect the data of the histogram post filtering
-IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_post_F_global(SIZE(histogram_post_F)))
+IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_post_F_global(hbnds(1):hbnds(2)))
 
 CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
         MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
@@ -414,10 +414,10 @@ IF (my_rank .EQ. 0_ik) THEN
         ! Export Histogram of Scalar Array pre Filtering
         OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
                 WRITE(fl_un_H_pre,'(A)') "scaledHU, Voxels"
-                DO ii=6, SIZE(histogram_pre__F_global)-5
+                DO ii=hbnds(1), hbnds(2)
                         IF ( histogram_pre__F_global(ii) .GT. 0_ik ) THEN 
                                 ! SUM(histogram_pre__F_global(ii-5):histogram_pre__F_global(ii+5) )/11
-                                WRITE(fl_un_H_pre,'(I4,A,I18)') ii," , ",histogram_pre__F_global(ii)
+                                WRITE(fl_un_H_pre,'(I18,A,I18)') ii," , ",histogram_pre__F_global(ii)
                         END IF
                 END DO
         CLOSE(fl_un_H_pre)
@@ -425,9 +425,9 @@ IF (my_rank .EQ. 0_ik) THEN
         ! Export Histogram of Scalar Array post Filtering
         OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
                 WRITE(fl_un_H_post,'(A)') "scaledHU, Voxels"
-                DO ii=1, SIZE(histogram_post_F_global)
+                DO ii=hbnds(1), hbnds(2)
                         IF ( histogram_post_F_global(ii) .GT. 0_ik ) THEN 
-                             WRITE(fl_un_H_post,'(I4,A,I18)') ii," , ",histogram_post_F_global(ii)
+                             WRITE(fl_un_H_post,'(I18,A,I18)') ii," , ",histogram_post_F_global(ii)
                         END IF
                 END DO
         CLOSE(fl_un_H_post)

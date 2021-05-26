@@ -2,7 +2,7 @@
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
-![Version](https://img.shields.io/badge/version-3.1.3-green)
+![version](https://img.shields.io/badge/version-3.1.4-green)
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
 ![Contributors](https://img.shields.io/badge/Contributors-2-blue)
 
