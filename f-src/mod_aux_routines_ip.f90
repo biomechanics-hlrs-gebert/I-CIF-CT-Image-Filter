@@ -8,7 +8,7 @@
 
 ! SUBROUTINE extract_histogram_scalar_array (array, hbnds, histogram)
 ! SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
-! SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
+! SUBROUTINE write_tex_for_histogram (fun, fn_tex, fn_pre, fn_post)
 ! SUBROUTINE underscore_to_blank (infile, outfile)
 ! SUBROUTINE basepath (infile, outfile)
 
@@ -23,7 +23,6 @@ CONTAINS
 
 SUBROUTINE extract_histogram_scalar_array (array, hbnds, histogram)
 ! This is an inherently unflexible subroutine. It delivers exactly this kind of histogram and nothing else...
-
 INTEGER  (KIND=ik)    , DIMENSION(:,:,:)                                           :: array
 INTEGER  (KIND=ik)    , DIMENSION(3)                           , INTENT(IN)        :: hbnds    ! histogram lower/upper bounds
 INTEGER  (KIND=ik)    , DIMENSION(:)    , ALLOCATABLE          , INTENT(OUT)       :: histogram
@@ -33,6 +32,7 @@ INTEGER  (KIND=ik)                                                              
 INTEGER  (KIND=ik)    , DIMENSION(3)                                               :: shp
 
 ALLOCATE(histogram(hbnds(1):hbnds(2)))
+
 histogram(:) = 0_ik
 
 shp = SHAPE(array)
@@ -137,27 +137,34 @@ SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
 END IF
 END SUBROUTINE r3_array_sectioning
 
-SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
+SUBROUTINE write_tex_for_histogram (fun, fn_tex, fn_pre, fn_post, fn_pre_avg, fn_post_avg)
 
   INTEGER    (KIND = ik) , INTENT(IN)        :: fun
-  CHARACTER  (LEN  = mcl), INTENT(IN)        :: flnm_tex, flnm_pre, flnm_post
+  CHARACTER  (LEN  = mcl), INTENT(IN)        :: fn_tex, fn_pre, fn_post, fn_pre_avg, fn_post_avg
   CHARACTER  (LEN  = mcl)                    :: title
 
-  title = TRIM(flnm_tex(1:(LEN_TRIM(flnm_tex) - 4_ik )))
+  title = TRIM(fn_tex(1:(LEN_TRIM(fn_tex) - 4_ik )))
 
   CALL underscore_to_blank(title, title)
-  CALL basepath(title, title)
-  CALL basepath(flnm_pre, flnm_pre)
-  CALL basepath(flnm_post, flnm_post)
+  CALL basepath(title           , title)
+  CALL basepath(fn_pre          , fn_pre)
+  CALL basepath(fn_post         , fn_post)
+  CALL basepath(fn_pre_avg      , fn_pre_avg)
+  CALL basepath(fn_post_avg     , fn_post_avg)
 
-
-  OPEN( UNIT = fun, file = TRIM(flnm_tex), action="WRITE", status="new")
+  OPEN( UNIT = fun, file = TRIM(fn_tex), action="WRITE", status="new")
 
   WRITE(fun, '(A)')  "\documentclass{standalone}"
   WRITE(fun, '(A)')  "\usepackage{pgfplots}"
   WRITE(fun, '(A)')  ""
-  WRITE(fun, '(A)')  "\definecolor{hlrsblue1}{RGB}{40, 172, 226}"
-  WRITE(fun, '(A)')  "\definecolor{hlrsgray1}{RGB}{128, 128, 128}"
+  WRITE(fun, '(A)')  "\definecolor{hlrsblue1}{RGB}{40, 172, 226}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsblue2}{RGB}{106, 206, 248}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsblue3}{RGB}{161, 224, 251}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsblue4}{RGB}{208, 240, 253}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsgray1}{RGB}{128, 128, 128}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsgray2}{RGB}{160, 160, 160}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsgray3}{RGB}{191, 191, 191}" 
+  WRITE(fun, '(A)')  "\definecolor{hlrsgray4}{RGB}{210, 210, 210}" 
   WRITE(fun, '(A)')  ""
   WRITE(fun, '(A)')  "\begin{document}"
   WRITE(fun, '(A)')  ""
@@ -166,7 +173,7 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   WRITE(fun, '(A)')  "        % xmode=log,"
   WRITE(fun, '(A)')  "        ymode=log,"
   WRITE(fun, '(A)')  "        xlabel=$scaledHU$,"
-  WRITE(fun, '(A)')  "        ylabel=$Amount of Voxels$ (-),"
+  WRITE(fun, '(A)')  "        ylabel=$Amount\space of\space Voxels$ (-),"
   WRITE(fun, '(3A)') "        title=",ADJUSTL(TRIM(title)),","
   WRITE(fun, '(A)')  "        grid=both,"
   WRITE(fun, '(A)')  "        minor grid style={gray!15},"
@@ -175,12 +182,18 @@ SUBROUTINE write_tex_for_histogram (fun, flnm_tex, flnm_pre, flnm_post)
   WRITE(fun, '(A)')  "        legend style={at={(1.03,0.5)},anchor=west},"
   WRITE(fun, '(A)')  "        legend cell align={left},"
   WRITE(fun, '(A)')  "        no marks]"
+  WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsgray4] %"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(fn_pre)),"};"
+  WRITE(fun, '(A)')  "    \addlegendentry{Raw};"
+  WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsblue4] %"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(fn_post)),"};"
+  WRITE(fun, '(A)')  "    \addlegendentry{Filtered};"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsgray1] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(flnm_pre)),"};"
-  WRITE(fun, '(A)')  "    \addlegendentry{Histogram PRE Filter};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(fn_pre_avg)),"};"
+  WRITE(fun, '(A)')  "    \addlegendentry{Raw, averaged};"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsblue1] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(flnm_post)),"};"
-  WRITE(fun, '(A)')  "    \addlegendentry{Histogram POST Filter};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", ADJUSTL(TRIM(fn_post_avg)),"};"
+  WRITE(fun, '(A)')  "    \addlegendentry{Filtered, averaged};"
   WRITE(fun, '(A)')  "    \end{axis}"
   WRITE(fun, '(A)')  "    \end{tikzpicture}"
   WRITE(fun, '(A)')  ""

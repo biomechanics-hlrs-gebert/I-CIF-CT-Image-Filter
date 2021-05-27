@@ -47,14 +47,23 @@ julius)
     ;;
 
 vulcan)
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig01.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig05.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig20.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S05_Sig10.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S07_Sig10.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S09_Sig10.vulcan.pbs
-    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S11_Sig10.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig01.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig05.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig20.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S05_Sig10.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S07_Sig10.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S09_Sig10.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S11_Sig10.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S31_Sig01.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S31_Sig05.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S31_Sig10.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S31_Sig20.vulcan.pbs
+#    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S31_Sig30.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S45_Sig05.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S45_Sig10.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S45_Sig20.vulcan.pbs
+    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S45_Sig30.vulcan.pbs
     exit 0
     ;;
 

@@ -127,6 +127,34 @@ end subroutine mpi_err
  END SUBROUTINE write_vtk_meta
 
  !---------------------------------------------------------------------------------------------------
+
+ SUBROUTINE write_histo_csv (fh, filename, hbnds, mov_avg_width, histogram)
+   ! Arg_divider acts as a parameter defining a moving average (!)
+   ! It has an immediate effect like a filtered graph.
+   INTEGER  (KIND=ik)                           , INTENT(IN)       :: fh
+   CHARACTER(len=*)                             , INTENT(IN)       :: filename
+   INTEGER  (KIND=ik), DIMENSION(3)             , INTENT(IN)       :: hbnds    ! histogram lower/upper bounds
+   INTEGER  (KIND=ik)                           , INTENT(IN)       :: mov_avg_width
+   INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(IN)       :: histogram
+
+   INTEGER  (KIND=ik)                                              :: ii, avg, span, step
+   
+   span = mov_avg_width/2 ! int division
+   IF (mov_avg_width .EQ. 0_ik) step = 1_ik
+
+   OPEN(UNIT = fh, FILE=TRIM(filename), ACTION="WRITE", STATUS="new")
+   WRITE(fh,'(A)') "scaledHU, Voxels"
+   DO ii=hbnds(1)+span, hbnds(2)-span, step
+      avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width+1)
+           IF ( histogram(ii) .GT. 0_ik ) THEN 
+                   WRITE(fh,'(I18,A,I18)') ii," , ",avg
+           END IF
+   END DO
+   CLOSE(fh)
+ END SUBROUTINE write_histo_csv
+
+
+ !---------------------------------------------------------------------------------------------------
  
  SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
 ! type = 'int2', 'int4'

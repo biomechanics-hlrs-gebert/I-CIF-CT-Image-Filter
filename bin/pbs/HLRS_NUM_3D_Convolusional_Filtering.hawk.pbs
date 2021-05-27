@@ -1,0 +1,17 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# Image Processing - Start Application
+#
+# Author:          Johannes Gebert «gebert@hlrs.de»
+# Created:         15.05.2021
+# Last edit:       15.05.2021
+# ------------------------------------------------------------------------------
+#PBS -N run_Image_Processing
+#PBS -l select=2:node_type=rome:mpiprocs=128:node_type_mem=256gb
+#PBS -l walltime=00:20:00
+
+# Change to the direcotry that the job was submitted from
+cd $PBS_O_WORKDIR
+
+# Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
+mpirun -np 256 ./bin/HLRS_NUM_3D_Convolusional_Filtering_V3.1.4_x86_64 $PBS_O_WORKDIR ./bin/ImageProcessing_Parameters.input 

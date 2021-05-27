@@ -25,6 +25,7 @@ IMPLICIT NONE
 
 ! Parameter
 INTEGER  (KIND = ik), PARAMETER                                 :: debug       = 1
+INTEGER  (KIND = ik), PARAMETER                                 :: mov_avg_width = 100   ! Choose an even integer!!
 INTEGER  (KIND = ik), PARAMETER                                 :: fun_input   = 999
 INTEGER  (KIND = ik), PARAMETER                                 :: fh_data_in  = 5  
 INTEGER  (KIND = ik), PARAMETER                                 :: fh_data_out = 10   ! write vtk
@@ -42,7 +43,7 @@ INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims, origina
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, rank_section, subarray_dims
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, subarray_dims_overlap
 
-INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_boundaries
+INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_bndaries
 REAL     (KIND = rk)                                            :: sigma, accumulator
 CHARACTER(LEN = mcl)                                            :: version, basename
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
@@ -51,20 +52,25 @@ REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
 INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
 CHARACTER(LEN =   8)                                            :: date
 CHARACTER(LEN =  10)                                            :: time
-CHARACTER(LEN = mcl)                                            :: input_parametrization
+CHARACTER(LEN = mcl)                                            :: inp_para
 
 ! Histogram Variables
-CHARACTER(LEN = mcl)                                            :: histogram_filename_pre__Filter
-CHARACTER(LEN = mcl)                                            :: histogram_filename_post_Filter
+CHARACTER(LEN = mcl)                                            :: histogram_fn_pre__Filter
+CHARACTER(LEN = mcl)                                            :: histogram_fn_post_Filter
+CHARACTER(LEN = mcl)                                            :: histo_avg_fn_pre__Filter
+CHARACTER(LEN = mcl)                                            :: histo_avg_fn_post_Filter
 CHARACTER(LEN = mcl)                                            :: histogram_filename_tex_Filter
-INTEGER  (KIND = ik), PARAMETER                                 :: fl_un_H_pre=41, fl_un_H_post=42
-INTEGER  (KIND = ik)                                            :: histo_bound_global_lo, histo_bound_global_hi
-INTEGER  (KIND = ik)                                            :: histo_bound_local_lo, histo_bound_local_hi
+INTEGER  (KIND = ik)                                            :: histo_bnd_global_lo, histo_bnd_global_hi
+INTEGER  (KIND = ik)                                            :: histo_bnd_local_lo,  histo_bnd_local_hi
+INTEGER  (KIND = ik)                                            :: his_avg_bnd_global_lo, his_avg_bnd_global_hi
+INTEGER  (KIND = ik)                                            :: his_avg_bnd_local_lo,  his_avg_bnd_local_hi
+INTEGER  (KIND = ik), PARAMETER                                 :: fh_pre     =41, fh_post    =42
+INTEGER  (KIND = ik), PARAMETER                                 :: fh_pre__avg=51, fh_post_avg=52
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: hbnds
-
-! Histogram is scaled to INT2 because 65.535 entries are sufficient to calculate and print virtually any histogram
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
+INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histo_avg_pre__F       , histo_avg_post_F
+INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histo_avg_pre__F_global, histo_avg_post_F_global
 
 ! Read Input file
 CHARACTER(len=mcl)                                              :: line, parameterfile, prefix
@@ -159,10 +165,10 @@ IF (my_rank .EQ. 0) THEN
         basename = TRIM(filename(1:(LEN_TRIM(filename) - 4_ik )))
 
         CALL parse(str=parameterfile,delims=".",args=tokens,nargs=ntokens)
-        input_parametrization = tokens(2)
+        inp_para = tokens(2)
 
         ! Log in dir of vtk - not its basename!!
-        log_file  = TRIM(basename)//'_'//TRIM(input_parametrization)//".log"
+        log_file  = TRIM(basename)//'_'//TRIM(inp_para)//".log"
         CALL check_file_exist( filename = log_file, must_exist=0_ik, mpi=.TRUE.)
 
         INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
@@ -213,9 +219,11 @@ IF (my_rank .EQ. 0) THEN
         ENDIF
        
         ! Get the output filenames of the Histograms
-        histogram_filename_pre__Filter = TRIM(basename)//'_'//TRIM(input_parametrization)//'_hist_PRE__FILTER.csv'
-        histogram_filename_post_Filter = TRIM(basename)//'_'//TRIM(input_parametrization)//'_hist_POST_FILTER.csv'
-        histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(input_parametrization)//'_Filter_Histogram.tex'
+        histogram_fn_pre__Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_PRE__FILTER.csv'
+        histogram_fn_post_Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_POST_FILTER.csv'
+        histo_avg_fn_pre__Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_avg_PRE__FILTER.csv'
+        histo_avg_fn_post_Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_avg_POST_FILTER.csv'
+        histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(inp_para)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank .EQ. 0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
@@ -300,7 +308,7 @@ END IF
 ! Prepare collecting the subarrays to assemble a global vtk file.
 IF (my_rank .EQ. 0_ik) CALL CPU_TIME(read_t_vtk)
 
-! subarray_reduced_boundaries                   ! No Overlap
+! subarray_reduced_bndaries                   ! No Overlap
 srb (1:3) = 1_ik + border
 srb (4:6) = subarray_dims_overlap - border
 
@@ -310,22 +318,21 @@ srb (4:6) = subarray_dims_overlap - border
 ALLOCATE( result_subarray (subarray_dims(1), subarray_dims(2), subarray_dims(3) ) )
 
 ! Get information about the data range of the Histogram globally. 
-histo_bound_local_lo = MINVAL(subarray)
-histo_bound_local_hi = MAXVAL(subarray)
+histo_bnd_local_lo = MINVAL(subarray)
+histo_bnd_local_hi = MAXVAL(subarray)
 
-CALL MPI_ALLREDUCE(histo_bound_local_lo, histo_bound_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, ierr)
-CALL MPI_ALLREDUCE(histo_bound_local_hi, histo_bound_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
+CALL MPI_ALLREDUCE(histo_bnd_local_lo, histo_bnd_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, ierr)
+CALL MPI_ALLREDUCE(histo_bnd_local_hi, histo_bnd_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-hbnds        = (/ histo_bound_global_lo, histo_bound_global_hi , histo_bound_global_hi - histo_bound_global_lo /)
-
-IF (my_rank .EQ. 0_ik) THEN
-        WRITE(rd_o,'(A)')      "Histogramm  FLOOR(min | max / 10) defines boundaries of Histogramm Files."
-        WRITE(rd_o,'(A, 3I8)') "Histogramm min/max/delta:", hbnds
-END IF
+hbnds        = (/ histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - histo_bnd_global_lo /)
 
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
-CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)            
+CALL extract_histogram_scalar_array (   subarray(       srb(1):srb(4)   , & 
+                                                        srb(2):srb(5)   , &
+                                                        srb(3):srb(6))  , &
+                                                        hbnds           , &
+                                                        histogram_pre__F)            
 
 IF (my_rank .EQ. 0_ik) CALL CPU_TIME(prep_Histo)
 
@@ -395,14 +402,15 @@ IF (my_rank .EQ. 0_ik) CALL CPU_TIME(calculation)
 ! Get Histogram of Scalar Values
 CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)            
 
-! Collect the data of the histogram pre filtering
-IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_pre__F_global(hbnds(1):hbnds(2)))
+! Allocate memory for global histogram
+IF (my_rank .EQ. 0_ik) THEN
+        ALLOCATE(histogram_pre__F_global(hbnds(1):hbnds(2)))
+        ALLOCATE(histogram_post_F_global(hbnds(1):hbnds(2)))
+END IF
 
+! Collect the data of the histogram post filtering       
 CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
         MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
-
-! Collect the data of the histogram post filtering
-IF (my_rank .EQ. 0_ik) ALLOCATE(histogram_post_F_global(hbnds(1):hbnds(2)))
 
 CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
         MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
@@ -411,33 +419,20 @@ CALL CPU_TIME(extract_Histo)
 
 IF (my_rank .EQ. 0_ik) THEN
 
-        ! Export Histogram of Scalar Array pre Filtering
-        OPEN(UNIT = fl_un_H_pre, FILE=histogram_filename_pre__Filter, ACTION="WRITE", STATUS="new")
-                WRITE(fl_un_H_pre,'(A)') "scaledHU, Voxels"
-                DO ii=hbnds(1), hbnds(2)
-                        IF ( histogram_pre__F_global(ii) .GT. 0_ik ) THEN 
-                                ! SUM(histogram_pre__F_global(ii-5):histogram_pre__F_global(ii+5) )/11
-                                WRITE(fl_un_H_pre,'(I18,A,I18)') ii," , ",histogram_pre__F_global(ii)
-                        END IF
-                END DO
-        CLOSE(fl_un_H_pre)
-        
-        ! Export Histogram of Scalar Array post Filtering
-        OPEN(UNIT = fl_un_H_post, FILE=histogram_filename_post_Filter, ACTION="WRITE", STATUS="new")
-                WRITE(fl_un_H_post,'(A)') "scaledHU, Voxels"
-                DO ii=hbnds(1), hbnds(2)
-                        IF ( histogram_post_F_global(ii) .GT. 0_ik ) THEN 
-                             WRITE(fl_un_H_post,'(I18,A,I18)') ii," , ",histogram_post_F_global(ii)
-                        END IF
-                END DO
-        CLOSE(fl_un_H_post)
+        ! Export Histograms
+        CALL write_histo_csv (fh_pre,      histogram_fn_pre__Filter, hbnds, 0_ik       , histogram_pre__F_global)
+        CALL write_histo_csv (fh_post,     histogram_fn_post_Filter, hbnds, 0_ik       , histogram_post_F_global)
+        CALL write_histo_csv (fh_pre__avg, histo_avg_fn_pre__Filter, hbnds, mov_avg_width, histogram_pre__F_global)
+        CALL write_histo_csv (fh_post_avg, histo_avg_fn_post_Filter, hbnds, mov_avg_width, histogram_post_F_global)
 
-        CALL write_tex_for_histogram (fun3, &
-                histogram_filename_tex_Filter, &
-                histogram_filename_pre__Filter, &
-                histogram_filename_post_Filter )
+        CALL write_tex_for_histogram (fun3      , &
+                histogram_filename_tex_Filter   , &
+                histogram_fn_pre__Filter        , &
+                histogram_fn_post_Filter        , &
+                histo_avg_fn_pre__Filter        , &
+                histo_avg_fn_post_Filter        )
 
-        filenameExportVtk = TRIM(basename)//'_'//TRIM(input_parametrization)//'.vtk'
+        filenameExportVtk = TRIM(basename)//'_'//TRIM(inp_para)//'.vtk'
 
         CALL write_vtk_meta (   fh=fh_data_out                          , &
                                 filename=filenameExportVtk              , & 
