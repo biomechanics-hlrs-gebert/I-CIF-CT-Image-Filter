@@ -34,8 +34,8 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fun3        =
 ! Internal Variables
 REAL     (KIND = rk)                                            :: global_start, init_finish, read_t_vtk, prep_Histo
 REAL     (KIND = rk)                                            :: calculation, extract_Histo, global_finish
-CHARACTER(LEN = mcl)                                            :: n2s, filename, filenameExportVtk, typ
-INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, address, displacement, counter, border
+CHARACTER(LEN = mcl)                                            :: filename, filenameExportVtk, typ
+INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, displacement, counter, border
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
 CHARACTER(LEN = mcl)                                            :: selectKernel
 
@@ -62,15 +62,11 @@ CHARACTER(LEN = mcl)                                            :: histo_avg_fn_
 CHARACTER(LEN = mcl)                                            :: histogram_filename_tex_Filter
 INTEGER  (KIND = ik)                                            :: histo_bnd_global_lo, histo_bnd_global_hi
 INTEGER  (KIND = ik)                                            :: histo_bnd_local_lo,  histo_bnd_local_hi
-INTEGER  (KIND = ik)                                            :: his_avg_bnd_global_lo, his_avg_bnd_global_hi
-INTEGER  (KIND = ik)                                            :: his_avg_bnd_local_lo,  his_avg_bnd_local_hi
 INTEGER  (KIND = ik), PARAMETER                                 :: fh_pre     =41, fh_post    =42
 INTEGER  (KIND = ik), PARAMETER                                 :: fh_pre__avg=51, fh_post_avg=52
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: hbnds
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
 INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
-INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histo_avg_pre__F       , histo_avg_post_F
-INTEGER  (KIND = ik)           , DIMENSION(:)    , ALLOCATABLE  :: histo_avg_pre__F_global, histo_avg_post_F_global
 
 ! Read Input file
 CHARACTER(len=mcl)                                              :: line, parameterfile, prefix
@@ -253,17 +249,6 @@ border                 = (kernel_spec(2)-1_ik) / 2_ik     ! 0D Array (scalar)
 
 remainder_per_dir = MODULO(dims, sections)
 
-IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
-        WRITE(rd_o,'(A)')      std_lnbrk
-        WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
-        WRITE(rd_o,'(A)')
-        WRITE(rd_o,'(A, 3I5)') "sections:               ", sections
-        WRITE(rd_o,'(A, 3I5)') "dims:                   ", dims
-        WRITE(rd_o,'(A, 3I5)') "border:                 ", border
-        WRITE(rd_o,'(A, 3I5)') "original_image_padding: ", original_image_padding
-        WRITE(rd_o,'(A, 3I5)') "remainder_per_dir:      ", remainder_per_dir
-END IF
-
 ! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
 ! into the center of array. Then add the border. This way, no artifical padding is required.
 IF ((remainder_per_dir(1) <= original_image_padding(1)) .OR. & 
@@ -277,8 +262,15 @@ END IF
 subarray_dims         = (dims_reduced / sections)
 subarray_dims_overlap = subarray_dims + original_image_padding
 
-IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik)) THEN
-        WRITE(rd_o,'(A, 3I5)') "new remainder_per_dir:  ", remainder_per_dir
+IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
+        WRITE(rd_o,'(A)')      std_lnbrk
+        WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
+        WRITE(rd_o,'(A)')
+        WRITE(rd_o,'(A, 3I5)') "sections:               ", sections
+        WRITE(rd_o,'(A, 3I5)') "dims:                   ", dims
+        WRITE(rd_o,'(A, 3I5)') "border:                 ", border
+        WRITE(rd_o,'(A, 3I5)') "original_image_padding: ", original_image_padding
+        WRITE(rd_o,'(A, 3I5)') "remainder_per_dir:      ", remainder_per_dir
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
         WRITE(rd_o,'(A, 3I5)') "subarray_dims:          ", subarray_dims
         WRITE(rd_o,'(A)')      std_lnbrk
@@ -286,7 +278,7 @@ END IF
 
 ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
 
-subarray_origin = (rank_section-1_ik) * (subarray_dims) + 1_ik
+subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
 
 CALL read_raw_mpi(      filename=filename                       , &
                         type=TRIM(typ)                          , &
@@ -468,18 +460,19 @@ IF (my_rank .EQ. 0_ik) THEN
         CALL CPU_TIME(global_finish)
 
         WRITE(rd_o,'(A         )')  std_lnbrk
-        WRITE(rd_o,'(A         )')  
-        WRITE(rd_o,'(A, F8.3, A)') 'Init and parsing     = ', (init_finish        - global_start)                    ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Read File            = ', (read_t_vtk         - init_finish)                     ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)                              ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Calculation          = ', (calculation        - prep_Histo)                      ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)                          ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation),' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                   ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time         = ', (global_finish      - global_start)                    ,' Seconds'
-        WRITE(rd_o,'(A, F8.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60               ,' Minutes'
-        CLOSE(rd_o)     
+        WRITE(rd_o,'(A, F13.3, A)') 'Init and parsing     = ', (init_finish        - global_start)                     ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Read File            = ', (read_t_vtk         - init_finish)                      ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)                               ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Calculation          = ', (calculation        - prep_Histo)                       ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)                           ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                    ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start)                     ,' Seconds'
+        WRITE(rd_o,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60                ,' Minutes'
+        WRITE(rd_o,'(A         )')  std_lnbrk
+        WRITE(rd_o,'(A, F13.3, A)') 'CPU time             = ', (global_finish      - global_start) / 60 / 60 * size_mpi,' Hours'
 
+        CLOSE(rd_o)     
 ENDIF 
 
 CALL MPI_FINALIZE(ierr)

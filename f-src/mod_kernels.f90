@@ -2,7 +2,8 @@
 ! Module containing Kernels/Convolutional matrices for image processing
 ! mod_kernels.f90
 !
-! Author Benjamin Schnabel
+! Authors Benjamin Schnabel     HLRS, NUM       schnabel@hlrs.de
+!         Johannes Gebert       HLRS, NUM         gebert@hlrs.de
 ! Date    23.04.2021
 
 ! SUBROUTINE kernel_identity_2d(kernel, sizeKernel)

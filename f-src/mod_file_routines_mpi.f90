@@ -330,7 +330,6 @@ IF (PRESENT(rd_o)) THEN
    WRITE(rd_o,'(A)')           TRIM(filename)
    WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
    WRITE(rd_o,'(A)')
-   WRITE(rd_o,'((A,I2))')      "The data type is KIND=                ", knd
    WRITE(rd_o,'(A,I5,A)')      "Header length                      ", hdr_lngth," Bytes"
    WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
    WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
@@ -455,7 +454,7 @@ ELSE IF (TRIM(type) .EQ. 'int2') THEN
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
-   subarray_origin - 1_mik             , &
+   subarray_origin                     , & ! - 1_mik 
    MPI_ORDER_FORTRAN                   , &
    MPI_INTEGER2                        , &
    type_subarray                       , &
