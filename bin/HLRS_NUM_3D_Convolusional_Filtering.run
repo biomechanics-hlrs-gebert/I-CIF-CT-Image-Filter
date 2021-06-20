@@ -50,7 +50,7 @@ juliusGDB)
     if [ -z $1 ] || [ -z $2 ]; then
         errinput
     fi
-    echo "Start Parallel Image Processing with debuggers attached"
+    echo "Start Parallel 3D convolusional Filtering with debuggers attached"
     echo
     tmpi $1 gdb --args $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
                                                                     $IP_PREFIX        \

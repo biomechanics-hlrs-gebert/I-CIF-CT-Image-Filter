@@ -18,20 +18,20 @@ It's tested with up to 160 Processors (4 nodes) on Vulcan. Turnaround time of ro
 - [Additional Information](additional-information)
 
 ## Intent of this program
-Simply put, Image Processing aims at filtering Computed Tomography Scans (basically scalar fields) according to our need of exposing a proper histogram for thresholding and binarizing in subsequent programs.git
+Simply put, 3D Convolusional Filtering aims at Computed Tomography Scans (basically scalar fields) for our need of exposing a proper histogram for thresholding and binarizing in subsequent programs.
 
 ## Development
-All new features or parts of the tool are developed via branches. At any time, a version which compiles and executes and which does not necessarily crash is kept on the Repo's master branch.
-
 Developing new features and calculations with C or Fortran may render a cumbersome undertaking. Utilizing an interpreted language or interpreting framework like MatLab, Octave, Python or sth. else is welcomed. However, please push *all* of the development files into this repository/testing/A... directory structure.
 
+Furthermore, on julius, an environment and *.run script was adopted to run the program via GDB. It requires tmux and tmpi as it synchronizes the commands of all gdb instances.
+Many thanks to Arno Mayrhofer and his contributors: [tmpi](https://github.com/Azrael3000/tmpi) 
 ### Testcases
 Create new testcases in ./testing.
 Some of the Testprograms are written in Fortran and compiled with a BASh-Script (not with a makefile).
 
 ```
-sudo chmod +x «compile_testcase.f90»
-./«compile_testcase.f90»
+sudo chmod +x compile_testcase.f90
+./compile_testcase.f90
 ```
 ### We apply *a slightly modified* [semantic versioning](https://semver.org):
 
@@ -79,11 +79,11 @@ It's tested and therefore recommended to build and run the program as follows.
 
 ### Run make:
 ```
-source ./source2set_Environment.sh «Architecture»
+source ./source2set_Environment.sh »Architecture«
 make
 ```
 ### Uninstall:
-```make clean && rm -r «your program directory»```
+```make clean && rm -r »your program directory«```
 
 ## Usage
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible. To run the binary, you have to source the Environment file, too.
