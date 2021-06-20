@@ -21,9 +21,10 @@ usage ()
     echo "Usage: source source2set_Environment.sh «environment»"
     echo 
     echo "Environments available:"
-    echo "hawk    - HPE Apollo"
-    echo "vulcan  - NEC Cluster"
-    echo "julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU"
+    echo "hawk      - HPE Apollo"
+    echo "vulcan    - NEC Cluster"
+    echo "julius    - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU"
+    echo "juliusGDB - Julius with debugging attached to all cores. Only recommended up to 4 cores."
     echo
 }
 #
@@ -66,6 +67,31 @@ else
         mpi_prefix="/opt/mpi/openmpi-NO_F08-4.1.0"
         export PATH=${mpi_prefix}/bin:$PATH
         export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
+        #
+        echo "Activate debugging tools via »juliusGDB«."; echo ""
+        ;;
+
+    juliusGDB)
+        mpi_prefix="/opt/mpi/openmpi-NO_F08-4.1.0"
+        export PATH=${mpi_prefix}/bin:$PATH
+        export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
+        #
+        tmpi_prefix="/opt/tmpi"
+        export PATH=${tmpi_prefix}:$PATH
+        #           
+        tools=( tmpi tmux mpirun )
+        #
+        for tool in "${tools[@]}"; do
+            if ! which ${tool}; then
+                echo; echo "You need to provide ${tool} to run debugging."; echo
+            fi
+        done
+        #
+        echo ""
+        echo "You may start the program via the start script within a new tmux pane."
+        echo "After stopping the debugging, [ctrl+b], [&] and [y] get you back to the initial tmux pane."
+        echo ""
+
         ;;
 
     vulcan)

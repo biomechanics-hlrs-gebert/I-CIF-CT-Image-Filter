@@ -46,6 +46,23 @@ julius)
     postprocessing=$?			
     ;;
 
+juliusGDB)
+    if [ -z $1 ] || [ -z $2 ]; then
+        errinput
+    fi
+    echo "Start Parallel Image Processing with debuggers attached"
+    echo
+    tmpi $1 gdb --args $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
+                                                                    $IP_PREFIX        \
+                                                                    $2
+    # mpirun $IP_COMP_DBG -np $1 xterm -e gdb --args $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
+    #                                                                                                     $IP_PREFIX        \
+    #                                                                                                     $2
+    # --args#
+    
+    postprocessing=$?			
+    ;;
+
 vulcan)
 #    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig01.vulcan.pbs
 #    qsub ./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig05.vulcan.pbs

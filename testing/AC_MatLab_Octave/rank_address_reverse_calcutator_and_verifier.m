@@ -1,9 +1,9 @@
 clc
 clear
 
-  sections = [  2,  2,  1  ]
+  sections = [  8,  5,  4  ]
 
-for my_rank=1:3
+for my_rank=1:160
 
   # Check the addressing of ranks via the subarray within arrayfun
   # In this case - user input

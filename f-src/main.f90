@@ -233,7 +233,8 @@ CALL MPI_BCAST (dims        , 3_mik             , MPI_INTEGER         , 0_mik, M
 CALL MPI_BCAST (displacement, 1_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
 
 ! Get sections per direction
-CALL r3_array_sectioning (domains=size_mpi, sections=sections, domain=my_rank, rank_section=rank_section)
+CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
+CALL get_rank_section (domain=my_rank, sections=sections, rank_section=rank_section)
 
 ! Calculate Padding to decrease "size of array" to a corresponding size
 ! Size if Kernel always an odd number. Num-1 = Voxels on both sides of filtered Voxel

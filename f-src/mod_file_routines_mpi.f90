@@ -186,7 +186,7 @@ CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREA
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
-   subarray_origin - 1_mik             , &
+   subarray_origin                     , & ! - 1_mik
    MPI_ORDER_FORTRAN                   , &
    MPI_INTEGER2                        , &
    type_subarray                       , &

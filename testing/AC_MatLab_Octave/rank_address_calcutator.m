@@ -3,7 +3,7 @@ clear
 
 # Check the addressing of ranks via the subarray within arrayfun
 # In this case - user input
-sections = [  8,  4,  4  ];
+sections = [  5,  4,  4  ];
 
 domains=sections(1)*sections(2)*sections(3)
 
