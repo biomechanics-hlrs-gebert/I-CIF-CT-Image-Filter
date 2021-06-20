@@ -14,4 +14,4 @@
 cd $PBS_O_WORKDIR
 
 # Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
-mpirun -np 256 ./bin/HLRS_NUM_3D_Convolusional_Filtering_V3.1.4_x86_64 $PBS_O_WORKDIR ./bin/ImageProcessing_Parameters.input 
+mpirun -np 256 ./bin/HLRS_NUM_3D_Convolusional_Filtering_V3.2.2_x86_64 $PBS_O_WORKDIR ./bin/ImageProcessing_Parameters.input 
