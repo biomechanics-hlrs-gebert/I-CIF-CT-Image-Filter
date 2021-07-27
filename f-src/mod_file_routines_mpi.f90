@@ -102,7 +102,7 @@ end subroutine mpi_err
    IF (atStart .EQV. .TRUE.) THEN
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='NEW')
 
-      WRITE(fh,'(A)')            "# vtk DataFile Version 5.1"
+      WRITE(fh,'(A)')            "# vtk DataFile Version 4.2" ! 5.1
       WRITE(fh,'(A)')            "vtk output"
       WRITE(fh,'(A)')            "BINARY"
       WRITE(fh,'(A)')            "DATASET STRUCTURED_POINTS"
@@ -385,11 +385,11 @@ INTEGER  (KIND=ik)                                                              
 IF (PRESENT(displacement)) hdr_lngth = displacement
 IF (PRESENT(log_un))            rd_o = log_un
 
-CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
+! CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+! CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
 
-CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
-CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
+! CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
+! CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
