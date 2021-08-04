@@ -159,7 +159,7 @@ SUBROUTINE underscore_to_blank (infile, outfile)
   ! This whole subroutine is a workaround :-)
   CHARACTER  (LEN = *)       :: infile
   CHARACTER  (LEN = *)       :: outfile
-  INTEGER    (KIND = ik)     :: ii, blanks
+  INTEGER    (KIND = ik)     :: ii
 
   outfile=infile
   DO ii=1, LEN_TRIM(infile)

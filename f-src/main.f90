@@ -35,7 +35,8 @@ INTEGER  (KIND = ik), PARAMETER                                 :: fun3        =
 REAL     (KIND = rk)                                            :: global_start, init_finish, read_t_vtk, prep_Histo
 REAL     (KIND = rk)                                            :: calculation, extract_Histo, global_finish
 CHARACTER(LEN = mcl)                                            :: filename, filenameExportVtk, typ
-INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn, displacement, counter, border
+INTEGER  (KIND = ik)                                            :: ii, jj, kk, ll, mm, nn
+INTEGER  (KIND = ik)                                            :: displacement, counter, border, frcs=0
 INTEGER  (KIND = ik)           , DIMENSION(2)                   :: kernel_spec
 CHARACTER(LEN = mcl)                                            :: selectKernel
 
@@ -46,7 +47,7 @@ INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced,
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_bndaries
 REAL     (KIND = rk)                                            :: sigma, accumulator
 CHARACTER(LEN = mcl)                                            :: version, basename
-REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng
+REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng, origin
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
 REAL     (KIND = rk)           , DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
 INTEGER  (KIND = ik)           , DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
@@ -142,17 +143,23 @@ IF (my_rank .EQ. 0) THEN
                                 CALL parse(str=tokens(2), delims="=", args=tkns, nargs=ntokens)
 
                                 SELECT CASE( tkns(1) )
-                                        CASE("IP_DATA_IN");     filename = TRIM(prefix)//tkns(2)
-                                        CASE("IP_MODE_K");      READ(tkns(2),'(I4)') kernel_spec(1)
-                                        CASE("IP_SELECT_K");    selectKernel = tkns(2)
-                                        CASE("IP_SIZE_K");      READ(tkns(2),'(I4)') kernel_spec(2)
-                                        CASE("IP_GS");          READ(tkns(2),'(F8.3)') sigma
+                CASE("IP_DATA_IN");  frcs = frcs + 1; filename = TRIM(prefix)//tkns(2)
+                CASE("IP_MODE_K");   frcs = frcs + 1; READ(tkns(2),'(I4)') kernel_spec(1)
+                CASE("IP_SELECT_K"); frcs = frcs + 1; selectKernel = tkns(2)
+                CASE("IP_SIZE_K");   frcs = frcs + 1; READ(tkns(2),'(I4)') kernel_spec(2)
+                CASE("IP_GS");       frcs = frcs + 1; READ(tkns(2),'(F8.3)') sigma
                                 END SELECT
                         END IF
                 END IF
          END DO
        
         CLOSE(fun_input)
+        
+        IF( frcs .NE. 5_ik )  THEN ! frcs --> file read checksum
+                WRITE(rd_o,'(A)') 'The *.input file for parametrization is invalid. Please check file and version.'  
+                CLOSE(rd_o)  
+                CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
+        ENDIF
 
         ! Get basename of vtk file
         CALL parse( str=filename, delims="/", args=tokens, nargs=ntokens)
@@ -203,6 +210,7 @@ IF (my_rank .EQ. 0) THEN
                                 filename=filename               , &
                                 dims=dims                       , &
                                 spcng=spcng                     , &
+                                origin=origin                   , &
                                 typ=typ                         , &
                                 displacement=displacement       , &
                                 rd_o=rd_o                       , &
@@ -432,6 +440,7 @@ IF (my_rank .EQ. 0_ik) THEN
                                 type=TRIM(typ)                          , &
                                 atStart=.TRUE.                          , &
                                 spcng=spcng                             , &
+                                origin=origin                           , &
                                 dims=sections*subarray_dims)
 
         INQUIRE(FILE=filenameExportVtk, SIZE=wr_vtk_hdr_lngth)

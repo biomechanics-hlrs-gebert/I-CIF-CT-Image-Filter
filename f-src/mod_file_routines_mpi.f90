@@ -1,13 +1,14 @@
 !---------------------------------------------------------------------------------------------------
-! mod_file_routines.f90
+! mod_file_routines_mpi.f90
 !
 ! author Johannes Gebert
 ! date 04.01.2021
-! date 25.05.2021
+! date 05.08.2021
 
 ! subroutine mpi_err(ierr, mssg)
 ! SUBROUTINE check_file_exist(filename, must_exist, mpi)
-! SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, dims)
+! SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, origin, dims, sections)
+! SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
 ! SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
 ! SUBROUTINE write_matrix(matrix, title, u, frmwrk)
 
@@ -85,8 +86,7 @@ end subroutine mpi_err
  END SUBROUTINE check_file_exist
 
  !---------------------------------------------------------------------------------------------------
-
- SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, dims)
+ SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, origin, dims, sections)
 
    ! It's HIGHLY recommended to check the existence of the output file prior to CALLing this
    ! Subroutine! Otherwise the program will crash. It's not double-checkd here, because this
@@ -95,29 +95,42 @@ end subroutine mpi_err
    INTEGER  (KIND=ik), INTENT(IN)                             :: fh
    CHARACTER(len=*)                                           :: filename
    CHARACTER(LEN=*)  , INTENT(IN)              , OPTIONAL     :: type
-   LOGICAL           , INTENT(IN)                             :: atStart
-   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: spcng
-   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3), OPTIONAL     :: dims
+   LOGICAL           , INTENT(IN)              , OPTIONAL     :: atStart  ! optional cause start/end of vtk file possible
+   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: spcng    ! same
+   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: origin   ! same
+   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3), OPTIONAL     :: dims     ! same
+   INTEGER  (KIND=ik)            , DIMENSION(3), OPTIONAL     :: sections ! same
+
+   REAL     (KIND=rk)            , DIMENSION(3)               :: orgn
+
 
    IF (atStart .EQV. .TRUE.) THEN
+
+      IF (PRESENT(sections)) THEN
+         orgn = (sections-1) * dims * spcng + origin
+      ELSE
+         orgn = origin
+      END IF
+
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='NEW')
 
-      WRITE(fh,'(A)')            "# vtk DataFile Version 4.2" ! 5.1
-      WRITE(fh,'(A)')            "vtk output"
-      WRITE(fh,'(A)')            "BINARY"
-      WRITE(fh,'(A)')            "DATASET STRUCTURED_POINTS"
-      WRITE(fh,'(A,3(I5,A))')    "DIMENSIONS", dims(1)," ",dims(2)," ",dims(3),""
-      WRITE(fh,'(A,3(F11.6,A))') "SPACING ", spcng(1)," ",spcng(2)," ",spcng(3),""
-      WRITE(fh,'(A)')            "ORIGIN 0 0 0"
-      WRITE(fh,'(A, I11)')       "POINT_DATA", dims(1)*dims(2)*dims(3)
+      WRITE(fh,'(A)')           "# vtk DataFile Version 5.1"
+      WRITE(fh,'(A)')           "vtk output"
+      WRITE(fh,'(A)')           "BINARY"
+      WRITE(fh,'(A)')           "DATASET STRUCTURED_POINTS"
+      WRITE(fh,'(A,3(I5))')     "DIMENSIONS", dims
+      WRITE(fh,'(A,3(F11.6))')  "SPACING ", spcng
+      WRITE(fh,'(A,3(F11.6))')  "ORIGIN ", orgn
+      WRITE(fh,'(A, I11)')      "POINT_DATA", PRODUCT(dims)
 
       IF (TRIM(type) .EQ. 'int2') WRITE(fh,'(A)') "SCALARS DICOMImage short"    
       IF (TRIM(type) .EQ. 'int4') WRITE(fh,'(A)') "SCALARS DICOMImage int"
 
       WRITE(fh,'(A)')            "LOOKUP_TABLE default"
+      ! WRITE(fh ,'(A)')          ''
    ELSE
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='OLD', POSITION='APPEND')
-      ! WRITE(fh ,'(A)')          ''
+      WRITE(fh ,'(A)')          ''
       WRITE(fh ,'(A)')          "METADATA"
       WRITE(fh ,'(A)')          "INFORMATION 0"
       WRITE(fh ,'(A)')
@@ -237,7 +250,8 @@ END SUBROUTINE write_raw_mpi
 !---------------------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_vtk_meta(fh, filename, dims, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
+SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, &
+   sze_o, fov_o, bnds_o, rd_o, status_o)
 ! log_un exists means "print log"!
 ! status  = 0 - everything is ok
 ! status /= 0 - Error
@@ -248,6 +262,7 @@ SUBROUTINE read_vtk_meta(fh, filename, dims, spcng, typ, displacement, sze_o, fo
 INTEGER  (KIND=ik)                                                            :: fh
 CHARACTER(len=*)                                                , INTENT(IN)  :: filename
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(OUT) :: dims
+REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: origin
 REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: spcng
 CHARACTER(len=*)                                                , INTENT(OUT) :: typ
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: displacement
@@ -261,7 +276,7 @@ INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) ::
 INTEGER  (KIND=ik)                                                            :: sze
 REAL     (KIND=rk)    , DIMENSION(3)                                          :: fov
 INTEGER  (KIND=ik)    , DIMENSION(3,2)                                        :: bnds
-INTEGER  (KIND=ik)                                                            :: status=0, ii=0, hdr_lngth, lui=6, ios, ntokens, knd
+INTEGER  (KIND=ik)                                                            :: status=0, ii=0, hdr_lngth, lui=6, ntokens
 
 CHARACTER(len=mcl)                                                            :: line
 CHARACTER(len=mcl)                                                            :: tokens(100)
@@ -279,46 +294,46 @@ OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 hdr_lngth=0
 
 DO ii=1,10
-   READ(fh,'(A)') line
-   hdr_lngth=hdr_lngth+LEN(TRIM(line))+2_ik                   ! eol characters, whitechar
-   CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
-   IF (ntokens > 0) THEN
-      IF (tokens(1) .EQ. "DIMENSIONS") THEN
-         CALL value_di(tokens(2), dims(1), ios=ios)
-         CALL value_di(tokens(3), dims(2), ios=ios)
-         CALL value_di(tokens(4), dims(3), ios=ios)
-         bnds(:,1) = 1
-         bnds(:,2) = dims(:)
-         sze       = dims(1)*dims(2)*dims(3)
-      ELSEIF (tokens(1) .EQ. "SPACING") THEN
-         CALL value_dr(tokens(2), spcng(1), ios=ios)
-         CALL value_dr(tokens(3), spcng(2), ios=ios)
-         CALL value_dr(tokens(4), spcng(3), ios=ios)
-      ELSEIF (tokens(1) .EQ. "DATASET") THEN
-         IF (tokens(2) /= "STRUCTURED_POINTS") THEN
-            WRITE(lui,'(3A)') "The input file ",filename," does not contain STRUCTURED_POINTS!"
-            status = 3_ik
-         ENDIF
-      ELSEIF (tokens(1) .EQ. "ORIGIN") THEN
-         IF (tokens(2)/="0" .OR. tokens(3)/="0" .OR. tokens(4)/="0") THEN
-            WRITE(lui,'(A)') "Can't deal with origin /= (0 0 0) yet. Assumes this is not an issue."
-         END IF
-      ELSEIF (tokens(1) .EQ. "SCALARS") THEN
-         !-- Get data type of the vtk-file
-         token(3) = tokens(3)
+READ(fh,'(A)') line
+hdr_lngth=hdr_lngth+LEN(TRIM(line))+1_ik                   ! eol characters, whitechar
+CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
+IF (ntokens > 0) THEN
+IF (tokens(1) .EQ. "DIMENSIONS") THEN
+READ(tokens(2),'(I10)')  dims(1)
+READ(tokens(3),'(I10)')  dims(2)
+READ(tokens(4),'(I10)')  dims(3)
+bnds(:,1) = 1
+bnds(:,2) = dims(:)
+sze       = dims(1)*dims(2)*dims(3)
+ELSEIF (tokens(1) .EQ. "SPACING") THEN
+READ(tokens(2),'(F15.6)') spcng(1)  
+READ(tokens(3),'(F15.6)') spcng(2)  
+READ(tokens(4),'(F15.6)') spcng(3)  
+ELSEIF (tokens(1) .EQ. "DATASET") THEN
+IF (tokens(2) /= "STRUCTURED_POINTS") THEN
+WRITE(lui,'(3A)') "The input file ",filename," does not contain STRUCTURED_POINTS!"
+status = 3_ik
+ENDIF
+ELSEIF (tokens(1) .EQ. "ORIGIN") THEN
+READ(tokens(2),'(F15.6)') origin(1)  
+READ(tokens(3),'(F15.6)') origin(2)  
+READ(tokens(4),'(F15.6)') origin(3)  
+ELSEIF (tokens(1) .EQ. "SCALARS") THEN
+!-- Get data type of the vtk-file
+token(3) = tokens(3)
 
-         SELECT CASE( TRIM( token(3) ) )
-         CASE('float');          typ = 'real4'
-         CASE('double');         typ = 'real8'
-         CASE('int');            typ = 'int4'
-         CASE('short');          typ = 'int2'
-         CASE('unsigned_short'); typ = 'int2'
-         CASE DEFAULT
-            WRITE(*,'(A)') "No valid type given in *.vtk File." 
-            status = 1_ik   
-         END SELECT
-      END IF
-   END IF !ntokens <0
+SELECT CASE( TRIM( token(3) ) )
+CASE('float');          typ = 'real4'
+CASE('double');         typ = 'real8'
+CASE('int');            typ = 'int4'
+CASE('short');          typ = 'int2'
+CASE('unsigned_short'); typ = 'int2'
+CASE DEFAULT
+WRITE(*,'(A)') "No valid type given in *.vtk File." 
+status = 1_ik   
+END SELECT
+END IF
+END IF !ntokens <0
 END DO
 
 CLOSE(fh)
@@ -326,21 +341,21 @@ CLOSE(fh)
 fov = dims*spcng
 
 IF (PRESENT(rd_o)) THEN
-   WRITE(rd_o,'(A)')           "Input file"
-   WRITE(rd_o,'(A)')           TRIM(filename)
-   WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
-   WRITE(rd_o,'(A)')
-   WRITE(rd_o,'(A,I5,A)')      "Header length                      ", hdr_lngth," Bytes"
-   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
-   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
-   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - z               ", spcng(3)*1000._rk ," µm / Voxel"
-   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - x              ", dims(1)
-   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - y              ", dims(2)
-   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - z              ", dims(3)
-   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - x               ", fov(1) , " mm"
-   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - y               ", fov(2) , " mm"
-   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
-   WRITE(rd_o,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
+WRITE(rd_o,'(A)')           "Input file"
+WRITE(rd_o,'(A)')           TRIM(filename)
+WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
+WRITE(rd_o,'(A)')
+WRITE(rd_o,'(A,I5,A)')      "Header length                      ", hdr_lngth," Bytes"
+WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
+WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
+WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - z               ", spcng(3)*1000._rk ," µm / Voxel"
+WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - x              ", dims(1)
+WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - y              ", dims(2)
+WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - z              ", dims(3)
+WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - x               ", fov(1) , " mm"
+WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - y               ", fov(2) , " mm"
+WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
+WRITE(rd_o,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
 END IF  ! print log output
 
 !-- Check existence of optional variables
@@ -379,17 +394,11 @@ INTEGER  (KIND=ik)                                                              
 INTEGER  (KIND=ik)                                                               :: fh
 
 ! MPI
-INTEGER  (KIND=ik)                                                               :: my_rank, size_mpi, ierr
+INTEGER  (KIND=ik)                                                               :: ierr
 INTEGER  (KIND=ik)                                                               :: type_subarray
 
 IF (PRESENT(displacement)) hdr_lngth = displacement
 IF (PRESENT(log_un))            rd_o = log_un
-
-! CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-! CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
-
-! CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
-! CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
