@@ -300,6 +300,11 @@ CALL read_raw_mpi(      filename=filename                       , &
                         log_un=rd_o                             , &
                         status_o=status)
 
+! Redefine type to get along with non binarized, originally as unsigned short stored data
+
+IF ((TRIM(typ) .EQ. "uint2") .OR. (TRIM(typ) .EQ. "int4")) typ = "int4"
+IF ((TRIM(typ) .EQ. "int2") ) CONTINUE ! Just as a Reminder :-)
+
 IF (status .EQ. 1_ik) THEN
         WRITE(rd_o,'(A)')  'Something during MPI File read went wrong. Please check/debug.'
         CLOSE(rd_o)
@@ -457,7 +462,7 @@ END IF ! (my_rank .EQ. 0_ik)
                                 dims=sections*subarray_dims             , &
                                 subarray_dims=subarray_dims             , &
                                 subarray_origin=subarray_origin         , &
-                                subarray=INT(result_subarray, KIND=INT16))
+                                subarray4=result_subarray) ! type was hardcoded in the end!
 
         DEALLOCATE(result_subarray)
 

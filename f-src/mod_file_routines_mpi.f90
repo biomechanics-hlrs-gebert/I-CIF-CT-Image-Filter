@@ -170,7 +170,7 @@ end subroutine mpi_err
 
  !---------------------------------------------------------------------------------------------------
  
- SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
+ SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray2, subarray4)
 ! type = 'int2', 'int4'
 
 CHARACTER(LEN=*)                        , INTENT(IN)                         :: type
@@ -179,7 +179,8 @@ CHARACTER(LEN=*)                        , INTENT(IN)                         :: 
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: dims
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_dims
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_origin
-INTEGER  (KIND=INT16), DIMENSION (:,:,:)                                     :: subarray
+INTEGER  (KIND=INT16), DIMENSION (:,:,:)            , OPTIONAL               :: subarray2
+INTEGER  (KIND=INT32), DIMENSION (:,:,:)            , OPTIONAL               :: subarray4
 
 ! Internal Variables
 INTEGER  (KIND=ik)                                                           :: fh
@@ -196,7 +197,7 @@ CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
-! IF (TRIM(type) .EQ. 'int2') THEN
+IF (TRIM(type) .EQ. 'int2') THEN
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
@@ -216,32 +217,32 @@ CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREA
    MPI_INFO_NULL              , &
    ierr)
 
-   CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
+   CALL MPI_FILE_WRITE_ALL(fh, subarray2, SIZE(subarray2), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
-! ELSE IF (TRIM(type) .EQ. 'int4') THEN
+ELSE IF (TRIM(type) .EQ. 'int4') THEN
    ! CHANGE TYPE DEFINITION FIRST!
 
-   ! CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
-   ! dims                                , &
-   ! subarray_dims                       , &
-   ! subarray_origin - 1_mik             , &
-   ! MPI_ORDER_FORTRAN                   , &
-   ! MPI_INTEGER                         , &
-   ! type_subarray                       , &
-   ! ierr)
+   CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
+   dims                                , &
+   subarray_dims                       , &
+   subarray_origin - 1_mik             , &
+   MPI_ORDER_FORTRAN                   , &
+   MPI_INTEGER                         , &
+   type_subarray                       , &
+   ierr)
 
-   ! CALL MPI_TYPE_COMMIT(type_subarray, ierr)
+   CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-   ! CALL MPI_FILE_SET_VIEW( fh , &
-   ! hdr_lngth                  , &
-   ! MPI_INTEGER                , &
-   ! type_subarray              , &
-   ! 'EXTERNAL32'               , &
-   ! MPI_INFO_NULL              , &
-   ! ierr)
+   CALL MPI_FILE_SET_VIEW( fh , &
+   hdr_lngth                  , &
+   MPI_INTEGER                , &
+   type_subarray              , &
+   'EXTERNAL32'               , &
+   MPI_INFO_NULL              , &
+   ierr)
 
-   ! CALL MPI_FILE_WRITE_ALL(fh, subarray, SIZE(subarray), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
-! END IF
+   CALL MPI_FILE_WRITE_ALL(fh, subarray4, SIZE(subarray4), MPI_INTEGER, MPI_STATUS_IGNORE, ierr)
+END IF
 
 CALL MPI_TYPE_FREE(type_subarray, ierr)
 CALL MPI_FILE_CLOSE(fh, ierr)
@@ -487,9 +488,9 @@ ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
       
    ! Not so pretty workaround
    IF (TRIM(type) .EQ. 'uint2') THEN
-      DO ii=1, dims(1)
-         DO jj=1, dims(2)
-            DO kk=1, dims(3)
+      DO ii=1, subarray_dims(1)
+         DO jj=1, subarray_dims(2)
+            DO kk=1, subarray_dims(3)
                IF (subarray(ii,jj,kk) .LT. 0_ik) subarray(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
             END DO
          END DO
