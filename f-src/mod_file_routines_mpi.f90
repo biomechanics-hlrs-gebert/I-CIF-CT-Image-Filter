@@ -102,7 +102,7 @@ end subroutine mpi_err
    INTEGER  (KIND=ik)            , DIMENSION(3), OPTIONAL     :: sections ! same
 
    REAL     (KIND=rk)            , DIMENSION(3)               :: orgn
-
+   INTEGER  (KIND=INT64)                                      :: sze
 
    IF (atStart .EQV. .TRUE.) THEN
 
@@ -114,14 +114,15 @@ end subroutine mpi_err
 
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='NEW')
 
-      WRITE(fh,'(A)')           "# vtk DataFile Version 5.1"
+      WRITE(fh,'(A)')           "# vtk DataFile Version 4.2" ! Compatibility issue
       WRITE(fh,'(A)')           "vtk output"
       WRITE(fh,'(A)')           "BINARY"
       WRITE(fh,'(A)')           "DATASET STRUCTURED_POINTS"
       WRITE(fh,'(A,3(I5))')     "DIMENSIONS", dims
       WRITE(fh,'(A,3(F11.6))')  "SPACING ", spcng
       WRITE(fh,'(A,3(F11.6))')  "ORIGIN ", orgn
-      WRITE(fh,'(A, I11)')      "POINT_DATA", PRODUCT(dims)
+      sze = PRODUCT(INT(dims, KIND=INT64))
+      WRITE(fh,'(A, I15)')      "POINT_DATA", sze
 
       IF (TRIM(type) .EQ. 'int2') WRITE(fh,'(A)') "SCALARS DICOMImage short"    
       IF (TRIM(type) .EQ. 'int4') WRITE(fh,'(A)') "SCALARS DICOMImage int"
@@ -178,7 +179,7 @@ CHARACTER(LEN=*)                        , INTENT(IN)                         :: 
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: dims
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_dims
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_origin
-INTEGER  (KIND=int16), DIMENSION (:,:,:)                                     :: subarray
+INTEGER  (KIND=INT16), DIMENSION (:,:,:)                                     :: subarray
 
 ! Internal Variables
 INTEGER  (KIND=ik)                                                           :: fh
@@ -273,7 +274,7 @@ INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)  ::
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: status_o
 
 !-- Initialize variables in case they're not used
-INTEGER  (KIND=ik)                                                            :: sze
+INTEGER  (KIND=INT64)                                                         :: sze
 REAL     (KIND=rk)    , DIMENSION(3)                                          :: fov
 INTEGER  (KIND=ik)    , DIMENSION(3,2)                                        :: bnds
 INTEGER  (KIND=ik)                                                            :: status=0, ii=0, hdr_lngth, lui=6, ntokens
@@ -294,46 +295,46 @@ OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 hdr_lngth=0
 
 DO ii=1,10
-READ(fh,'(A)') line
-hdr_lngth=hdr_lngth+LEN(TRIM(line))+1_ik                   ! eol characters, whitechar
-CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
-IF (ntokens > 0) THEN
-IF (tokens(1) .EQ. "DIMENSIONS") THEN
-READ(tokens(2),'(I10)')  dims(1)
-READ(tokens(3),'(I10)')  dims(2)
-READ(tokens(4),'(I10)')  dims(3)
-bnds(:,1) = 1
-bnds(:,2) = dims(:)
-sze       = dims(1)*dims(2)*dims(3)
-ELSEIF (tokens(1) .EQ. "SPACING") THEN
-READ(tokens(2),'(F15.6)') spcng(1)  
-READ(tokens(3),'(F15.6)') spcng(2)  
-READ(tokens(4),'(F15.6)') spcng(3)  
-ELSEIF (tokens(1) .EQ. "DATASET") THEN
-IF (tokens(2) /= "STRUCTURED_POINTS") THEN
-WRITE(lui,'(3A)') "The input file ",filename," does not contain STRUCTURED_POINTS!"
-status = 3_ik
-ENDIF
-ELSEIF (tokens(1) .EQ. "ORIGIN") THEN
-READ(tokens(2),'(F15.6)') origin(1)  
-READ(tokens(3),'(F15.6)') origin(2)  
-READ(tokens(4),'(F15.6)') origin(3)  
-ELSEIF (tokens(1) .EQ. "SCALARS") THEN
-!-- Get data type of the vtk-file
-token(3) = tokens(3)
+   READ(fh,'(A)') line
+   hdr_lngth=hdr_lngth+LEN(TRIM(line))+1_ik                   ! eol characters, whitechar
+   CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
+   IF (ntokens > 0) THEN
+      IF (tokens(1) .EQ. "DIMENSIONS") THEN
+         READ(tokens(2),'(I10)')  dims(1)
+         READ(tokens(3),'(I10)')  dims(2)
+         READ(tokens(4),'(I10)')  dims(3)
+         bnds(:,1) = 1
+         bnds(:,2) = dims(:)
+         sze       = PRODUCT(INT(dims, KIND=INT64))
+      ELSEIF (tokens(1) .EQ. "SPACING") THEN
+         READ(tokens(2),'(F15.6)') spcng(1)  
+         READ(tokens(3),'(F15.6)') spcng(2)  
+         READ(tokens(4),'(F15.6)') spcng(3)  
+      ELSEIF (tokens(1) .EQ. "DATASET") THEN
+         IF (tokens(2) /= "STRUCTURED_POINTS") THEN
+            WRITE(lui,'(3A)') "The input file ",filename," does not contain STRUCTURED_POINTS!"
+            status = 3_ik
+         ENDIF
+      ELSEIF (tokens(1) .EQ. "ORIGIN") THEN
+         READ(tokens(2),'(F15.6)') origin(1)  
+         READ(tokens(3),'(F15.6)') origin(2)  
+         READ(tokens(4),'(F15.6)') origin(3)  
+      ELSEIF (tokens(1) .EQ. "SCALARS") THEN
+         !-- Get data type of the vtk-file
+         token(3) = tokens(3)
 
-SELECT CASE( TRIM( token(3) ) )
-CASE('float');          typ = 'real4'
-CASE('double');         typ = 'real8'
-CASE('int');            typ = 'int4'
-CASE('short');          typ = 'int2'
-CASE('unsigned_short'); typ = 'int2'
-CASE DEFAULT
-WRITE(*,'(A)') "No valid type given in *.vtk File." 
-status = 1_ik   
-END SELECT
-END IF
-END IF !ntokens <0
+         SELECT CASE( TRIM( token(3) ) )
+         CASE('float');          typ = 'real4'
+         CASE('double');         typ = 'real8'
+         CASE('int');            typ = 'int4'
+         CASE('short');          typ = 'int2'
+         CASE('unsigned_short'); typ = 'uint2'
+         CASE DEFAULT
+            WRITE(*,'(A)') "No valid type given in *.vtk File." 
+            status = 1_ik   
+         END SELECT
+      END IF
+   END IF !ntokens <0
 END DO
 
 CLOSE(fh)
@@ -341,21 +342,21 @@ CLOSE(fh)
 fov = dims*spcng
 
 IF (PRESENT(rd_o)) THEN
-WRITE(rd_o,'(A)')           "Input file"
-WRITE(rd_o,'(A)')           TRIM(filename)
-WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
-WRITE(rd_o,'(A)')
-WRITE(rd_o,'(A,I5,A)')      "Header length                      ", hdr_lngth," Bytes"
-WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
-WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
-WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - z               ", spcng(3)*1000._rk ," µm / Voxel"
-WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - x              ", dims(1)
-WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - y              ", dims(2)
-WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - z              ", dims(3)
-WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - x               ", fov(1) , " mm"
-WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - y               ", fov(2) , " mm"
-WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
-WRITE(rd_o,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
+   WRITE(rd_o,'(2A)')          "Input file: ", TRIM(filename)
+   WRITE(rd_o,'(A)')           ""
+   WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
+   WRITE(rd_o,'(A)')
+   WRITE(rd_o,'(A,I5,A)')      "Header length                      ", hdr_lngth," Bytes"
+   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
+   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
+   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - z               ", spcng(3)*1000._rk ," µm / Voxel"
+   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - x              ", dims(1)
+   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - y              ", dims(2)
+   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - z              ", dims(3)
+   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - x               ", fov(1) , " mm"
+   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - y               ", fov(2) , " mm"
+   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
+   WRITE(rd_o,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
 END IF  ! print log output
 
 !-- Check existence of optional variables
@@ -380,7 +381,7 @@ INTEGER  (KIND=MPI_OFFSET_KIND)                                                 
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: dims
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_dims
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_origin
-INTEGER  (KIND=ik)    , DIMENSION (:,:,:), ALLOCATABLE          , INTENT(OUT)    :: subarray
+INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE          , INTENT(OUT)    :: subarray
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: displacement
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: log_un
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT)    :: status_o
@@ -391,7 +392,7 @@ INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE                          
 REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_eight
 REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_four
 INTEGER  (KIND=ik)                                                               :: status=0, rd_o
-INTEGER  (KIND=ik)                                                               :: fh
+INTEGER  (KIND=ik)                                                               :: fh, ii, jj, kk
 
 ! MPI
 INTEGER  (KIND=ik)                                                               :: ierr
@@ -458,7 +459,7 @@ ELSE IF (TRIM(type) .EQ. 'real8') THEN
 
    WRITE(rd_o,'(A)') 'WARNING: Converted real 8 to integer 4 during file read. Check validity.'
 
-ELSE IF (TRIM(type) .EQ. 'int2') THEN
+ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
@@ -481,13 +482,24 @@ ELSE IF (TRIM(type) .EQ. 'int2') THEN
 
    ALLOCATE( array_i_two( subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
    CALL MPI_FILE_READ_ALL(fh, array_i_two, SIZE(array_i_two), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
-   
-   subarray = INT(array_i_two, KIND=INT32)
 
-   IF (MINVAL(array_i_two) .GT. 32767_ik) THEN
-      WRITE(log_un,'(A)') 'WARNING: CHECK INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
-      status = 1_ik
+   subarray = INT(array_i_two, KIND=INT32)
+      
+   ! Not so pretty workaround
+   IF (TRIM(type) .EQ. 'uint2') THEN
+      DO ii=1, dims(1)
+         DO jj=1, dims(2)
+            DO kk=1, dims(3)
+               IF (subarray(ii,jj,kk) .LT. 0_ik) subarray(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
+            END DO
+         END DO
+      END DO
    END IF
+
+   ! IF (MINVAL(array_i_two) .GT. 32767_ik) THEN
+   !    WRITE(log_un,'(A)') 'WARNING: CHECK INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
+   !    status = 1_ik
+   ! END IF
 
    DEALLOCATE(array_i_two)
 
