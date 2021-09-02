@@ -123,12 +123,13 @@ end subroutine mpi_err
       WRITE(fh,'(A,3(F11.6))')  "ORIGIN ", orgn
       sze = PRODUCT(INT(dims, KIND=INT64))
       WRITE(fh,'(A, I15)')      "POINT_DATA", sze
-
-      IF (TRIM(type) .EQ. 'int2') WRITE(fh,'(A)') "SCALARS DICOMImage short"    
-      IF (TRIM(type) .EQ. 'int4') WRITE(fh,'(A)') "SCALARS DICOMImage int"
+      
+      IF (TRIM(type) .EQ. 'uint2') WRITE(fh,'(A)') "SCALARS DICOMImage unsigned_short"    
+      IF (TRIM(type) .EQ. 'int2')  WRITE(fh,'(A)') "SCALARS DICOMImage short"    
+      IF (TRIM(type) .EQ. 'int4')  WRITE(fh,'(A)') "SCALARS DICOMImage int"
 
       WRITE(fh,'(A)')            "LOOKUP_TABLE default"
-      ! WRITE(fh ,'(A)')          ''
+      WRITE(fh ,'(A)')          ''
    ELSE
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='OLD', POSITION='APPEND')
       WRITE(fh ,'(A)')          ''
@@ -172,7 +173,7 @@ end subroutine mpi_err
  
  SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray2, subarray4)
 ! type = 'int2', 'int4'
-
+! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 CHARACTER(LEN=*)                        , INTENT(IN)                         :: type
 INTEGER  (KIND=MPI_OFFSET_KIND)                                              :: hdr_lngth
 CHARACTER(LEN=*)                        , INTENT(IN)                         :: filename
@@ -180,10 +181,11 @@ INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: 
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_dims
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_origin
 INTEGER  (KIND=INT16), DIMENSION (:,:,:)            , OPTIONAL               :: subarray2
+INTEGER  (KIND=INT16), DIMENSION (:,:,:)                      , ALLOCATABLE  :: subarray2_a
 INTEGER  (KIND=INT32), DIMENSION (:,:,:)            , OPTIONAL               :: subarray4
 
 ! Internal Variables
-INTEGER  (KIND=ik)                                                           :: fh
+INTEGER  (KIND=ik)                                                           :: fh, ii, jj ,kk
 
 ! MPI
 INTEGER  (KIND=ik)                                                           :: my_rank, size_mpi, ierr
@@ -197,7 +199,18 @@ CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
-IF (TRIM(type) .EQ. 'int2') THEN
+IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
+   IF (TRIM(type) .EQ. 'uint2') THEN
+      ALLOCATE(subarray2_a(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+      DO ii=1, subarray_dims(1)
+         DO jj=1, subarray_dims(2)
+            DO kk=1, subarray_dims(3)
+               IF (subarray4(ii,jj,kk) .GT. 32767_ik) subarray2_a(ii,jj,kk) = INT(subarray4(ii,jj,kk) - 65536_ik, KIND=INT16)
+            END DO
+         END DO
+      END DO
+   END IF
+
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
@@ -217,8 +230,11 @@ IF (TRIM(type) .EQ. 'int2') THEN
    MPI_INFO_NULL              , &
    ierr)
 
-   CALL MPI_FILE_WRITE_ALL(fh, subarray2, SIZE(subarray2), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
-
+   IF (TRIM(type) .EQ. 'int2') THEN
+      CALL MPI_FILE_WRITE_ALL(fh, subarray2, SIZE(subarray2), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
+   ELSE ! could only be uint2
+      CALL MPI_FILE_WRITE_ALL(fh, subarray2_a, SIZE(subarray2_a), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
+   END IF
 ELSE IF (TRIM(type) .EQ. 'int4') THEN
    ! CHANGE TYPE DEFINITION FIRST!
 
