@@ -32,4 +32,5 @@ export IP_SELECT_K=Identity   # Select Kernel      ['Identity', 'Gaussian']
 export IP_MODE_K=3            # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
 export IP_SIZE_K=3            # Size of Kernel
 export IP_GS=1.0              # Sigma of Gauß Kernel
+export IP_SCALING=1.0         # Scaling of the input image
 # ----------------------------------------------------------------------------------------

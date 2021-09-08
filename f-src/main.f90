@@ -45,7 +45,7 @@ INTEGER  (KIND = ik)           , DIMENSION(3)                   :: sections, ran
 INTEGER  (KIND = ik)           , DIMENSION(3)                   :: dims_reduced, remainder_per_dir, subarray_dims_overlap
 
 INTEGER  (KIND = ik)           , DIMENSION(6)                   :: srb ! subarray_reduced_bndaries
-REAL     (KIND = rk)                                            :: sigma, accumulator
+REAL     (KIND = rk)                                            :: sigma, accumulator, factor=1.0
 CHARACTER(LEN = mcl)                                            :: version, basename
 REAL     (KIND = rk)           , DIMENSION(3)                   :: spcng, origin
 REAL     (KIND = rk)           , DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
@@ -148,6 +148,7 @@ IF (my_rank .EQ. 0) THEN
                 CASE("IP_SELECT_K"); frcs = frcs + 1; selectKernel = tkns(2)
                 CASE("IP_SIZE_K");   frcs = frcs + 1; READ(tkns(2),'(I4)') kernel_spec(2)
                 CASE("IP_GS");       frcs = frcs + 1; READ(tkns(2),'(F8.3)') sigma
+                CASE("IP_SCALING");  frcs = frcs + 1; READ(tkns(2),'(F8.3)') factor
                                 END SELECT
                         END IF
                 END IF
@@ -155,7 +156,7 @@ IF (my_rank .EQ. 0) THEN
        
         CLOSE(fun_input)
         
-        IF( frcs .NE. 5_ik )  THEN ! frcs --> file read checksum
+        IF( frcs .NE. 6_ik )  THEN ! frcs --> file read checksum
                 WRITE(rd_o,'(A)') 'The *.input file for parametrization is invalid. Please check file and version.'  
                 CLOSE(rd_o)  
                 CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
@@ -181,17 +182,18 @@ IF (my_rank .EQ. 0) THEN
         CALL DATE_AND_TIME(date, time)
 
         IF ( (debug .GE. 0_ik) .AND. (my_rank .EQ. 0_ik)) THEN
-                WRITE(rd_o,'(2A)')     "This Logfile: ", TRIM(log_file)
-                WRITE(rd_o,'(A)')   
-                WRITE(rd_o,'(A)')      "HLRS - NUM"
-                WRITE(rd_o,'(2A)')     "Image Processing ", TRIM(version)
-                WRITE(rd_o,'(4A)')     date, " [ccyymmdd]    ", time, " [hhmmss.sss]"  
-                WRITE(rd_o,'(A)')      std_lnbrk
-                WRITE(rd_o,'(A, I7)')  "Debug Level:            ", debug
-                WRITE(rd_o,'(A, I7)')  "Processors:             ", size_mpi  
-                WRITE(rd_o,'(A, I7)')  "Filter Dimension:       ", kernel_spec(1)
-                WRITE(rd_o,'(A, I7)')  "Filter Size:            ", kernel_spec(2)
-                WRITE(rd_o,'(2A)')     "Filter Kernel:          ", TRIM(selectKernel)
+                WRITE(rd_o,'(2A)')      "This Logfile: ", TRIM(log_file)
+                WRITE(rd_o,'(A)')    
+                WRITE(rd_o,'(A)')       "HLRS - NUM"
+                WRITE(rd_o,'(2A)')      "Image Processing ", TRIM(version)
+                WRITE(rd_o,'(4A)')      date, " [ccyymmdd]    ", time, " [hhmmss.sss]"  
+                WRITE(rd_o,'(A)')       std_lnbrk
+                WRITE(rd_o,'(A, I7)')   "Debug Level:            ", debug
+                WRITE(rd_o,'(A, I7)')   "Processors:             ", size_mpi  
+                WRITE(rd_o,'(A, I7)')   "Filter Dimension:       ", kernel_spec(1)
+                WRITE(rd_o,'(A, I7)')   "Filter Size:            ", kernel_spec(2)
+                WRITE(rd_o,'(2A)')      "Filter Kernel:          ", TRIM(selectKernel)
+                WRITE(rd_o,'(A, F7.3)') "Scale Factor:           ", factor               
                 WRITE(rd_o,'(A)')      std_lnbrk
         END IF
         
@@ -236,6 +238,7 @@ CALL MPI_BCAST (filename    , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, M
 CALL MPI_BCAST (typ         , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST (factor      , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (dims        , 3_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (displacement, 1_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
@@ -243,6 +246,9 @@ CALL MPI_BCAST (displacement, 1_mik             , MPI_INTEGER         , 0_mik, M
 ! Get sections per direction
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
 CALL get_rank_section (domain=my_rank, sections=sections, rank_section=rank_section)
+
+! Take an overlapping border at least of the size of the scaling into account
+IF ((factor .NE. 1.0) .AND. (kernel_spec(2) .LT. factor)) kernel_spec(2) = CEILING(factor, KIND=ik)
 
 ! Calculate Padding to decrease "size of array" to a corresponding size
 ! Size if Kernel always an odd number. Num-1 = Voxels on both sides of filtered Voxel
@@ -436,7 +442,7 @@ IF (my_rank .EQ. 0_ik) THEN
         filenameExportVtk = TRIM(basename)//'_'//TRIM(inp_para)//'.vtk'
 
         CALL write_vtk_meta (   fh=fh_data_out                          , &
-                                filename=filenameExportVtk              , & 
+                                filename=filenamHK1_15mu-1_201125_HK1_15mu-1_G3S61-Sig20_Filter_Histogram.texeExportVtk              , & 
                                 type=TRIM(typ)                          , &
                                 atStart=.TRUE.                          , &
                                 spcng=spcng                             , &
