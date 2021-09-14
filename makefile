@@ -47,6 +47,7 @@ PE = gnu
 ifeq ($(PE),gnu)
    c_flags_f90 = -J$(mod_dir) -I$(mod_dir) \
 	             -g						   \
+				 -o                        \
 	             -O3					   \
 	             -fbacktrace               \
                  -fbounds-check            \

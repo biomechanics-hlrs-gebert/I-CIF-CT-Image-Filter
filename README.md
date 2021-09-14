@@ -4,7 +4,6 @@
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
 ![version](https://img.shields.io/badge/version-3.3.1-green)
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
-![Contributors](https://img.shields.io/badge/Contributors-2-blue)
 
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS \*.vtk files and filters them according to specific convolutional matrices/Kernels.  
 It's tested with up to 160 Processors (4 nodes) on Vulcan. Turnaround time of roughly 200 Seconds while reading/computing/writing to storage on 18.5E09 Voxels of kind INTEGER2.
