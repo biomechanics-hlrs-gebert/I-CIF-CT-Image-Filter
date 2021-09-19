@@ -290,7 +290,8 @@ ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_
 subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
 
 CALL read_raw_mpi(      filename=filename                       , &
-                        type=TRIM(typ)                          , &
+                        type_in=TRIM(typ)                       , &
+                        type_out=typ                            , &
                         hdr_lngth=INT(displacement, KIND=8)     , &
                         dims=dims                               , &
                         subarray_dims=subarray_dims_overlap     , &
@@ -300,7 +301,7 @@ CALL read_raw_mpi(      filename=filename                       , &
                         log_un=rd_o                             , &
                         status_o=status)
 
-IF (status .EQ. 1_ik) THEN
+IF ((status .EQ. 1_ik) .AND. (my_rank .EQ. 1_ik)) THEN
         WRITE(rd_o,'(A)')  'Something during MPI File read went wrong. Please check/debug.'
         CLOSE(rd_o)
         CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
@@ -451,13 +452,23 @@ END IF ! (my_rank .EQ. 0_ik)
 CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR   , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (wr_vtk_hdr_lngth , 1_mik             , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 
+IF (TRIM(typ) .EQ. "int2") THEN
 CALL write_raw_mpi (    type=TRIM(typ)                          , &
                         hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8) , &
                         filename=filenameExportVtk              , &
                         dims=sections*subarray_dims             , &
                         subarray_dims=subarray_dims             , &
                         subarray_origin=subarray_origin         , &
-                        subarray4=result_subarray) ! type was hardcoded in the end!
+                        subarray2=INT(result_subarray, KIND=INT16))
+ELSE
+CALL write_raw_mpi (    type=TRIM(typ)                          , &
+                        hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8) , &
+                        filename=filenameExportVtk              , &
+                        dims=sections*subarray_dims             , &
+                        subarray_dims=subarray_dims             , &
+                        subarray_origin=subarray_origin         , &
+                        subarray4=result_subarray)
+END IF
 
 DEALLOCATE(result_subarray)
 

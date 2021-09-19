@@ -60,7 +60,9 @@ end subroutine mpi_err
    IF (exist .EQV. .TRUE.) THEN
       
       IF ( must_exist .EQ. 0_ik ) THEN
-         WRITE(*,'(2A)') TRIM(filename), ' already exists! Program aborted.'; WRITE(*,'(A)')
+         WRITE(*,'(2A)') TRIM(filename), ' already exists!'
+         WRITE(*,'(A)')  'Program aborted.'
+         WRITE(*,'(A)')
 
          IF ( mpi .EQV. .TRUE. ) THEN
             CALL MPI_ABORT(MPI_COMM_WORLD, 28_mik, ierr) ! ierr is de facto a dummy
@@ -174,7 +176,7 @@ end subroutine mpi_err
  SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray2, subarray4)
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
-CHARACTER(LEN=*)                        , INTENT(IN)                         :: type
+CHARACTER(LEN=*)                                                             :: type
 INTEGER  (KIND=MPI_OFFSET_KIND)                                              :: hdr_lngth
 CHARACTER(LEN=*)                        , INTENT(IN)                         :: filename
 INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: dims
@@ -259,7 +261,7 @@ END SUBROUTINE write_raw_mpi
 !---------------------------------------------------------------------------------------------------
 
 SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, &
-   sze_o, fov_o, bnds_o, rd_o, status_o)
+                           sze_o, fov_o, bnds_o, rd_o, status_o)
 ! log_un exists means "print log"!
 ! status  = 0 - everything is ok
 ! status /= 0 - Error
@@ -349,21 +351,22 @@ CLOSE(fh)
 fov = dims*spcng
 
 IF (PRESENT(rd_o)) THEN
-   WRITE(rd_o,'(2A)')          "Input file: ", TRIM(filename)
-   WRITE(rd_o,'(A)')           ""
-   WRITE(rd_o,'(A)')           "Read vtk module assumes Big-Endian while reading array!"
+   WRITE(rd_o,'(2A)')       "Input file: ", TRIM(filename)
+   WRITE(rd_o,'(A)')        ""
+   WRITE(rd_o,'(A)')        "Read vtk module assumes Big-Endian while reading array!"
    WRITE(rd_o,'(A)')
-   WRITE(rd_o,'(A,I5,A)')      "Header length                      ", hdr_lngth," Bytes"
-   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
-   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
-   WRITE(rd_o,'(A,F8.3,A)')    "Resolution        - z               ", spcng(3)*1000._rk ," µm / Voxel"
-   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - x              ", dims(1)
-   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - y              ", dims(2)
-   WRITE(rd_o,'((A,I5))')      "Voxels & bounds   - z              ", dims(3)
-   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - x               ", fov(1) , " mm"
-   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - y               ", fov(2) , " mm"
-   WRITE(rd_o,'(A,F6.1,A)')    "Field of View     - z               ", fov(3) , " mm"
-   WRITE(rd_o,'(A,I13,A)')     "Size of the internal array:",          sze, " Elements"
+   WRITE(rd_o,'(A,I5,A)')   "Header length                      ", hdr_lngth," Bytes"
+   WRITE(rd_o,'(A,F8.3,A)') "Resolution        - x               ", spcng(1)*1000._rk ," µm / Voxel"
+   WRITE(rd_o,'(A,F8.3,A)') "Resolution        - y               ", spcng(2)*1000._rk ," µm / Voxel"
+   WRITE(rd_o,'(A,F8.3,A)') "Resolution        - z               ", spcng(3)*1000._rk ," µm / Voxel"
+   WRITE(rd_o,'((A,I5))')   "Voxels & bounds   - x              ", dims(1)
+   WRITE(rd_o,'((A,I5))')   "Voxels & bounds   - y              ", dims(2)
+   WRITE(rd_o,'((A,I5))')   "Voxels & bounds   - z              ", dims(3)
+   WRITE(rd_o,'(A,F6.1,A)') "Field of View     - x               ", fov(1) , " mm"
+   WRITE(rd_o,'(A,F6.1,A)') "Field of View     - y               ", fov(2) , " mm"
+   WRITE(rd_o,'(A,F6.1,A)') "Field of View     - z               ", fov(3) , " mm"
+   WRITE(rd_o,'(A,I13,A)')  "Size of the internal array:",          sze, " Elements"
+   WRITE(rd_o,'(2A)')       "Type:                                   ", TRIM(typ)
 END IF  ! print log output
 
 !-- Check existence of optional variables
@@ -377,13 +380,15 @@ END SUBROUTINE read_vtk_meta
 
 !---------------------------------------------------------------------------------------------------
 
-SUBROUTINE read_raw_mpi(filename, type, hdr_lngth, dims, subarray_dims, subarray_origin, subarray, displacement, log_un, status_o)
+SUBROUTINE read_raw_mpi(filename, type_in, type_out, hdr_lngth, dims, subarray_dims, &
+   subarray_origin, subarray, displacement, log_un, status_o)
 ! MPI Parallel read always reads subarrays.
 ! log_un exists means "print log"!
 ! type = 'real4', 'real8, 'int2', 'int4'
 
 CHARACTER(LEN=*)                                                , INTENT(IN)     :: filename
-CHARACTER(LEN=*)                                                                 :: type
+CHARACTER(LEN=*)                                                , INTENT(IN)     :: type_in
+CHARACTER(LEN=*)                                                , INTENT(OUT)    :: type_out
 INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: hdr_lngth
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: dims
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_dims
@@ -394,11 +399,11 @@ INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)    
 INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT)    :: status_o
 
 ! Internal Variables
+INTEGER  (KIND=ik)                                                               :: status=0, rd_o
 INTEGER  (KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_two
 INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_four
 REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_eight
 REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_four
-INTEGER  (KIND=ik)                                                               :: status=0, rd_o
 INTEGER  (KIND=ik)                                                               :: fh, ii, jj, kk
 
 ! MPI
@@ -410,7 +415,7 @@ IF (PRESENT(log_un))            rd_o = log_un
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
-IF (TRIM(type) .EQ. 'real4') THEN
+IF (TRIM(type_in) .EQ. 'real4') THEN
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
@@ -437,7 +442,7 @@ IF (TRIM(type) .EQ. 'real4') THEN
    subarray = INT(FLOOR(array_r_four), KIND=INT32)
    DEALLOCATE(array_r_four)
 
-ELSE IF (TRIM(type) .EQ. 'real8') THEN
+ELSE IF (TRIM(type_in) .EQ. 'real8') THEN
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
@@ -459,6 +464,7 @@ ELSE IF (TRIM(type) .EQ. 'real8') THEN
    ierr)
 
    ALLOCATE( array_r_eight( subarray_dims(1), subarray_dims(2), subarray_dims(3) ))
+  
    CALL MPI_FILE_READ_ALL(fh, array_r_eight, SIZE(array_r_eight), MPI_DOUBLE_PRECISION, MPI_STATUS_IGNORE, ierr)
 
    subarray = INT(FLOOR(array_r_four), KIND=INT32)
@@ -466,7 +472,7 @@ ELSE IF (TRIM(type) .EQ. 'real8') THEN
 
    WRITE(rd_o,'(A)') 'WARNING: Converted real 8 to integer 4 during file read. Check validity.'
 
-ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
+ELSE IF ((TRIM(type_in) .EQ. 'int2') .OR. (TRIM(type_in) .EQ. 'uint2')) THEN
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
@@ -488,12 +494,13 @@ ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
    ierr)
 
    ALLOCATE( array_i_two( subarray_dims(1), subarray_dims(2), subarray_dims(3)) )
+
    CALL MPI_FILE_READ_ALL(fh, array_i_two, SIZE(array_i_two), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
    subarray = INT(array_i_two, KIND=INT32)
-      
+
    ! Not so pretty workaround
-   IF (TRIM(type) .EQ. 'uint2') THEN
+   IF (TRIM(type_in) .EQ. 'uint2') THEN
       DO ii=1, subarray_dims(1)
          DO jj=1, subarray_dims(2)
             DO kk=1, subarray_dims(3)
@@ -501,15 +508,14 @@ ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
             END DO
          END DO
       END DO
+      
       subarray = subarray - 32768_ik
-      type="int2"
-      WRITE(log_un,'(A)') 'WARNING: Data was converted to signed int by shifting the data with -32768 units.'
-      status = 1_ik
+      type_out="int2"
    END IF
 
    DEALLOCATE(array_i_two)
 
-ELSE IF (TRIM(type) .EQ. 'int4') THEN
+ELSE IF (TRIM(type_in) .EQ. 'int4') THEN
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
