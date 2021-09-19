@@ -199,17 +199,7 @@ CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
-IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
-   IF (TRIM(type) .EQ. 'uint2') THEN
-      ALLOCATE(subarray2_a(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
-      DO ii=1, subarray_dims(1)
-         DO jj=1, subarray_dims(2)
-            DO kk=1, subarray_dims(3)
-               IF (subarray4(ii,jj,kk) .GT. 32767_ik) subarray2_a(ii,jj,kk) = INT(subarray4(ii,jj,kk) - 65536_ik, KIND=INT16)
-            END DO
-         END DO
-      END DO
-   END IF
+IF (TRIM(type) .EQ. 'int2') THEN
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
@@ -393,7 +383,7 @@ SUBROUTINE read_raw_mpi(filename, type, hdr_lngth, dims, subarray_dims, subarray
 ! type = 'real4', 'real8, 'int2', 'int4'
 
 CHARACTER(LEN=*)                                                , INTENT(IN)     :: filename
-CHARACTER(LEN=*)                                                , INTENT(IN)     :: type
+CHARACTER(LEN=*)                                                                 :: type
 INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: hdr_lngth
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: dims
 INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_dims
@@ -507,16 +497,15 @@ ELSE IF ((TRIM(type) .EQ. 'int2') .OR. (TRIM(type) .EQ. 'uint2')) THEN
       DO ii=1, subarray_dims(1)
          DO jj=1, subarray_dims(2)
             DO kk=1, subarray_dims(3)
-               IF (subarray(ii,jj,kk) .LT. 0_ik) subarray(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
+               IF (subarray(ii,jj,kk) .LT. 0_ik) subarray(ii,jj,kk) = INT(array_i_two(ii,jj,kk), KIND=INT32) + 65536_ik
             END DO
          END DO
       END DO
+      subarray = subarray - 32768_ik
+      type="int2"
+      WRITE(log_un,'(A)') 'WARNING: Data was converted to signed int by shifting the data with -32768 units.'
+      status = 1_ik
    END IF
-
-   ! IF (MINVAL(array_i_two) .GT. 32767_ik) THEN
-   !    WRITE(log_un,'(A)') 'WARNING: CHECK INPUT - UNSIGNED SHORT PROBABLY COLLIDING WITH SIGNED INTEGERS. CHECK DATA.'
-   !    status = 1_ik
-   ! END IF
 
    DEALLOCATE(array_i_two)
 

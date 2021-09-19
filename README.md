@@ -88,7 +88,7 @@ make
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible. To run the binary, you have to source the Environment file, too.
 
 ### Set up the parametrization with proper parameters within 
-```./bin/input/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.input```
+```./bin/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.input```
 
 1. Give the absolute path of an input dataset
 2. Define steering parameters

@@ -1,0 +1,30 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# Image Processing - Start Application
+#
+# Author:          Johannes Gebert «gebert@hlrs.de»
+# Created:         15.05.2021
+# Last edit:       19.09.2021
+# ------------------------------------------------------------------------------
+#PBS -N CF_G3S61Sg10
+#PBS -l select=2:node_type=rome:mpiprocs=128:node_type_mem=256gb
+#PBS -l walltime=00:20:00
+
+# Change to the direcotry that the job was submitted from
+cd $PBS_O_WORKDIR
+
+# Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
+mpirun -np 160 ./bin/HLRS_NUM_3D_Convolusional_Filtering_V3.2.2_x86_64 $PBS_O_WORKDIR ./bin/CF.vulcan.pbs 
+#
+# Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
+#
+export IP_DATA_IN=./datasets/hk1_B60f_cCT.vtk
+# ----------------------------------------------------------------------------------------
+#
+# Steering parameters
+#
+export IP_SELECT_K=Identity   # Select Kernel      ['Identity', 'Gaussian']
+export IP_MODE_K=3            # Select Kernelmode  ['2': 2-D Filter, '3': 3D-Filter]
+export IP_SIZE_K=61           # Size of Kernel
+export IP_GS=1.0              # Sigma of Gauß Kernel
+# ----------------------------------------------------------------------------------------

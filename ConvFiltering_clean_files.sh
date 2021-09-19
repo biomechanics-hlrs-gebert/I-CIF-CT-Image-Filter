@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # Image Processing - Clean result files
 #
-# Author:          Johannes Gebert «gebert@hlrs.de»
+# Author:          Johannes Gebert »gebert@hlrs.de«
 # Created:         25.04.2021
 # Last edit:       08.05.2021
 # ------------------------------------------------------------------------------
