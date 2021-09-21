@@ -3,7 +3,7 @@
 !
 ! author Johannes Gebert
 ! date 04.01.2021
-! date 05.08.2021
+! date 21.09.2021
 
 ! subroutine mpi_err(ierr, mssg)
 ! SUBROUTINE check_file_exist(filename, must_exist, mpi)
@@ -134,10 +134,11 @@ end subroutine mpi_err
       WRITE(fh ,'(A)')          ''
    ELSE
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='OLD', POSITION='APPEND')
-      WRITE(fh ,'(A)')          ''
-      WRITE(fh ,'(A)')          "METADATA"
-      WRITE(fh ,'(A)')          "INFORMATION 0"
-      WRITE(fh ,'(A)')
+      WRITE(fh, '(A)')          ""
+      WRITE(fh, '(A)')          "METADATA"
+      WRITE(fh, '(A)')          "INFORMATION 0"
+      WRITE(fh, '(A)')
+      FLUSH(fh)
    END IF
 
    CLOSE(UNIT=fh)
@@ -367,6 +368,8 @@ IF (PRESENT(rd_o)) THEN
    WRITE(rd_o,'(A,F6.1,A)') "Field of View     - z               ", fov(3) , " mm"
    WRITE(rd_o,'(A,I13,A)')  "Size of the internal array:",          sze, " Elements"
    WRITE(rd_o,'(2A)')       "Type:                                   ", TRIM(typ)
+   FLUSH(rd_o)
+
 END IF  ! print log output
 
 !-- Check existence of optional variables
@@ -417,6 +420,8 @@ CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NUL
 
 IF (TRIM(type_in) .EQ. 'real4') THEN
 
+   type_out="real4"
+
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
    subarray_dims                       , &
@@ -443,6 +448,8 @@ IF (TRIM(type_in) .EQ. 'real4') THEN
    DEALLOCATE(array_r_four)
 
 ELSE IF (TRIM(type_in) .EQ. 'real8') THEN
+
+   type_out="real8"
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &
@@ -471,6 +478,7 @@ ELSE IF (TRIM(type_in) .EQ. 'real8') THEN
    DEALLOCATE(array_r_four)
 
    WRITE(rd_o,'(A)') 'WARNING: Converted real 8 to integer 4 during file read. Check validity.'
+   FLUSH(rd_o)
 
 ELSE IF ((TRIM(type_in) .EQ. 'int2') .OR. (TRIM(type_in) .EQ. 'uint2')) THEN
 
@@ -513,9 +521,14 @@ ELSE IF ((TRIM(type_in) .EQ. 'int2') .OR. (TRIM(type_in) .EQ. 'uint2')) THEN
       type_out="int2"
    END IF
 
+   IF (TRIM(type_in) .EQ. 'int2') type_out="int2"
+
+
    DEALLOCATE(array_i_two)
 
 ELSE IF (TRIM(type_in) .EQ. 'int4') THEN
+
+   type_out="int4"
 
    CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, &
    dims                                , &

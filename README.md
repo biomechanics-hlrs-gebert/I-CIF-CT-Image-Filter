@@ -2,7 +2,7 @@
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
-![version](https://img.shields.io/badge/version-3.3.1-green)
+![version](https://img.shields.io/badge/version-3.4.1-green)
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
 
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS \*.vtk files and filters them according to specific convolutional matrices/Kernels.  
@@ -88,13 +88,11 @@ make
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible. To run the binary, you have to source the Environment file, too.
 
 ### Set up the parametrization with proper parameters within 
-```./bin/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.input```
+```./bin/CF.vulcan.pbs```
 
 1. Give the absolute path of an input dataset
 2. Define steering parameters
-3. Depending on the architecture, define proper parameters in
-
-```./bin/pbs/3D_Conv_Filter_Parameters.Gauss_M3_S03_Sig10.vulcan.pbs```
+3. Define the compute nodes
 
 ### Start the program
 
@@ -139,8 +137,6 @@ However this is an assumption, which is not tested by end of April 2021.
 
 ### External Sources
 Plain text headers are parsed via a [strings module](https://gbenthien.net/strings/index.html) by George Benthien from San Diego.
-### Limits
-Will follow.
 ### Arbitrary
 Use this program at your own risk.
 

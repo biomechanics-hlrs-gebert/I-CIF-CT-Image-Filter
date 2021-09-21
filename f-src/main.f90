@@ -95,6 +95,7 @@ CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 IF (size_mpi < 2) THEN
+        WRITE(*,*) "my_rank: ", my_rank, " size_mpi: ", size_mpi
         WRITE(rd_o,*)"At least two ranks required to execute this program."
         CLOSE(rd_o)
         CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
@@ -193,6 +194,7 @@ IF (my_rank .EQ. 0) THEN
                 WRITE(rd_o,'(A, I7)')  "Filter Size:            ", kernel_spec(2)
                 WRITE(rd_o,'(2A)')     "Filter Kernel:          ", TRIM(selectKernel)
                 WRITE(rd_o,'(A)')      std_lnbrk
+                FLUSH(rd_o)
         END IF
         
         CALL CPU_TIME(init_finish)
@@ -283,6 +285,7 @@ IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
         WRITE(rd_o,'(A, 3I5)') "dims_reduced:           ", dims_reduced
         WRITE(rd_o,'(A, 3I5)') "subarray_dims:          ", subarray_dims
         WRITE(rd_o,'(A)')      std_lnbrk
+        FLUSH(rd_o)
 END IF
 
 ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
