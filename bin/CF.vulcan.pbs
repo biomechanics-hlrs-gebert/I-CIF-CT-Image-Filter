@@ -14,10 +14,10 @@
 cd $PBS_O_WORKDIR
 
 # Load module
-module load mpi/openmpi/4.1.0-gnu-10.3.0
+module load mpi/openmpi/4.0.4-gnu-9.3.0
 
 # Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
-mpirun -np 160 ./bin/HLRS_NUM_3D_Convolusional_Filtering_V3.2.2_x86_64 $PBS_O_WORKDIR ./bin/CF.vulcan.pbs 
+mpirun -np 160 ./bin/Convolusional_Filtering_V3.4.1_x86_64 $PBS_O_WORKDIR ./bin/CF.vulcan.pbs 
 #
 # Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
 #

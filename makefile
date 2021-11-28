@@ -49,9 +49,7 @@ ifeq ($(PE),gnu)
 	             -g						   \
 				 -o                        \
 	             -O3					   \
-	             -fbacktrace               \
                  -fbounds-check            \
-	 			 -Wno-conversion           \
                  -Wall #                   \				# Diagnoses
 #	             -fdefault-integer-8       \				# incompatible with ISO_FORTRAN_ENV
 #	             -fdefault-real-8          \
