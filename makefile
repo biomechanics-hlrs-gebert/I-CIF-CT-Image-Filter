@@ -33,7 +33,7 @@ clean_cmd = rm -f
 # --------------------------------------------------------------------------------------------------
 # Compilers
 #ifeq($(strip $(trgt_arch)) ,"julius" )
-  compiler = "mpif90"
+  compiler = "mpinfort"
 #endif
 #ifeq($(strip $(trgt_arch)) ,"hawk" )
 #  compiler = "mpif90"
