@@ -1,27 +1,24 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
-# Convolusional Filtering
+# Image Processing - Start Application
 #
 # Author:          Johannes Gebert «gebert@hlrs.de»
-# Created:         25.04.2021
-# Last edit:       19.09.2021
+# Created:         28.11.2021
+# Last edit:       28.11.2021
 # ------------------------------------------------------------------------------
 #PBS -N CF_G3S5Sg10
-#PBS -l select=1:node_type=clx384gb40c:mpiprocs=40
-#PBS -l walltime=01:00:00
+#PBS -l select=4:node_type=aurora:mpiprocs=96
+#PBS -l walltime=10:00:00
 
 # Change to the direcotry that the job was submitted from
 cd $PBS_O_WORKDIR
 
-# Load module
-module load mpi/openmpi/4.0.4-gnu-9.3.0
-
 # Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
-mpirun -np 160 ./bin/Convolusional_Filtering_V3.4.1_x86_64 $PBS_O_WORKDIR ./bin/CF.vulcan.pbs 
+mpirun -np 96 ./bin/Convolusional_Filtering_V3.4.1_x86_64 $PBS_O_WORKDIR ./bin/CF.aurora.pbs 
 #
 # Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
 #
-export IP_DATA_IN=./datasets/hk1_B60f_cCT.vtk
+export IP_DATA_IN=./datasets/FH01-1_mu_Dev__Filtered_G3S31-Sig20.vtk
 # ----------------------------------------------------------------------------------------
 #
 # Steering parameters
