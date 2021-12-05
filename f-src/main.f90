@@ -232,6 +232,7 @@ IF (my_rank .EQ. 0) THEN
         histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(inp_para)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank .EQ. 0)
 
+
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
 ! May be packed into less BCasts
 CALL MPI_BCAST (filename    , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
@@ -289,6 +290,7 @@ IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
 END IF
 
 ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
+WRITE(*,'(A)') "Allocate_1 of subarray successful"
 
 subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
 
@@ -321,6 +323,7 @@ srb (4:6) = subarray_dims_overlap - border
 ! subarray_origin = subarray_dims * (rank_section-1_ik) + 1_ik 
 
 ALLOCATE( result_subarray (subarray_dims(1), subarray_dims(2), subarray_dims(3) ) )
+WRITE(*,'(A)') "Allocate_2 of result_subarray successful"
 
 ! Get information about the data range of the Histogram globally. 
 histo_bnd_local_lo = MINVAL(subarray)
@@ -348,6 +351,7 @@ IF (my_rank .EQ. 0_ik) CALL CPU_TIME(prep_Histo)
 IF (kernel_spec(1) .EQ. 2_ik) THEN
         ! 2D must be ordered explicitly.
         ALLOCATE( kernel2d ( kernel_spec(2), kernel_spec(2) ))
+        WRITE(*,'(A)') "Allocate_3 of kernel2d successful"
 
         SELECT CASE(selectKernel)
                 CASE("Gaussian"); CALL kernel_gauss_2d   (kernel2d, kernel_spec(2), sigma)
@@ -373,6 +377,7 @@ IF (kernel_spec(1) .EQ. 2_ik) THEN
 ELSE    
         ! 3D is considered a default
         ALLOCATE( kernel3d(kernel_spec(2), kernel_spec(2), kernel_spec(2)))
+        WRITE(*,'(A)') "Allocate_4 of kernel3d successful"
 
         SELECT CASE(selectKernel)
                 CASE("Gaussian"); CALL kernel_gauss_3d   (kernel3d, kernel_spec(2), sigma)
@@ -411,6 +416,8 @@ CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)
 IF (my_rank .EQ. 0_ik) THEN
         ALLOCATE(histogram_pre__F_global(hbnds(1):hbnds(2)))
         ALLOCATE(histogram_post_F_global(hbnds(1):hbnds(2)))
+        WRITE(*,'(A)') "Allocate_6 of histograms successful"
+
 END IF
 
 ! Collect the data of the histogram post filtering       

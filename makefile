@@ -10,7 +10,12 @@
 # Set Architecture to compile for
 # hawk    - HPE Apollo
 # vulcan  - NEC Cluster
+# aurora  - NEC aurora TSUBASA vector accelerator.
 # julius  - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU
+# --------------------------------------------------------------------------------------------------
+# Access a queue interactively to build the binary for TSUBASA
+# qsub -q vector -l select=1:node_type=aurora:mpiprocs=24,walltime=3600 -I
+# --------------------------------------------------------------------------------------------------
 trgt_arch = $(IP_ARCH)
 trgt_vrsn = $(IP_VRSN)
 # --------------------------------------------------------------------------------------------------
@@ -27,18 +32,19 @@ mod_ext   = .mod
 obj_ext   = .o
 sho_ext   = .so
 f90_ext   = .f90
-bin_suf   = x86_64
 # --------------------------------------------------------------------------------------------------
 clean_cmd = rm -f
 # --------------------------------------------------------------------------------------------------
 # Compilers
-#ifeq($(strip $(trgt_arch)) ,"julius" )
-  compiler = "mpinfort"
-#endif
-#ifeq($(strip $(trgt_arch)) ,"hawk" )
-#  compiler = "mpif90"
-#endif
-export compiler
+# ifeq ($(strip $(IP_ARCH)), "aurora")
+compiler = "mpinfort"
+bin_suf   = NECaurora
+# else	# vulcan, hawk, julius
+#   compiler = "mpif90"
+#	bin_suf   = x86_64
+# endif
+# export compiler
+#
 # --------------------------------------------------------------------------------------------------
 # Programming Environment - gnu, LLVM
 PE = gnu

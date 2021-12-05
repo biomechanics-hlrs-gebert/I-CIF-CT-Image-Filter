@@ -23,6 +23,7 @@ usage ()
     echo "Environments available:"
     echo "hawk      - HPE Apollo"
     echo "vulcan    - NEC Cluster"
+    echo "aurora    - NEC aurora TSUBASA vector accelerator."
     echo "julius    - A Whiskey Lake Notebook, 4 cores, 16Gb memory, APU"
     echo "juliusGDB - Julius with debugging attached to all cores. Only recommended up to 4 cores."
     echo
@@ -96,13 +97,13 @@ else
 
     vulcan)
         module load mpi/openmpi/4.1.0-gnu-10.3.0 > /dev/null 2> /dev/null
+        #
+        ;;
 
-        if [ $? -eq 0 ]; then
-            export PATH=${mpi_prefix}/bin:$PATH
-            export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
-        else
-            err
-        fi
+    aurora)
+        mpi_prefix=/opt/nec/ve/mpi/2.14.0/bin64/mpinfort
+        export PATH=${mpi_prefix}/bin:$PATH
+        export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
         ;;
 
     hawk)

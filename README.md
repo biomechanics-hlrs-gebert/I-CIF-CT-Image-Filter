@@ -84,6 +84,15 @@ make
 ### Uninstall:
 ```make clean && rm -r »your program directory«```
 
+### NEC aurora TSUBASA
+Build on an interactive of NEC aurora TSUBASA. Mpinfort, which is necessary to compile for this architecture, is available on the aurora nodes. These nodes must be used interactively to build the binary. If the binary already was compiled, a regular qsub to the vector queue suffices.
+
+```
+qsub -q vector -l select=1:node_type=aurora:mpiprocs=24,walltime=3600 -I
+source source2set_Environment.sh aurora
+make
+```
+
 ## Usage
 It's recommended to use the BASh scripts to control program flow. However, manual control of the program is possible. To run the binary, you have to source the Environment file, too.
 
