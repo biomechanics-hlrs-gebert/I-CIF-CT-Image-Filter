@@ -294,17 +294,8 @@ WRITE(*,'(A)') "Allocate_1 of subarray successful"
 
 subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
 
-CALL read_raw_mpi(      filename=filename                       , &
-                        type_in=TRIM(typ)                       , &
-                        type_out=typ                            , &
-                        hdr_lngth=INT(displacement, KIND=8)     , &
-                        dims=dims                               , &
-                        subarray_dims=subarray_dims_overlap     , &
-                        subarray_origin=subarray_origin         , &
-                        subarray=subarray                       , &
-                        displacement=displacement               , &
-                        log_un=rd_o                             , &
-                        status_o=status)
+CALL read_raw_mpi(filename, TRIM(typ), typ, INT(displacement, KIND=8), dims, subarray_dims_overlap, &
+        subarray_origin, subarray, displacement, rd_o, status)
 
 IF ((status .EQ. 1_ik) .AND. (my_rank .EQ. 1_ik)) THEN
         WRITE(rd_o,'(A)')  'Something during MPI File read went wrong. Please check/debug.'

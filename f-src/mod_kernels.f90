@@ -75,14 +75,14 @@ SUBROUTINE kernel_gauss_2d(kernel, sizeKernel, sigma)
    ! https://en.wikipedia.org/wiki/Gaussian_filter
 
    ! Externel variables
-   INTEGER(KIND = ik)                                              , INTENT(IN)  :: sizeKernel
-   REAL   (KIND = rk)                                              , INTENT(IN)  :: sigma
-   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel), INTENT(OUT) :: kernel
+   INTEGER(KIND = ik), INTENT(IN)  :: sizeKernel
+   REAL(KIND = rk), INTENT(IN)  :: sigma
+   REAL(KIND = rk), DIMENSION(sizeKernel, sizeKernel), INTENT(OUT) :: kernel
 
    ! Internel variables
-   INTEGER(KIND = ik)                                                            :: i, j
-   REAL   (KIND = rk)                                                            :: x0, y0, x, y
-   REAL   (KIND = rk)                                                            :: sumKernel
+   INTEGER(KIND = ik) :: i, j
+   REAL(KIND = rk) :: x0, y0, x, y
+   REAL(KIND = rk) :: sumKernel
 
    !-------------------------------
    ! Calculation
@@ -112,14 +112,14 @@ SUBROUTINE kernel_gauss_3d(kernel, sizeKernel, sigma)
    ! https://en.wikipedia.org/wiki/Gaussian_filter
 
    ! Externel variables
-   INTEGER(KIND = ik)                                                          , INTENT(IN)   :: sizeKernel
-   REAL   (KIND = rk)                                                          , INTENT(IN)   :: sigma
-   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
+   INTEGER(KIND = ik), INTENT(IN)   :: sizeKernel
+   REAL(KIND = rk), INTENT(IN)   :: sigma
+   REAL(KIND = rk), DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
 
    ! Internel variables
-   INTEGER(KIND = ik)                                                                         :: i, j, k
-   REAL   (KIND = rk)                                                                         :: x0, y0, z0, x, y, z
-   REAL   (KIND = rk)                                                                         :: sumKernel
+   INTEGER(KIND=ik) :: i, j, k
+   REAL(KIND=rk) :: x0, y0, z0, x, y, z
+   REAL(KIND=rk) :: sumKernel
 
    !-------------------------------
    ! Calculation
@@ -153,8 +153,8 @@ SUBROUTINE kernel_box_2d(kernel, sizeKernel)
    ! 6.869.csail.mit.edu/fa16/lecture/lecture3linearfilters.pdf
 
    ! Externel variables
-   INTEGER(KIND = ik)                                                          , INTENT(IN)   :: sizeKernel
-   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
+   INTEGER(KIND = ik), INTENT(IN) :: sizeKernel
+   REAL(KIND = rk), DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
 
    ! Internel variables
 
@@ -171,8 +171,8 @@ SUBROUTINE kernel_box_3d(kernel, sizeKernel)
    ! 6.869.csail.mit.edu/fa16/lecture/lecture3linearfilters.pdf
 
    ! Externel variables
-   INTEGER(KIND = ik)                                                          , INTENT(IN)   :: sizeKernel
-   REAL   (KIND = rk)           , DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
+   INTEGER(KIND = ik), INTENT(IN) :: sizeKernel
+   REAL   (KIND = rk), DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT)  :: kernel
 
    ! Internel variables
 
@@ -192,12 +192,12 @@ FUNCTION log_2d(sigma, x, y)
     
     ! Externel variables
     
-    INTEGER(KIND = ik)                                                         , INTENT(IN)  :: x, y
-    REAL(KIND = rk)                                                            , INTENT(IN)  :: sigma
+    INTEGER(KIND=ik), INTENT(IN)  :: x, y
+    REAL(KIND=rk), INTENT(IN)  :: sigma
 
     ! Internel variables
 
-    REAL(KIND = rk)                                                                          :: log_2d
+    REAL(KIND=rk):: log_2d
     
     !-------------------------------
     ! Calculation
@@ -214,13 +214,13 @@ SUBROUTINE kernel_log_2d(kernel, sizeKernel, sigma)
     ! https://academic.mu.edu/phys/matthysd/web226/Lab02.htm
     
     ! Externel variables
-    INTEGER(KIND = ik)                                                         , INTENT(IN)  :: sizeKernel
-    REAL   (KIND = rk)                                                         , INTENT(IN)  :: sigma
-    REAL   (KIND = rk)          , DIMENSION(sizeKernel, sizeKernel)            , INTENT(OUT) :: kernel
+    INTEGER(KIND=ik) , INTENT(IN)  :: sizeKernel
+    REAL(KIND=rk), INTENT(IN)  :: sigma
+    REAL(KIND=rk), DIMENSION(sizeKernel, sizeKernel)            , INTENT(OUT) :: kernel
     
     ! Internel variables
-    INTEGER(KIND = ik)                                                                       :: i, j
-    REAL   (KIND = rk)                                                                       :: x0, y0, x, y
+    INTEGER(KIND=ik) :: i, j
+    REAL   (KIND=rk) :: x0, y0, x, y
     
     !-------------------------------
     ! Calculation
@@ -260,12 +260,12 @@ FUNCTION log_3d(sigma, x, y, z)
     
     ! Externel variables
     
-    INTEGER(KIND = ik)                                                         , INTENT(IN)  :: x, y, z
-    REAL(KIND = rk)                                                            , INTENT(IN)  :: sigma
+    INTEGER(KIND=ik), INTENT(IN)  :: x, y, z
+    REAL(KIND=rk), INTENT(IN)  :: sigma
 
     ! Internel variables
 
-    REAL(KIND = rk)                                                                          :: log_3d
+    REAL(KIND = rk):: log_3d
     
     !-------------------------------
     ! Calculation
@@ -281,13 +281,13 @@ SUBROUTINE kernel_log_3d(kernel, sizeKernel, sigma)
     ! https://academic.mu.edu/phys/matthysd/web226/Lab02.htm
     
     ! Externel variables
-    INTEGER(KIND = ik)                                                         , INTENT(IN)  :: sizeKernel
-    REAL   (KIND = rk)                                                         , INTENT(IN)  :: sigma
-    REAL   (KIND = rk)          , DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT) :: kernel
+    INTEGER(KIND=ik), INTENT(IN)  :: sizeKernel
+    REAL(KIND=rk), INTENT(IN)  :: sigma
+    REAL(KIND=rk), DIMENSION(sizeKernel, sizeKernel, sizeKernel), INTENT(OUT) :: kernel
     
     ! Internel variables
-    INTEGER(KIND = ik)                                                                       :: i, j, k
-    REAL   (KIND = rk)                                                                       :: x0, y0, z0, x, y, z
+    INTEGER(KIND=ik) :: i, j, k
+    REAL   (KIND=rk) :: x0, y0, z0, x, y, z
     
     !-------------------------------
     ! Calculation

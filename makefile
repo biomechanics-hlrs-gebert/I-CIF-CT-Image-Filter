@@ -37,11 +37,11 @@ clean_cmd = rm -f
 # --------------------------------------------------------------------------------------------------
 # Compilers
 # ifeq ($(strip $(IP_ARCH)), "aurora")
-compiler = "mpinfort"
-bin_suf   = NECaurora
+# compiler = "mpinfort"
+# bin_suf   = NECaurora
 # else	# vulcan, hawk, julius
-#   compiler = "mpif90"
-#	bin_suf   = x86_64
+  compiler = "mpif90"
+	bin_suf   = x86_64
 # endif
 # export compiler
 #
