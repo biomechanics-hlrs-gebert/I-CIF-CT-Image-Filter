@@ -40,7 +40,7 @@ julius)
     fi
     echo "Start Parallel 3D convolusional Filtering."
     echo
-    mpirun $IP_COMP_DBG -np $1  $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
+    mpirun $IP_COMP_DBG -np $1  $IP_PREFIX"/bin/Convolusional_Filtering_"$IP_VRSN"_x86_64" \
                                                                                      $IP_PREFIX         \
                                                                                      $2
     postprocessing=$?			
@@ -52,7 +52,7 @@ juliusGDB)
     fi
     echo "Start Parallel 3D convolusional Filtering with debuggers attached"
     echo
-    tmpi $1 gdb --args $IP_PREFIX"/bin/HLRS_NUM_3D_Convolusional_Filtering_"$IP_VRSN"_x86_64" \
+    tmpi $1 gdb --args $IP_PREFIX"/bin/Convolusional_Filtering_"$IP_VRSN"_x86_64" \
                                                                     $IP_PREFIX        \
                                                                     $2
     postprocessing=$?			
@@ -80,7 +80,7 @@ vulcan)
     ;;
 
 hawk)
-    qsub ./bin/HLRS_NUM_3D_Convolusional_Filtering.hawk.pbs
+    qsub ./bin/Convolusional_Filtering.hawk.pbs
     exit 0	
     ;;
 

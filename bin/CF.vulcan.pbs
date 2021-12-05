@@ -21,7 +21,7 @@ mpirun -np 160 ./bin/Convolusional_Filtering_V3.4.1_x86_64 $PBS_O_WORKDIR ./bin/
 #
 # Input Dataset - Scalar fields. VTK - "DATASET STRUCTURED_POINTS" or Raw-Format
 #
-export IP_DATA_IN=./datasets/hk1_B60f_cCT.vtk
+export IP_DATA_IN=/datasets/hk1_B60f_cCT.vtk
 # ----------------------------------------------------------------------------------------
 #
 # Steering parameters
