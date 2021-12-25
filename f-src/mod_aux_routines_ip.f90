@@ -237,7 +237,7 @@ SUBROUTINE basepath (instring, outstring)
   END DO
   outstring(1:blanks) = ' '
 
-  outstring=ADJUSTL(TRIM(outfile))
+  outstring=ADJUSTL(TRIM(outstring))
 END SUBROUTINE basepath
 
 END MODULE aux_routines_IP
