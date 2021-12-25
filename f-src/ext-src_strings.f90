@@ -1,16 +1,24 @@
-! --------------------------------------------------------------------------------------------------
-! Module used from George Benthien - found via http://numerical.recipes/forum/showthread.php?t=1659
-! http://www.gbenthien.net/strings/index.html
-! --------------------------------------------------------------------------------------------------
-!-- slight modifications by Johannes Gebert - HLRS - NUM - 06.03.2021
+!------------------------------------------------------------------------------
+! HLRS - Numerical Methods and Libraries, Nobelstraße 19, 70569 Stumgart
+!------------------------------------------------------------------------------
+!
+! MODULE: strings
+!
+!> @author George Benthien
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @Descrition: 
+!> Several functions to get some string work done. Mainly developed by 
+!> George Benthien
+!> http://numerical.recipes/forum/showthread.php?t=1659
+!> http://www.gbenthien.net/strings/index.html
+!> slight modifications by Johannes Gebert on 06.03.2021
+!------------------------------------------------------------------------------
+MODULE strings
 
-module strings
+USE global_std
 
-use standards
-
-contains
-
-!**********************************************************************
+CONTAINS
 
 subroutine parse(str,delims,args,nargs)
 
@@ -21,7 +29,7 @@ subroutine parse(str,delims,args,nargs)
 
 character(len=*) :: str,delims
 character(len=len_trim(str)) :: strsav
-character(len=*),dimension(:) :: args
+character(len=mcl),dimension(:) :: args
 
 strsav=str
 call compact(str)
@@ -44,7 +52,7 @@ str=strsav
 
 end subroutine parse
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine compact(str)
 
@@ -87,7 +95,7 @@ str=adjustl(outstr)
 
 end subroutine compact
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine removesp(str)
 
@@ -118,7 +126,7 @@ str=adjustl(outstr)
 
 end subroutine removesp
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine value_dr(str,rnum,ios)
 
@@ -138,7 +146,7 @@ read(str,*,iostat=ios) rnum
 
 end subroutine value_dr
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine value_sr(str,rnum,ios)
 
@@ -158,7 +166,7 @@ rnum=rnumd
 
 end subroutine value_sr
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine value_di(str,inum,ios)
 
@@ -177,7 +185,7 @@ inum=nint(rnum,ik)
 
 end subroutine value_di
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine value_si(str,inum,ios)
 
@@ -196,7 +204,7 @@ inum=nint(rnum,ik)
 
 end subroutine value_si
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine shiftstr(str,n)
 
@@ -219,7 +227,7 @@ return
 
 end subroutine shiftstr
 
-! !**********************************************************************
+! !----------------------------------------------------------------------------
 
 subroutine insertstr(str,strins,loc)
 
@@ -240,205 +248,7 @@ return
 
 end subroutine insertstr
 
-! !**********************************************************************
-
-! subroutine delsubstr(str,substr)
-
-! ! Deletes first occurrence of substring 'substr' from string 'str' and
-! ! shifts characters left to fill hole. Trailing spaces or blanks are
-! ! not considered part of 'substr'.
-
-! character(len=*):: str,substr
-
-! lensubstr=len_trim(substr)
-! ipos=index(str,substr)
-! if(ipos==0) return
-! if(ipos == 1) then
-!    str=str(lensubstr+1:)
-! else
-!    str=str(:ipos-1)//str(ipos+lensubstr:)
-! end if   
-! return
-
-! end subroutine delsubstr
-
-! !**********************************************************************
-
-! subroutine delall(str,substr)
-
-! ! Deletes all occurrences of substring 'substr' from string 'str' and
-! ! shifts characters left to fill holes.
-
-! character(len=*):: str,substr
-
-! lensubstr=len_trim(substr)
-! do
-!    ipos=index(str,substr)
-!    if(ipos == 0) exit
-!    if(ipos == 1) then
-!       str=str(lensubstr+1:)
-!    else
-!       str=str(:ipos-1)//str(ipos+lensubstr:)
-!    end if
-! end do   
-! return
-
-! end subroutine delall
-
-! !**********************************************************************
-
-! function uppercase(str) result(ucstr)
-
-! ! convert string to upper case
-
-! character (len=*):: str
-! character (len=len_trim(str)):: ucstr
-
-! ilen=len_trim(str)
-! ioffset=iachar('A')-iachar('a')     
-! iquote=0
-! ucstr=str
-! do i=1,ilen
-!   iav=iachar(str(i:i))
-!   if(iquote==0 .and. (iav==34 .or.iav==39)) then
-!     iquote=1
-!     iqc=iav
-!     cycle
-!   end if
-!   if(iquote==1 .and. iav==iqc) then
-!     iquote=0
-!     cycle
-!   end if
-!   if (iquote==1) cycle
-!   if(iav >= iachar('a') .and. iav <= iachar('z')) then
-!     ucstr(i:i)=achar(iav+ioffset)
-!   else
-!     ucstr(i:i)=str(i:i)
-!   end if
-! end do
-! return
-
-! end function uppercase
-
-! !**********************************************************************
-
-! function lowercase(str) result(lcstr)
-
-! ! convert string to lower case
-
-! character (len=*):: str
-! character (len=len_trim(str)):: lcstr
-
-! ilen=len_trim(str)
-! ioffset=iachar('A')-iachar('a')
-! iquote=0
-! lcstr=str
-! do i=1,ilen
-!   iav=iachar(str(i:i))
-!   if(iquote==0 .and. (iav==34 .or.iav==39)) then
-!     iquote=1
-!     iqc=iav
-!     cycle
-!   end if
-!   if(iquote==1 .and. iav==iqc) then
-!     iquote=0
-!     cycle
-!   end if
-!   if (iquote==1) cycle
-!   if(iav >= iachar('A') .and. iav <= iachar('Z')) then
-!     lcstr(i:i)=achar(iav-ioffset)
-!   else
-!     lcstr(i:i)=str(i:i)
-!   end if
-! end do
-! return
-
-! end function lowercase
-
-! !**********************************************************************
-
-! subroutine readline(nunitr,line,ios)
-
-! ! Reads line from unit=nunitr, ignoring blank lines
-! ! and deleting comments beginning with an exclamation point(!)
-
-! character (len=*):: line
-
-! do  
-!   read(nunitr,'(a)', iostat=ios) line      ! read input line
-!   if(ios /= 0) return
-!   line=adjustl(line)
-!   ipos=index(line,'!')
-!   if(ipos == 1) cycle
-!   if(ipos /= 0) line=line(:ipos-1)
-!   if(len_trim(line) /= 0) exit
-! end do
-! return
-
-! end subroutine readline
-
-! !**********************************************************************
-
-! subroutine match(str,ipos,imatch)
-
-! ! Sets imatch to the position in string of the delimiter matching the delimiter
-! ! in position ipos. Allowable delimiters are (), [], {}, <>.
-
-! character(len=*) :: str
-! character :: delim1,delim2,ch
-
-! lenstr=len_trim(str)
-! delim1=str(ipos:ipos)
-! select case(delim1)
-!    case('(')
-!       idelim2=iachar(delim1)+1
-!       istart=ipos+1
-!       iend=lenstr
-!       inc=1
-!    case(')')
-!       idelim2=iachar(delim1)-1
-!       istart=ipos-1
-!       iend=1
-!       inc=-1
-!    case('[','{','<')
-!       idelim2=iachar(delim1)+2
-!       istart=ipos+1
-!       iend=lenstr
-!       inc=1
-!    case(']','}','>')
-!       idelim2=iachar(delim1)-2
-!       istart=ipos-1
-!       iend=1
-!       inc=-1
-!    case default
-!       write(*,*) delim1,' is not a valid delimiter'
-!       return
-! end select
-! if(istart < 1 .or. istart > lenstr) then
-!    write(*,*) delim1,' has no matching delimiter'
-!    return
-! end if
-! delim2=achar(idelim2) ! matching delimiter
-
-! isum=1
-! do i=istart,iend,inc
-!    ch=str(i:i)
-!    if(ch /= delim1 .and. ch /= delim2) cycle
-!    if(ch == delim1) isum=isum+1
-!    if(ch == delim2) isum=isum-1
-!    if(isum == 0) exit
-! end do
-! if(isum /= 0) then
-!    write(*,*) delim1,' has no matching delimiter'
-!    return
-! end if   
-! imatch=i
-
-! return
-
-! end subroutine match
-
-! !**********************************************************************
+!----------------------------------------------------------------------------*
 
 subroutine write_dr(rnum,str,fmt)
 
@@ -454,7 +264,7 @@ str=adjustl(str)
 
 end subroutine write_dr
 
-!***********************************************************************
+!----------------------------------------------------------------------------*
 
 subroutine write_sr(rnum,str,fmt)
 
@@ -470,7 +280,7 @@ str=adjustl(str)
 
 end subroutine write_sr
 
-!***********************************************************************
+!----------------------------------------------------------------------------*
 
 subroutine write_di(inum,str,fmt)
 
@@ -486,7 +296,7 @@ str=adjustl(str)
 
 end subroutine write_di
 
-!***********************************************************************
+!----------------------------------------------------------------------------*
 
 subroutine write_si(inum,str,fmt)
 
@@ -502,7 +312,7 @@ str=adjustl(str)
 
 end subroutine write_si
 
-!***********************************************************************
+!----------------------------------------------------------------------------*
 
 subroutine trimzero(str)
 
@@ -534,92 +344,7 @@ if(ipos>0) str=trim(str)//trim(exp)
 
 end subroutine trimzero
 
-!**********************************************************************
-
-! subroutine writeq_dr(unit,namestr,value,fmt)
-
-! ! Writes a string of the form <name> = value to unit
-
-! real(rk) :: value
-! integer :: unit
-! character(len=*) :: namestr,fmt
-! character(len=32) :: tempstr
-
-! call writenum(value,tempstr,fmt)
-! call trimzero(tempstr)
-! write(unit,*) trim(namestr)//' = '//trim(tempstr)
-
-! end subroutine writeq_dr
-
-!**********************************************************************
-
-! subroutine writeq_sr(unit,namestr,value,fmt)
-
-! ! Writes a string of the form <name> = value to unit
-
-! real(rk) :: value
-! integer :: unit
-! character(len=*) :: namestr,fmt
-! character(len=32) :: tempstr
-
-! call writenum(value,tempstr,fmt)
-! call trimzero(tempstr)
-! write(unit,*) trim(namestr)//' = '//trim(tempstr)
-
-! end subroutine writeq_sr
-
-!**********************************************************************
-
-! subroutine writeq_di(unit,namestr,ivalue,fmt)
-
-! ! Writes a string of the form <name> = ivalue to unit
-
-! integer(ik) :: ivalue
-! integer :: unit
-! character(len=*) :: namestr,fmt
-! character(len=32) :: tempstr
-! call writenum(ivalue,tempstr,fmt)
-! call trimzero(tempstr)
-! write(unit,*) trim(namestr)//' = '//trim(tempstr)
-
-! end subroutine writeq_di
-
-!**********************************************************************
-
-! subroutine writeq_si(unit,namestr,ivalue,fmt)
-
-! ! Writes a string of the form <name> = ivalue to unit
-
-! integer(ik) :: ivalue
-! integer :: unit
-! character(len=*) :: namestr,fmt
-! character(len=32) :: tempstr
-! call writenum(ivalue,tempstr,fmt)
-! call trimzero(tempstr)
-! write(unit,*) trim(namestr)//' = '//trim(tempstr)
-
-! end subroutine writeq_si
-
-!**********************************************************************
-
-! function is_letter(ch) result(res)
-
-! ! Returns .true. if ch is a letter and .false. otherwise
-
-! character :: ch
-! logical :: res
-
-! select case(ch)
-! case('A':'Z','a':'z')
-!   res=.true.
-! case default
-!   res=.false.
-! end select
-! return
-
-! end function is_letter
-
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 function is_digit(ch) result(res)
 
@@ -638,7 +363,7 @@ return
 
 end function is_digit
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine split(str,delims,before,sep)
 
@@ -650,10 +375,11 @@ subroutine split(str,delims,before,sep)
 ! character if it is preceded by a backslash (\). If the backslash 
 ! character is desired in 'str', then precede it with another backslash.
 
-character(len=*) :: str,delims,before
+character(len=*) :: str,delims
 character,optional :: sep
 logical :: pres
 character :: ch,cha
+character(len=mcl) :: before
 
 pres=present(sep)
 str=adjustl(str)
@@ -706,7 +432,7 @@ return
 
 end subroutine split
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
 subroutine removebksl(str)
 
@@ -743,8 +469,8 @@ str=adjustl(outstr)
 
 end subroutine removebksl
 
-!**********************************************************************
+!----------------------------------------------------------------------------
 
-end module strings  
+END MODULE strings  
 
 

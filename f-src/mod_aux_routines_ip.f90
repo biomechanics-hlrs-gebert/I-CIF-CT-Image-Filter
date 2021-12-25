@@ -1,35 +1,41 @@
-!-------------------------------------------------------------------------------------------------
-! mod_aux_routines_IP.f90
-! Module to extract a histogram out a Vtk structure. The Module may inherit other subroutines as well.
+!------------------------------------------------------------------------------
+! MODULE: aux_routines_ip 
+!------------------------------------------------------------------------------
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
-! Author          Johannes Gebert
-! Date Original   12.01.2021
-! Date Modified   09.05.2021
-
-! SUBROUTINE extract_histogram_scalar_array (array, hbnds, histogram)
-! SUBROUTINE r3_array_sectioning (domains, sections, domain, rank_section)
-! SUBROUTINE write_tex_for_histogram (fun, fn_tex, fn_pre, fn_post)
-! SUBROUTINE underscore_to_blank (infile, outfile)
-! SUBROUTINE basepath (infile, outfile)
+! DESCRIPTION: 
+!> Module containing auxiliary routines for image processing
+!------------------------------------------------------------------------------
 
 MODULE aux_routines_ip
 
-USE ISO_FORTRAN_ENV
-USE standards
+USE global_std
 
 IMPLICIT NONE
 
 CONTAINS
 
+!------------------------------------------------------------------------------
+! SUBROUTINE: extract_histogram_scalar_array
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Extracts a histogram from a 3-dimensional array
+!
+!> @param[in] array Actual image
+!> @param[in] hbnds Boundary values
+!> @param[out] histogram Returns the histogram
+!------------------------------------------------------------------------------  
 SUBROUTINE extract_histogram_scalar_array (array, hbnds, histogram)
 ! This is an inherently unflexible subroutine. It delivers exactly this kind of histogram and nothing else...
-INTEGER  (KIND=ik)    , DIMENSION(:,:,:)                                           :: array
-INTEGER  (KIND=ik)    , DIMENSION(3)                           , INTENT(IN)        :: hbnds    ! histogram lower/upper bounds
-INTEGER  (KIND=ik)    , DIMENSION(:)    , ALLOCATABLE          , INTENT(OUT)       :: histogram
+INTEGER(KIND=ik), DIMENSION(:,:,:) :: array
+INTEGER(KIND=ik), DIMENSION(3)             , INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
+INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: histogram
 
 ! Internal variables
-INTEGER  (KIND=ik)                                                                 :: ii, jj, kk
-INTEGER  (KIND=ik)    , DIMENSION(3)                                               :: shp
+INTEGER(KIND=ik) :: ii, jj, kk
+INTEGER(KIND=ik), DIMENSION(3) :: shp
 
 ALLOCATE(histogram(hbnds(1):hbnds(2)))
 
@@ -48,18 +54,33 @@ END DO
 
 END SUBROUTINE extract_histogram_scalar_array
 
+!------------------------------------------------------------------------------
+! SUBROUTINE: get_rank_section
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Extracts a histogram from a 3-dimensional array
+!
+!> @description
+!> !!! May be obsolete! Check MPI intrinsics
+!
+!> @param[in] domain Control volume to address
+!> @param[in] sections Actual decomposition
+!> @param[out] rank_section Returns the specific section
+!------------------------------------------------------------------------------  
 SUBROUTINE get_rank_section (domain, sections, rank_section)
   ! Three-Dimensional Array Scatter Routine
   ! Calculate how many sections per direction are ideal to split an array via mpi
   ! It was written to scatter a 3D Array, however it may suit to differnt purposes
   ! IT IS HIGHLY RECOMMENDED TO PROVIDE A COMMON AMOUNT OF PROCESSORS AS SOME MAY BE UNUSED due to the nature of 3D arrays.
   
-  INTEGER(KIND = ik)              , INTENT(IN)                :: domain
-  INTEGER(KIND = ik), DIMENSION(3), INTENT(IN)                :: sections
-  INTEGER(KIND = ik), DIMENSION(3), INTENT(OUT)               :: rank_section
+  INTEGER(KIND=ik), INTENT(IN)                :: domain
+  INTEGER(KIND=ik), DIMENSION(3), INTENT(IN)  :: sections
+  INTEGER(KIND=ik), DIMENSION(3), INTENT(OUT) :: rank_section
               
   ! Internal Variables              
-  INTEGER(KIND = ik)                                          :: rank, yremainder, zremainder
+  INTEGER(KIND=ik) :: rank, yremainder, zremainder
 
   ! Power of 2 is handled here, because with the algorithm of CASE DEFAULT, Greedy suboptimality kicks in!  
   ! Have a look at the corresponding Matlab/Octave testing file!
@@ -87,6 +108,21 @@ SUBROUTINE get_rank_section (domain, sections, rank_section)
 END IF
 END SUBROUTINE get_rank_section
 
+!------------------------------------------------------------------------------
+! SUBROUTINE: write_tex_for_histogram
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Writes a tex histogram to file
+!
+!> @param[in] fun file unit / file handle
+!> @param[in] fn_tex Actual decomposition
+!> @param[in] fn_pre File name pre filter histogram
+!> @param[in] fn_post File name post filter histogram
+!> @param[in] fn_pre_avg File name pre filter averaged histogram
+!> @param[in] fn_post_avg File name post filter averaged histogram
+!------------------------------------------------------------------------------  
 SUBROUTINE write_tex_for_histogram (fun, fn_tex, fn_pre, fn_post, fn_pre_avg, fn_post_avg)
 
   INTEGER    (KIND = ik) , INTENT(IN)        :: fun
@@ -153,37 +189,55 @@ SUBROUTINE write_tex_for_histogram (fun, fn_tex, fn_pre, fn_post, fn_pre_avg, fn
 
 END SUBROUTINE write_tex_for_histogram
 
-!---------------------------------------------------------------------------------------------------
-
-SUBROUTINE underscore_to_blank (infile, outfile)
+!------------------------------------------------------------------------------
+! SUBROUTINE: underscore_to_blank
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Replaces underscores with blanks
+!
+!> @param[in] instring Input string
+!> @param[in] outstring Output string
+!------------------------------------------------------------------------------  
+SUBROUTINE underscore_to_blank (instring, outstring)
   ! This whole subroutine is a workaround :-)
-  CHARACTER  (LEN = *)       :: infile
-  CHARACTER  (LEN = *)       :: outfile
-  INTEGER    (KIND = ik)     :: ii
+  CHARACTER(LEN=*) :: instring
+  CHARACTER(LEN=*) :: outstring
+  INTEGER(KIND=ik) :: ii
 
-  outfile=infile
-  DO ii=1, LEN_TRIM(infile)
-    IF (infile(ii:ii) == '_')  outfile(ii:ii) = ' '
+  outstring=instring
+  DO ii=1, LEN_TRIM(instring)
+    IF (instring(ii:ii) == '_')  outstring(ii:ii) = ' '
   END DO
 
-  outfile=ADJUSTL(TRIM(outfile))
+  outstring=ADJUSTL(TRIM(outstring))
 END SUBROUTINE underscore_to_blank
 
-!---------------------------------------------------------------------------------------------------
-
-SUBROUTINE basepath (infile, outfile)
+!------------------------------------------------------------------------------
+! SUBROUTINE: basepath
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Returns the base path
+!
+!> @param[in] instring Input string (of the path)
+!> @param[in] outstring Output string (of the path)
+!------------------------------------------------------------------------------  
+SUBROUTINE basepath (instring, outstring)
   ! This whole subroutine is a workaround :-)
-  CHARACTER  (LEN = *)      :: infile
-  CHARACTER  (LEN = *)      :: outfile
-  INTEGER    (KIND = ik)    :: ii, blanks
+  CHARACTER(LEN=*) :: instring
+  CHARACTER(LEN=*) :: outstring
+  INTEGER(KIND=ik) :: ii, blanks
 
-  outfile=infile
-  DO ii=1, LEN_TRIM(infile)
-    IF (infile(ii:ii) == '/')  blanks         = ii
+  outstring=instring
+  DO ii=1, LEN_TRIM(instring)
+    IF (instring(ii:ii) == '/') blanks = ii
   END DO
-  outfile(1:blanks) = ' '
+  outstring(1:blanks) = ' '
 
-  outfile=ADJUSTL(TRIM(outfile))
+  outstring=ADJUSTL(TRIM(outfile))
 END SUBROUTINE basepath
 
 END MODULE aux_routines_IP

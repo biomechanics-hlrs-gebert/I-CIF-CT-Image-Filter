@@ -1,42 +1,43 @@
-!---------------------------------------------------------------------------------------------------
-! mod_file_routines_mpi.f90
+!------------------------------------------------------------------------------
+! MODULE: file routines 
+!------------------------------------------------------------------------------
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
-! author Johannes Gebert
-! date 04.01.2021
-! date 21.09.2021
-
-! subroutine mpi_err(ierr, mssg)
-! SUBROUTINE check_file_exist(filename, must_exist, mpi)
-! SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, origin, dims, sections)
-! SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, sze_o, fov_o, bnds_o, rd_o, status_o)
-! SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray)
-! SUBROUTINE write_matrix(matrix, title, u, frmwrk)
-
+! DESCRIPTION: 
+!> Module containing file I/O
+!------------------------------------------------------------------------------
 MODULE file_routines_mpi
 
-USE ISO_FORTRAN_ENV
 USE MPI
-USE standards
+USE ISO_FORTRAN_ENV
+USE global_std
 USE strings
 
 IMPLICIT NONE
 
 CONTAINS
 
-!--------------------------------------------------------------------------------------------------
-!-- Subroutine to evaluate allocation errors
-!-- Copy and Pasted from struct-process by Dr.-Ing.Ralf Schneider (HLRS - Head of NUM)
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_err
+!------------------------------------------------------------------------------  
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
-subroutine mpi_err(ierr, mssg)
+!> @brief
+!> Evaluates allocation errors
+!
+!> @param[in] ierr Errorcode 
+!> @param[out] text Message to print
+!------------------------------------------------------------------------------  
+subroutine mpi_err(ierr, text)
 
    !-- Dummy parameters
-   integer(kind=mik), intent(in)    :: ierr
-   character(len=*), intent(in)      :: mssg
+   integer(kind=mik), intent(in) :: ierr
+   character(len=*), intent(in) :: text
    
    if (ierr /= MPI_SUCCESS) THEN
       write(*, "(100('!'))")
       write(*, '(A,I0,A)') 'MPI ERROR :', ierr,";"
-      write(*, '(A)') trim(mssg)
+      write(*, '(A)') trim(text)
       write(*, "(100('!'))")
       write(*, *) 'Exit ...'
       stop
@@ -44,16 +45,30 @@ subroutine mpi_err(ierr, mssg)
    
 end subroutine mpi_err
 
- !---------------------------------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+! SUBROUTINE: check_file_exist
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Checks whether a file already exists
+!
+!> @description
+!> !!! Routine is deemed obsolete due to clean code issues (no flags etc.)
+!
+!> @param[in] filename Name of the file 
+!> @param[in] must_exist Flag whether the file already should exist
+!> @param[in] mpi turn mpi on/of
+!------------------------------------------------------------------------------  
  SUBROUTINE check_file_exist(filename, must_exist, mpi)
 
-   INTEGER  (KIND=ik)    , INTENT(IN)                     :: must_exist
-   CHARACTER(len=*)      , INTENT(IN)                     :: filename
-   LOGICAL               , INTENT(IN)                     :: mpi
+   INTEGER  (KIND=ik), INTENT(IN) :: must_exist
+   CHARACTER(len=*), INTENT(IN) :: filename
+   LOGICAL, INTENT(IN) :: mpi
+
    !-- Internal Variables
-   LOGICAL                                                :: exist=.FALSE.
-   INTEGER  (KIND=ik)                                     :: ierr
+   LOGICAL :: exist=.FALSE.
+   INTEGER  (KIND=ik) :: ierr
 
    INQUIRE (FILE = TRIM(filename), EXIST = exist)
 
@@ -87,25 +102,46 @@ end subroutine mpi_err
 
  END SUBROUTINE check_file_exist
 
- !---------------------------------------------------------------------------------------------------
+ 
+!------------------------------------------------------------------------------
+! SUBROUTINE: write_vtk_meta
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Write the meta data of a vtk file
+!
+!> @description
+!> !!! Routine needs extensive rework due to clean code issues
+!> For example separate atStart/atEnd
+!
+!> @param[in] fh File handle
+!> @param[in] filename File name
+!> @param[in] type Data type
+!> @param[in] atStart First part of meta data?
+!> @param[in] spcng Voxel spacing
+!> @param[in] origin Physical origin (mm)
+!> @param[in] dims Voxels per direction
+!> @param[in] sections Decomposition of the image
+!------------------------------------------------------------------------------  
  SUBROUTINE write_vtk_meta (fh, filename, type, atStart, spcng, origin, dims, sections)
 
    ! It's HIGHLY recommended to check the existence of the output file prior to CALLing this
    ! Subroutine! Otherwise the program will crash. It's not double-checkd here, because this
    ! sequence often is placed at the very end of a program, which may run some time.
 
-   INTEGER  (KIND=ik), INTENT(IN)                             :: fh
-   CHARACTER(len=*)                                           :: filename
-   CHARACTER(LEN=*)  , INTENT(IN)              , OPTIONAL     :: type
-   LOGICAL           , INTENT(IN)              , OPTIONAL     :: atStart  ! optional cause start/end of vtk file possible
-   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: spcng    ! same
-   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL     :: origin   ! same
-   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3), OPTIONAL     :: dims     ! same
-   INTEGER  (KIND=ik)            , DIMENSION(3), OPTIONAL     :: sections ! same
+   INTEGER  (KIND=ik), INTENT(IN) :: fh
+   CHARACTER(len=*)               :: filename
+   CHARACTER(LEN=*)  , INTENT(IN), OPTIONAL :: type
+   LOGICAL           , INTENT(IN), OPTIONAL :: atStart  ! optional cause start/end of vtk file possible
+   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL :: spcng    ! same
+   REAL     (KIND=rk), INTENT(IN), DIMENSION(3), OPTIONAL :: origin   ! same
+   INTEGER  (KIND=ik), INTENT(IN), DIMENSION(3), OPTIONAL :: dims     ! same
+   INTEGER  (KIND=ik)            , DIMENSION(3), OPTIONAL :: sections ! same
 
-   REAL     (KIND=rk)            , DIMENSION(3)               :: orgn
-   INTEGER  (KIND=INT64)                                      :: sze
-
+   REAL (KIND=rk), DIMENSION(3) :: orgn
+   INTEGER (KIND=INT64) :: sze
+ 
    IF (atStart .EQV. .TRUE.) THEN
 
       IF (PRESENT(sections)) THEN
@@ -130,32 +166,47 @@ end subroutine mpi_err
       IF (TRIM(type) .EQ. 'int2')  WRITE(fh,'(A)') "SCALARS DICOMImage short"    
       IF (TRIM(type) .EQ. 'int4')  WRITE(fh,'(A)') "SCALARS DICOMImage int"
 
-      WRITE(fh,'(A)')            "LOOKUP_TABLE default"
-      WRITE(fh ,'(A)')          ''
+      WRITE(fh,'(A)')  "LOOKUP_TABLE default"
+      WRITE(fh ,'(A)') ''
    ELSE
       OPEN(UNIT=fh, FILE=TRIM(filename), ACTION='WRITE', STATUS='OLD', POSITION='APPEND')
-      WRITE(fh, '(A)')          ""
-      WRITE(fh, '(A)')          "METADATA"
-      WRITE(fh, '(A)')          "INFORMATION 0"
-      WRITE(fh, '(A)')
+      WRITE(fh, '(A)') ""
+      WRITE(fh, '(A)') "METADATA"
+      WRITE(fh, '(A)') "INFORMATION 0"
+      WRITE(fh, '(A)') 
       FLUSH(fh)
    END IF
 
    CLOSE(UNIT=fh)
  END SUBROUTINE write_vtk_meta
 
- !---------------------------------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+! SUBROUTINE: write_histo_csv
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Write the csv file of the histogram
+!
+!> @description
+!> !!! Routine needs extensive rework due to meta file format
+!
+!> @param[in] fh File handle
+!> @param[in] filename File name
+!> @param[in] hbnds Histogram boundaries
+!> @param[in] mov_avg_width Width of the moving average
+!> @param[in] histogram Actual histogram data
+!------------------------------------------------------------------------------  
  SUBROUTINE write_histo_csv (fh, filename, hbnds, mov_avg_width, histogram)
    ! Arg_divider acts as a parameter defining a moving average (!)
    ! It has an immediate effect like a filtered graph.
-   INTEGER  (KIND=ik)                           , INTENT(IN)       :: fh
-   CHARACTER(len=*)                             , INTENT(IN)       :: filename
-   INTEGER  (KIND=ik), DIMENSION(3)             , INTENT(IN)       :: hbnds    ! histogram lower/upper bounds
-   INTEGER  (KIND=ik)                           , INTENT(IN)       :: mov_avg_width
-   INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(IN)       :: histogram
+   INTEGER  (KIND=ik), INTENT(IN) :: fh
+   CHARACTER(len=*)  , INTENT(IN) :: filename
+   INTEGER  (KIND=ik), DIMENSION(3), INTENT(IN) :: hbnds    ! histogram lower/upper bounds
+   INTEGER  (KIND=ik)              , INTENT(IN) :: mov_avg_width
+   INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(IN) :: histogram
 
-   INTEGER  (KIND=ik)                                              :: ii, avg, span, step
+   INTEGER  (KIND=ik) :: ii, avg, span, step
    
    span = mov_avg_width/2 ! int division
    IF (mov_avg_width .EQ. 0_ik) step = 1_ik
@@ -172,27 +223,47 @@ end subroutine mpi_err
  END SUBROUTINE write_histo_csv
 
 
- !---------------------------------------------------------------------------------------------------
- 
+!------------------------------------------------------------------------------
+! SUBROUTINE: write_raw_mpi
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Write the raw data of a vtk file
+!
+!> @description
+!> !!! Routine needs extensive rework due to clean code issues
+!> !!! Provide an interface like @meta file format
+!> !!! Reduce horizontal alignment
+!
+!> @param[in] type Data type
+!> @param[in] hdr_lngth Length of the header (bytes) - position to write to
+!> @param[in] filename File name
+!> @param[in] dims Voxels per direction
+!> @param[in] subarray_dims Voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the subarray
+!> @param[in] subarray2 int2 image data
+!> @param[in] subarray4 int4 image data
+!------------------------------------------------------------------------------  
  SUBROUTINE write_raw_mpi (type, hdr_lngth, filename, dims, subarray_dims, subarray_origin, subarray2, subarray4)
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
-CHARACTER(LEN=*)                                                             :: type
-INTEGER  (KIND=MPI_OFFSET_KIND)                                              :: hdr_lngth
-CHARACTER(LEN=*)                        , INTENT(IN)                         :: filename
-INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: dims
-INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_dims
-INTEGER  (KIND=ik)   , DIMENSION(3)     , INTENT(IN)                         :: subarray_origin
-INTEGER  (KIND=INT16), DIMENSION (:,:,:)            , OPTIONAL               :: subarray2
-INTEGER  (KIND=INT16), DIMENSION (:,:,:)                      , ALLOCATABLE  :: subarray2_a
-INTEGER  (KIND=INT32), DIMENSION (:,:,:)            , OPTIONAL               :: subarray4
+CHARACTER(LEN=*)                :: type
+INTEGER  (KIND=MPI_OFFSET_KIND) :: hdr_lngth
+CHARACTER(LEN=*), INTENT(IN)    :: filename
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: dims
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: subarray_dims
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: subarray_origin
+INTEGER(KIND=INT16), DIMENSION (:,:,:), OPTIONAL    :: subarray2
+INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE :: subarray2_a
+INTEGER(KIND=INT32), DIMENSION (:,:,:), OPTIONAL    :: subarray4
 
 ! Internal Variables
-INTEGER  (KIND=ik)                                                           :: fh, ii, jj ,kk
+INTEGER  (KIND=ik) :: fh
 
 ! MPI
-INTEGER  (KIND=ik)                                                           :: my_rank, size_mpi, ierr
-INTEGER  (KIND=ik)                                                           :: type_subarray
+INTEGER  (KIND=ik) :: my_rank, size_mpi, ierr
+INTEGER  (KIND=ik) :: type_subarray
 
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
 CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
@@ -258,9 +329,30 @@ CALL MPI_FILE_CLOSE(fh, ierr)
 
 END SUBROUTINE write_raw_mpi
 
-!---------------------------------------------------------------------------------------------------
-!---------------------------------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+! SUBROUTINE: read_vtk_meta
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Parse the meta data of a vtk file
+!
+!> @description
+!> !!! Routine needs extensive rework due to clean code issues
+!> !!! Provide an interface like @meta file format
+!> !!! Reduce horizontal alignment
+!
+!> @param[in] fh File handle
+!> @param[in] filename File name
+!> @param[in] dims Voxels per direction
+!> @param[in] origin Physical origin of the image
+!> @param[in] spcng Distance between two voxels
+!> @param[in] displacement Length of the header (bytes)
+!> @param[in] fov_o Field of view
+!> @param[in] bnds_o Boundaries
+!> @param[in] rd_o Redirected standard out
+!> @param[in] status_o returned status
+!------------------------------------------------------------------------------  
 SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, &
                            sze_o, fov_o, bnds_o, rd_o, status_o)
 ! log_un exists means "print log"!
@@ -270,35 +362,35 @@ SUBROUTINE read_vtk_meta(fh, filename, dims, origin, spcng, typ, displacement, &
 ! status  = 2 - not a *.vtk file
 ! status  = 3 - file does not contain STRUCTURED_POINTS
 
-INTEGER  (KIND=ik)                                                            :: fh
-CHARACTER(len=*)                                                , INTENT(IN)  :: filename
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(OUT) :: dims
-REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: origin
-REAL     (KIND=rk)    , DIMENSION(3)                            , INTENT(OUT) :: spcng
-CHARACTER(len=*)                                                , INTENT(OUT) :: typ
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: displacement
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: sze_o ! int32 mpi!
-REAL     (KIND=rk)    , DIMENSION(3)                  , OPTIONAL, INTENT(OUT) :: fov_o
-INTEGER  (KIND=ik)    , DIMENSION(3,2)                , OPTIONAL, INTENT(OUT) :: bnds_o
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)  :: rd_o
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT) :: status_o
+INTEGER  (KIND=ik) :: fh
+CHARACTER(len=*)                , INTENT(IN)  :: filename
+INTEGER(KIND=ik), DIMENSION(3), INTENT(OUT) :: dims
+REAL   (KIND=rk), DIMENSION(3), INTENT(OUT) :: origin
+REAL   (KIND=rk), DIMENSION(3), INTENT(OUT) :: spcng
+CHARACTER(len=*)                , INTENT(OUT) :: typ
+INTEGER(KIND=ik), OPTIONAL    , INTENT(OUT) :: displacement
+INTEGER(KIND=ik), OPTIONAL    , INTENT(OUT) :: sze_o ! int32 mpi!
+REAL   (KIND=rk), DIMENSION(3)  , OPTIONAL, INTENT(OUT) :: fov_o
+INTEGER(KIND=ik), DIMENSION(3,2), OPTIONAL, INTENT(OUT) :: bnds_o
+INTEGER(KIND=ik), OPTIONAL, INTENT(IN)  :: rd_o
+INTEGER(KIND=ik), OPTIONAL, INTENT(OUT) :: status_o
 
 !-- Initialize variables in case they're not used
-INTEGER  (KIND=INT64)                                                         :: sze
-REAL     (KIND=rk)    , DIMENSION(3)                                          :: fov
-INTEGER  (KIND=ik)    , DIMENSION(3,2)                                        :: bnds
-INTEGER  (KIND=ik)                                                            :: status=0, ii=0, hdr_lngth, lui=6, ntokens
+INTEGER(KIND=INT64) :: sze
+INTEGER(KIND=ik) :: status=0, ii=0, hdr_lngth, lui=6, ntokens
+INTEGER(KIND=ik), DIMENSION(3,2) :: bnds
+REAL   (KIND=rk), DIMENSION(3)   :: fov
 
-CHARACTER(len=mcl)                                                            :: line
-CHARACTER(len=mcl)                                                            :: tokens(100)
-CHARACTER(len=mcl)    , DIMENSION(3)                                          :: token
+CHARACTER(len=mcl) :: line
+CHARACTER(len=mcl) :: tokens(100)
+CHARACTER(len=mcl), DIMENSION(3) :: token
 
 !-- Check existence of optional variables
-IF (PRESENT(sze_o)   ) sze    = sze_o
-IF (PRESENT(fov_o)   ) fov    = fov_o
-IF (PRESENT(bnds_o)  ) bnds   = bnds_o
+IF (PRESENT(sze_o)) sze = sze_o
+IF (PRESENT(fov_o)) fov = fov_o
+IF (PRESENT(bnds_o)) bnds = bnds_o
 IF (PRESENT(status_o)) status = status_o
-IF (PRESENT(rd_o)    ) lui=rd_o
+IF (PRESENT(rd_o)) lui=rd_o
 
 OPEN(UNIT=fh, FILE=TRIM(filename), STATUS="OLD")
 
@@ -381,37 +473,60 @@ IF (PRESENT(displacement)) displacement = hdr_lngth
 
 END SUBROUTINE read_vtk_meta
 
-!---------------------------------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+! SUBROUTINE: read_raw_mpi
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Read the raw data of a binary blob
+!
+!> @description
+!> !!! Routine needs extensive rework due to clean code issues
+!> !!! Provide an interface like @meta file format
+!> !!! Reduce horizontal alignment
+!
+!> @param[in] filename File name
+!> @param[in] type_in type requested
+!> @param[in] type_out type returned
+!> @param[in] hdr_lngth Length of the header (bytes)
+!> @param[in] dims Amount of voxels per direction
+!> @param[in] subarray_dims Amount of voxels per direction of the subarray
+!> @param[in] subarray_origin Physical origin of the data set
+!> @param[in] subarray int4 data
+!> @param[in] displacement of the header (bytes)
+!> @param[in] log_un Log unit
+!> @param[in] status_o returned status
+!------------------------------------------------------------------------------  
 SUBROUTINE read_raw_mpi(filename, type_in, type_out, hdr_lngth, dims, subarray_dims, &
    subarray_origin, subarray, displacement, log_un, status_o)
 ! MPI Parallel read always reads subarrays.
 ! log_un exists means "print log"!
 ! type = 'real4', 'real8, 'int2', 'int4'
 
-CHARACTER(LEN=*)                                                , INTENT(IN)     :: filename
-CHARACTER(LEN=*)                                                , INTENT(IN)     :: type_in
-CHARACTER(LEN=*)                                                , INTENT(OUT)    :: type_out
-INTEGER  (KIND=MPI_OFFSET_KIND)                                                  :: hdr_lngth
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: dims
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_dims
-INTEGER  (KIND=ik)    , DIMENSION(3)                            , INTENT(IN)     :: subarray_origin
-INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE          , INTENT(OUT)    :: subarray
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: displacement
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(IN)     :: log_un
-INTEGER  (KIND=ik)                                    , OPTIONAL, INTENT(OUT)    :: status_o
+CHARACTER(LEN=*), INTENT(IN)  :: filename
+CHARACTER(LEN=*), INTENT(IN)  :: type_in
+CHARACTER(LEN=*), INTENT(OUT) :: type_out
+INTEGER(KIND=MPI_OFFSET_KIND) :: hdr_lngth
+INTEGER(KIND=ik),    DIMENSION(3), INTENT(IN) :: dims
+INTEGER(KIND=ik),    DIMENSION(3), INTENT(IN) :: subarray_dims
+INTEGER(KIND=ik),    DIMENSION(3), INTENT(IN) :: subarray_origin
+INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+INTEGER(KIND=ik), OPTIONAL, INTENT(IN)     :: displacement
+INTEGER(KIND=ik), OPTIONAL, INTENT(IN)     :: log_un
+INTEGER(KIND=ik), OPTIONAL, INTENT(OUT)    :: status_o
 
 ! Internal Variables
-INTEGER  (KIND=ik)                                                               :: status=0, rd_o
-INTEGER  (KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_two
-INTEGER  (KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE                           :: array_i_four
-REAL     (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_eight
-REAL     (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE                           :: array_r_four
-INTEGER  (KIND=ik)                                                               :: fh, ii, jj, kk
+INTEGER(KIND=ik) :: status=0, rd_o
+INTEGER(KIND=INT16) , DIMENSION (:,:,:), ALLOCATABLE :: array_i_two
+INTEGER(KIND=INT32) , DIMENSION (:,:,:), ALLOCATABLE :: array_i_four
+REAL   (KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE :: array_r_eight
+REAL   (KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE :: array_r_four
+INTEGER(KIND=ik) :: fh, ii, jj, kk
 
 ! MPI
-INTEGER  (KIND=ik)                                                               :: ierr
-INTEGER  (KIND=ik)                                                               :: type_subarray
+INTEGER  (KIND=ik) :: ierr
+INTEGER  (KIND=ik) :: type_subarray
 
 IF (PRESENT(displacement)) hdr_lngth = displacement
 IF (PRESENT(log_un))            rd_o = log_un
@@ -570,8 +685,23 @@ CALL MPI_FILE_CLOSE(fh, ierr)
 IF (PRESENT(status_o)) status_o = status
 END SUBROUTINE read_raw_mpi
 
-!---------------------------------------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+! SUBROUTINE: read_vtk_meta
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Write a matrix
+!
+!> @description
+!> !!! Routine obsolete
+!> !!! Replace with new one from DDTC
+!
+!> @param[in] matrix File handle
+!> @param[in] title File name
+!> @param[in] u Voxels per direction
+!> @param[in] frmwrk Physical origin of the image
+!------------------------------------------------------------------------------  
 SUBROUTINE write_matrix(matrix, title, u, frmwrk)
 
   !-- Prints a matrix according to its dimensions
@@ -580,7 +710,7 @@ SUBROUTINE write_matrix(matrix, title, u, frmwrk)
   INTEGER    (KIND=ik)                                            , INTENT(IN)     :: u
   CHARACTER  (LEN=*)                                    , OPTIONAL, INTENT(IN)     :: frmwrk
   !-- Internal variables
-  INTEGER    (KIND=ik)  , DIMENSION(2)                                             :: shp
+  INTEGER    (KIND=ik)  , DIMENSION(2) :: shp
   INTEGER    (KIND=ik)                                                             :: kk
   CHARACTER  (LEN=mcl)                                                             :: frmwrk_used, fmt_std_out
 
