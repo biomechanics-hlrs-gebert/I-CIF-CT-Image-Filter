@@ -20,12 +20,7 @@ IMPLICIT NONE
 ! MPI: Kind=32 Bit / 4 Byte / ik=4 - Change in «working_directory/f-src/mod_standards.f90 
 
 ! Parameter
-INTEGER(KIND=ik), PARAMETER :: debug     = 1
 INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
-INTEGER(KIND=ik), PARAMETER :: fun_input     = 999
-INTEGER(KIND=ik), PARAMETER :: fh_data_in    = 5  
-INTEGER(KIND=ik), PARAMETER :: fh_data_out   = 10   ! write vtk
-INTEGER(KIND=ik), PARAMETER :: fun3      = 15   ! write tex
 
 ! Internal Variables
 CHARACTER(LEN=mcl) :: filename, filenameExportVtk, typ
@@ -58,11 +53,10 @@ CHARACTER(LEN=mcl) :: histo_avg_fn_post_Filter
 CHARACTER(LEN=mcl) :: histogram_filename_tex_Filter
 INTEGER  (KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi
 INTEGER  (KIND=ik) :: histo_bnd_local_lo,  histo_bnd_local_hi
-INTEGER  (KIND=ik), PARAMETER :: fh_pre     =41, fh_post    =42
-INTEGER  (KIND=ik), PARAMETER :: fh_pre__avg=51, fh_post_avg=52
 INTEGER  (KIND=ik), DIMENSION(3) :: hbnds
 INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
 INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
+INTEGER(KIND=ik) :: fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof, fh_csv_fihi
 
 ! Read Input file
 CHARACTER(len=mcl) :: line, parameterfile, prefix
@@ -74,10 +68,6 @@ CHARACTER(len=mcl) :: tkns(100)
 INTEGER  (KIND = mik) :: ierr, my_rank, size_mpi, status
 INTEGER  (KIND = mik) :: wr_vtk_hdr_lngth
 
-! Debug Variables
-INTEGER  (KIND = ik), PARAMETER :: rd_o = 31    ! redirected StdOut
-CHARACTER(LEN = mcl) :: log_file
-LOGICAL :: log_exist = .FALSE.
 
 ! Initialize MPI Environment
 CALL MPI_INIT(ierr)
@@ -91,112 +81,149 @@ CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 IF (size_mpi < 2) THEN
     WRITE(*,*) "my_rank: ", my_rank, " size_mpi: ", size_mpi
-    WRITE(rd_o,*)"At least two ranks required to execute this program."
-    CLOSE(rd_o)
+    WRITE(std_out,*)"At least two ranks required to execute this program."
+    CLOSE(std_out)
     CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
 END IF
 
 ! Initialize program itself
-IF (my_rank .EQ. 0) THEN
+IF (my_rank == 0) THEN
 
     ! Initialization
     CALL CPU_TIME(global_start)
 
-    CALL GET_COMMAND_ARGUMENT(1, prefix)
-    CALL GET_COMMAND_ARGUMENT(2, parameterfile)
+        !------------------------------------------------------------------------------
+        ! Parse the command arguments
+        !------------------------------------------------------------------------------
+        IF (command_argument_count() == 0) THEN 
+            CALL usage()
+            GOTO 1001
+        END IF
 
-    ! Check validity of the input file
-    IF ( parameterfile(1:1) .EQ. '.'  ) parameterfile = parameterfile ( 2:LEN_TRIM(parameterfile) )
+        DO ii=0, 15 ! Read up to 15 command arguments.
+         
+            CALL GET_COMMAND_ARGUMENT(ii, cmd_arg)
 
-    parameterfile = TRIM(prefix)//'/'//TRIM(parameterfile)
+            IF (cmd_arg == '') EXIT
 
-    CALL check_file_exist( filename = parameterfile, must_exist=1_ik, mpi=.TRUE.)
-           
-    ! Open the input file
-    OPEN(UNIT=fun_input, FILE=TRIM(parameterfile), STATUS="OLD")
+            IF (ii == 0) binary = cmd_arg
 
-    ! Count lines of input file
-    counter = 0_ik
-    DO
-        READ(fun_input, '(A)', iostat=io_status) line
-        if ( io_status .NE. 0_ik ) exit
-        counter = counter + 1_ik
-    END DO
+            infile = TRIM(cmd_arg)
+            
+            cmd_arg_history = TRIM(cmd_arg_history)//' '//TRIM(cmd_arg)
 
-    CLOSE(fun_input)
-    OPEN(UNIT=fun_input, FILE=TRIM(parameterfile), STATUS="OLD")
-
-    ! Parse input file
-    DO ii=1, counter
-        READ(fun_input,'(A)') line
-        
-        CALL parse(str=line,delims=" ",args=tokens,nargs=ntokens)
-        
-        IF (ntokens > 0) THEN
-    
-            IF ( tokens(1) .NE. "#" ) THEN
-
-                CALL parse(str=tokens(2), delims="=", args=tkns, nargs=ntokens)
-
-                SELECT CASE( tkns(1) )
-        CASE("IP_DATA_IN");  frcs = frcs + 1; filename = TRIM(prefix)//tkns(2)
-        CASE("IP_MODE_K");   frcs = frcs + 1; READ(tkns(2),'(I4)') kernel_spec(1)
-        CASE("IP_SELECT_K"); frcs = frcs + 1; selectKernel = tkns(2)
-        CASE("IP_SIZE_K");   frcs = frcs + 1; READ(tkns(2),'(I4)') kernel_spec(2)
-        CASE("IP_GS");       frcs = frcs + 1; READ(tkns(2),'(F8.3)') sigma
+            IF (cmd_arg(1:1) .EQ. '-') THEN
+                SELECT CASE( cmd_arg(2:LEN_TRIM(cmd_arg)) )
+                CASE('-restart', '-Restart')
+                    restart_cmdarg = 'Y'
+                CASE('v', '-Version', '-version')
+                        CALL show_title(revision)
+                        GOTO 1001   ! Jump to the end of the program.
+                CASE('h', '-Help', '-help')
+                    CALL usage()
+                    GOTO 1001   ! Jump to the end of the program.
+                END SELECT
+                !
+                SELECT CASE( cmd_arg(3:4) )
+                CASE('NO', 'no', 'No', 'nO');  restart_cmdarg = 'N'
                 END SELECT
             END IF
+        END DO
+
+        IF(TRIM(infile) == '') THEN
+            CALL print_err_stop(std_out, 'No input file given via command argument.', 1)
+        END IF 
+
+        in%full = TRIM(infile)
+
+        !------------------------------------------------------------------------------
+        ! Check and open the input file; Modify the Meta-Filename / Basename
+        ! Define the new application name first
+        !------------------------------------------------------------------------------
+        global_meta_prgrm_mstr_app = 'CTIF' 
+        global_meta_program_keyword = 'CT-IMAGE_FILTER'
+        CALL meta_append(m_rry)
+      
+        !------------------------------------------------------------------------------
+        ! Parse input
+        !------------------------------------------------------------------------------
+        CALL meta_read (std_out, 'DEBUG_LVL'    , m_rry, debug)
+        CALL meta_read (std_out, 'FILTER_DIM'   , m_rry, kernel_spec(1))
+        CALL meta_read (std_out, 'FILTER_SIZE'  , m_rry, kernel_spec(2))
+        CALL meta_read (std_out, 'FILTER_KERNEL', m_rry, selectKernel )
+        CALL meta_read (std_out, 'FILTER_SIGMA' , m_rry, sigma)
+
+        !------------------------------------------------------------------------------
+        ! Restart handling
+        ! Done after meta_io to decide based on keywords
+        !------------------------------------------------------------------------------
+        IF (restart_cmdarg /= 'U') THEN
+            mssg = "The keyword »restart« was overwritten by the command flag --"
+            IF (restart_cmdarg == 'N') THEN
+                restart = restart_cmdarg
+                mssg=TRIM(mssg)//"no-"
+            ELSE IF (restart_cmdarg == 'Y') THEN
+                restart = restart_cmdarg
+            END IF
+
+            mssg=TRIM(mssg)//"restart"
+            WRITE(std_out, FMT_WRN) TRIM(mssg)
+            WRITE(std_out, FMT_WRN_SEP)
         END IF
-     END DO
-       
-    CLOSE(fun_input)
-    
-    IF( frcs .NE. 5_ik )  THEN ! frcs --> file read checksum
-        WRITE(rd_o,'(A)') 'The *.input file for parametrization is invalid. Please check file and version.'  
-        CLOSE(rd_o)  
-        CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
-    ENDIF
 
-    ! Get basename of vtk file
-    CALL parse( str=filename, delims="/", args=tokens, nargs=ntokens)
+        CALL meta_handle_lock_file(restart)
 
-    basename = tokens(ntokens)
-    basename = TRIM(filename(1:(LEN_TRIM(filename) - 4_ik )))
+        !------------------------------------------------------------------------------
+        ! Spawn a log file and the csv-data for the tex environment
+        !------------------------------------------------------------------------------
+        CALL meta_start_ascii(fhl, log_suf)
 
-    CALL parse(str=parameterfile,delims=".",args=tokens,nargs=ntokens)
-    inp_para = tokens(2)
+        fh_csv_prf  = 200
+        fh_csv_pof  = 210
+        fh_csv_aprf = 220
+        fh_csv_apof = 230
+        fh_csv_fihi = 240
+        CALL meta_start_ascii(fh_csv_prf, "_hist_PRE__FILTER"//csv_suf)
+        CALL meta_start_ascii(fh_csv_pof, "_hist_POST_FILTER"//csv_suf)
+        CALL meta_start_ascii(fh_csv_aprf, "_hist_avg_PRE__FILTER"//csv_suf)
+        CALL meta_start_ascii(fh_csv_apof, "_hist_avg_POST_FILTER"//csv_suf)
+        CALL meta_start_ascii(fh_csv_fihi, "_Filter_Histogram"//csv_suf)
 
-    ! Log in dir of vtk - not its basename!!
-    log_file  = TRIM(basename)//'_'//TRIM(inp_para)//".log"
-    CALL check_file_exist( filename = log_file, must_exist=0_ik, mpi=.TRUE.)
+        CALL meta_start_ascii(fht, tex_suf)
+        
+        IF (std_out/=6) THEN
+            CALL meta_start_ascii(std_out, '.std_out')
 
-    INQUIRE(FILE=TRIM(log_file), EXIST=log_exist)
+            CALL show_title(revision) 
+        END IF
 
-    OPEN(UNIT = rd_o, file = TRIM(log_file), action="WRITE", status="new")
 
-    CALL DATE_AND_TIME(date, time)
+        CALL DATE_AND_TIME(date, time)
 
-    IF ( (debug .GE. 0_ik) .AND. (my_rank .EQ. 0_ik)) THEN
-        WRITE(rd_o,'(2A)')     "This Logfile: ", TRIM(log_file)
-        WRITE(rd_o,'(A)')   
-        WRITE(rd_o,'(A)')      "HLRS - NUM"
-        WRITE(rd_o,'(2A)')     "Image Processing ", TRIM(version)
-        WRITE(rd_o,'(4A)')     date, " [ccyymmdd]    ", time, " [hhmmss.sss]"  
-        WRITE(rd_o,'(A)')      std_lnbrk
-        WRITE(rd_o,'(A, I7)')  "Debug Level:        ", debug
-        WRITE(rd_o,'(A, I7)')  "Processors:         ", size_mpi  
-        WRITE(rd_o,'(A, I7)')  "Filter Dimension:       ", kernel_spec(1)
-        WRITE(rd_o,'(A, I7)')  "Filter Size:        ", kernel_spec(2)
-        WRITE(rd_o,'(2A)')     "Filter Kernel:      ", TRIM(selectKernel)
-        WRITE(rd_o,'(A)')      std_lnbrk
-        FLUSH(rd_o)
-    END IF
-    
-    CALL CPU_TIME(init_finish)
+        IF ( (debug .GE. 0_ik) .AND. (my_rank == 0_ik)) THEN
+            WRITE(std_out, FMT_TXT) "This Logfile:"//TRIM(log_file)
+            WRITE(std_out, FMT_TXT) 
+            WRITE(std_out, FMT_TXT) "HLRS - NUM"
+            WRITE(std_out, FMT_TXT) "CT Image Filtering"//TRIM(version)
+            WRITE(std_out, FMT_TXT) date//" [ccyymmdd]"//time//" [hhmmss.sss]"  
+            WRITE(std_out, FMT_TXT_SEP)
+            WRITE(std_out, FMT_MSG_AI0) "Debug Level:", debug
+            WRITE(std_out, FMT_MSG_AI0) "Processors:", size_mpi  
+            WRITE(std_out, FMT_MSG_AI0) "Filter Dimension:", kernel_spec(1)
+            WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_spec(2)
+            WRITE(std_out, FMT_MSG)     "Filter Kernel:"//TRIM(selectKernel)
+            WRITE(std_out, FMT_TXT_SEP)
+            FLUSH(std_out)
+        END IF
+        
+        CALL CPU_TIME(init_finish)
 
-    IF( filename(LEN_TRIM(filename)-2 : LEN_TRIM(filename)) .NE. "vtk" )  THEN
-        WRITE(rd_o,'(A)') 'Input file to read VTK subroutine has no vtk suffix. Therefor pressumably is none.'  
-        CLOSE(rd_o)  
+!!!!!!!!!!!!!!!!!!!!!!!!! GO ON !!!!!!!!! VTK TO RAW AT FIRST? !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+    IF( filename(LEN_TRIM(filename)-2 : LEN_TRIM(filename)) /= "vtk" )  THEN
+        WRITE(std_out,'(A)') 'Input file to read VTK subroutine has no vtk suffix. Therefor pressumably is none.'  
+        CLOSE(std_out)  
         CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
     ENDIF
 
@@ -204,11 +231,11 @@ IF (my_rank .EQ. 0) THEN
 
     ! Read VTK file header
     CALL read_vtk_meta (fh=fh_data_in, filename=filename, dims=dims, spcng=spcng, origin=origin, &
-        typ=typ, displacement=displacement, rd_o=rd_o, status_o=status)
+        typ=typ, displacement=displacement, std_out=std_out, status_o=status)
 
-    IF (status .EQ. 1_ik) THEN
-        WRITE(rd_o,'(A)')  'Something went wrong while reading IP_DATA_IN header. Program Aborted.'
-        CLOSE(rd_o)     
+    IF (status == 1_ik) THEN
+        WRITE(std_out,'(A)')  'Something went wrong while reading IP_DATA_IN header. Program Aborted.'
+        CLOSE(std_out)     
         CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)      
     ENDIF
        
@@ -218,7 +245,7 @@ IF (my_rank .EQ. 0) THEN
     histo_avg_fn_pre__Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_avg_PRE__FILTER.csv'
     histo_avg_fn_post_Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_avg_POST_FILTER.csv'
     histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(inp_para)//'_Filter_Histogram.tex'
-ENDIF ! (my_rank .EQ. 0)
+ENDIF ! (my_rank == 0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
 ! May be packed into less BCasts
@@ -261,19 +288,19 @@ END IF
 subarray_dims     = (dims_reduced / sections)
 subarray_dims_overlap = subarray_dims + original_image_padding
 
-IF ( (debug .GE. 1_ik) .AND. (my_rank .EQ. 0_ik) ) THEN
-    WRITE(rd_o,'(A)')      std_lnbrk
-    WRITE(rd_o,'(A)')      "Calculation of domain sectioning:"
-    WRITE(rd_o,'(A)')
-    WRITE(rd_o,'(A, 3I5)') "sections:           ", sections
-    WRITE(rd_o,'(A, 3I5)') "dims:           ", dims
-    WRITE(rd_o,'(A, 3I5)') "border:         ", border
-    WRITE(rd_o,'(A, 3I5)') "original_image_padding: ", original_image_padding
-    WRITE(rd_o,'(A, 3I5)') "remainder_per_dir:      ", remainder_per_dir
-    WRITE(rd_o,'(A, 3I5)') "dims_reduced:       ", dims_reduced
-    WRITE(rd_o,'(A, 3I5)') "subarray_dims:      ", subarray_dims
-    WRITE(rd_o,'(A)')      std_lnbrk
-    FLUSH(rd_o)
+IF ( (debug .GE. 1_ik) .AND. (my_rank == 0_ik) ) THEN
+    WRITE(std_out,'(A)')      std_lnbrk
+    WRITE(std_out,'(A)')      "Calculation of domain sectioning:"
+    WRITE(std_out,'(A)')
+    WRITE(std_out,'(A, 3I5)') "sections:           ", sections
+    WRITE(std_out,'(A, 3I5)') "dims:           ", dims
+    WRITE(std_out,'(A, 3I5)') "border:         ", border
+    WRITE(std_out,'(A, 3I5)') "original_image_padding: ", original_image_padding
+    WRITE(std_out,'(A, 3I5)') "remainder_per_dir:      ", remainder_per_dir
+    WRITE(std_out,'(A, 3I5)') "dims_reduced:       ", dims_reduced
+    WRITE(std_out,'(A, 3I5)') "subarray_dims:      ", subarray_dims
+    WRITE(std_out,'(A)')      std_lnbrk
+    FLUSH(std_out)
 END IF
 
 ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
@@ -282,16 +309,16 @@ subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
 
 CALL read_raw_mpi(filename=filename, type_in=TRIM(typ), type_out=typ, hdr_lngth=INT(displacement, KIND=8), &
             dims=dims, subarray_dims=subarray_dims_overlap, subarray_origin=subarray_origin, subarray=subarray, &
-            displacement=displacement, log_un=rd_o, status_o=status)
+            displacement=displacement, log_un=std_out, status_o=status)
 
-IF ((status .EQ. 1_ik) .AND. (my_rank .EQ. 1_ik)) THEN
-    WRITE(rd_o,'(A)')  'Something during MPI File read went wrong. Please check/debug.'
-    CLOSE(rd_o)
+IF ((status == 1_ik) .AND. (my_rank == 1_ik)) THEN
+    WRITE(std_out,'(A)')  'Something during MPI File read went wrong. Please check/debug.'
+    CLOSE(std_out)
     CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
 END IF
 
 ! Prepare collecting the subarrays to assemble a global vtk file.
-IF (my_rank .EQ. 0_ik) CALL CPU_TIME(read_t_vtk)
+IF (my_rank == 0_ik) CALL CPU_TIME(read_t_vtk)
 
 ! subarray_reduced_bndaries           ! No Overlap
 srb (1:3) = 1_ik + border
@@ -316,13 +343,13 @@ hbnds    = (/ histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - h
 CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), & 
                             srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)        
 
-IF (my_rank .EQ. 0_ik) CALL CPU_TIME(prep_Histo)
+IF (my_rank == 0_ik) CALL CPU_TIME(prep_Histo)
 
 ! Start image processing
 ! result_image is necessary, because otherwise, filtered Voxels will be used for filtering following voxels.
 ! Therefore, doesn't really work in place
 ! Ensure image padding manually in front of this branch
-IF (kernel_spec(1) .EQ. 2_ik) THEN
+IF (kernel_spec(1) == 2_ik) THEN
     ! 2D must be ordered explicitly.
     ALLOCATE( kernel2d ( kernel_spec(2), kernel_spec(2) ))
 
@@ -378,14 +405,14 @@ ENDIF
 
 DEALLOCATE(subarray)
 
-IF (my_rank .EQ. 0_ik) CALL CPU_TIME(calculation)
+IF (my_rank == 0_ik) CALL CPU_TIME(calculation)
 
 ! After image filtering
 ! Get Histogram of Scalar Values
 CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)        
 
 ! Allocate memory for global histogram
-IF (my_rank .EQ. 0_ik) THEN
+IF (my_rank == 0_ik) THEN
     ALLOCATE(histogram_pre__F_global(hbnds(1):hbnds(2)))
     ALLOCATE(histogram_post_F_global(hbnds(1):hbnds(2)))
 END IF
@@ -399,7 +426,7 @@ CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_p
 
 CALL CPU_TIME(extract_Histo)
 
-IF (my_rank .EQ. 0_ik) THEN
+IF (my_rank == 0_ik) THEN
 
     ! Export Histograms
     CALL write_histo_csv (fh_pre,      histogram_fn_pre__Filter, hbnds, 0_ik       , histogram_pre__F_global)
@@ -426,13 +453,13 @@ IF (my_rank .EQ. 0_ik) THEN
 
     INQUIRE(FILE=filenameExportVtk, SIZE=wr_vtk_hdr_lngth)
 
-END IF ! (my_rank .EQ. 0_ik)
+END IF ! (my_rank == 0_ik)
 
 ! BCAST used in some way of a Barrier.
 CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR   , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (wr_vtk_hdr_lngth , 1_mik         , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 
-IF (TRIM(typ) .EQ. "int2") THEN
+IF (TRIM(typ) == "int2") THEN
 CALL write_raw_mpi (type=TRIM(typ), &
             hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8), &
             filename=filenameExportVtk, &
@@ -452,29 +479,49 @@ END IF
 
 DEALLOCATE(result_subarray)
 
-IF (my_rank .EQ. 0_ik) THEN
+IF (my_rank == 0_ik) THEN
 
     CALL write_vtk_meta (fh=fh_data_out, filename=filenameExportVtk, atStart=.FALSE.)
 
     CALL CPU_TIME(global_finish)
 
-        WRITE(rd_o,'(A         )')  std_lnbrk
-        WRITE(rd_o,'(A, F13.3, A)') 'Init and parsing     = ', (init_finish        - global_start),' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Read File            = ', (read_t_vtk         - init_finish) ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)          ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Calculation          = ', (calculation        - prep_Histo)  ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)      ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                    ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start)                     ,' Seconds'
-        WRITE(rd_o,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60                ,' Minutes'
-        WRITE(rd_o,'(A         )')  std_lnbrk
-        WRITE(rd_o,'(A, F13.3, A)') 'CPU time             = ', (global_finish      - global_start) / 60 / 60 * size_mpi,' Hours'
+        WRITE(std_out,'(A         )')  std_lnbrk
+        WRITE(std_out,'(A, F13.3, A)') 'Init and parsing     = ', (init_finish        - global_start),' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Read File            = ', (read_t_vtk         - init_finish) ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)          ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Calculation          = ', (calculation        - prep_Histo)  ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)      ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                    ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start)                     ,' Seconds'
+        WRITE(std_out,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60                ,' Minutes'
+        WRITE(std_out,'(A         )')  std_lnbrk
+        WRITE(std_out,'(A, F13.3, A)') 'CPU time             = ', (global_finish      - global_start) / 60 / 60 * size_mpi,' Hours'
 
-    CLOSE(rd_o)     
+    CLOSE(std_out)     
 ENDIF 
 
-CALL MPI_FINALIZE(ierr)
-CALL MPI_ERR(ierr,"MPI_FINALIZE didn't succeed")
+1001 Continue
+
+IF(rank_mpi == 0) THEN
+    CALL meta_signing(binary)
+    CALL meta_close()
+
+    CALL meta_stop_ascii(fhl, log_suf)
+
+    CALL meta_stop_ascii(fh_csv_prf, "_hist_PRE__FILTER"//csv_suf)
+    CALL meta_stop_ascii(fh_csv_pof, "_hist_POST_FILTER"//csv_suf)
+    CALL meta_stop_ascii(fh_csv_aprf, "_hist_avg_PRE__FILTER"//csv_suf)
+    CALL meta_stop_ascii(fh_csv_apof, "_hist_avg_POST_FILTER"//csv_suf)
+    CALL meta_stop_ascii(fh_csv_fihi, "_Filter_Histogram"//csv_suf)
+
+    CALL meta_stop_ascii(fht, tex_suf)
+
+    IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
+
+END IF ! (rank_mpi == 0)
+
+Call MPI_FINALIZE(ierr)
+CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, KIND=ik))
 
 END PROGRAM CTIF

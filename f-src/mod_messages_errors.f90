@@ -98,9 +98,8 @@ CHARACTER(LEN=*), INTENT(IN) :: revision
 WRITE(std_out, FMT_TXT_SEP)
 WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
 WRITE(std_out, FMT_TXT) ''
-WRITE(std_out, FMT_TXT) 'Directly Discretizing Tensor Computation '//TRIM(ADJUSTL(revision))
+WRITE(std_out, FMT_TXT) 'Computed Tomography Image Filter '//TRIM(ADJUSTL(revision))
 WRITE(std_out, FMT_TXT) ''     
-WRITE(std_out, FMT_TXT) 'Author: Dr.-Ing. Ralf Schneider (HLRS, NUM)'
 WRITE(std_out, FMT_TXT) 'Author: Johannes Gebert, M.Sc.  (HLRS, NUM)'
 WRITE(std_out, FMT_TXT_SEP)
 END SUBROUTINE show_title
@@ -118,9 +117,9 @@ END SUBROUTINE show_title
 SUBROUTINE usage()
 
 WRITE(std_out, FMT_TXT_SEP)
-WRITE(std_out, FMT_TXT) 'Directly Discretizing Tensor Computation | Usage:'
+WRITE(std_out, FMT_TXT) 'Computed Tomography Image Filter | Usage:'
 WRITE(std_out, FMT_TXT_SEP)
-WRITE(std_out, FMT_TXT) './ddtc_vx.y.z_x86_64 »flags« »basename.meta«'
+WRITE(std_out, FMT_TXT) './ctif_vx.y.z_x86_64 <flags> <basename.meta>'
 WRITE(std_out, FMT_TXT) ''
 WRITE(std_out, FMT_TXT) '-h/ --help      This message.'
 WRITE(std_out, FMT_TXT) '-v/ --version   Version of the program'
