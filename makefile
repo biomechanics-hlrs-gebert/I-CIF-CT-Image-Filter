@@ -91,8 +91,10 @@ main_bin = $(bin_dir)$(bin_name)_$(trgt_vrsn)$(bin_suf)
 # Generate objects
 #
 f-objects = $(obj_dir)mod_global_std$(obj_ext)\
-			$(obj_dir)mod_kernels$(obj_ext)\
 			$(obj_dir)mod_strings$(obj_ext)\
+			$(obj_dir)mod_messages_errors$(obj_ext) \
+			$(obj_dir)mod_meta$(obj_ext) \
+			$(obj_dir)mod_kernels$(obj_ext)\
 			$(obj_dir)mod_file_routines_mpi$(obj_ext)\
 			$(obj_dir)mod_aux_routines_ip$(obj_ext)\
 			$(obj_dir)ct_image_filter$(obj_ext)
@@ -117,17 +119,17 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 # -----------------------------------------------------------------------------
 #-- Error Handling Module -----------------------------------------------------
 $(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
-									$(f_src_dir)mod_messages_errors$(f90_ext)
-	@echo "----- Compiling " $(f_src_dir)mod_messages_errors$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f_src_dir)mod_messages_errors$(f90_ext) -o $@
+									$(f-src_dir)mod_messages_errors$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_messages_errors$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_messages_errors$(f90_ext) -o $@
 	@echo 
 
 # -----------------------------------------------------------------------------
 #-- Meta Module ---------------------------------------------------------------
 $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)messages_errors$(mod_ext) \
-							$(f_src_dir)mod_meta$(f90_ext)
-	@echo "----- Compiling " $(f_src_dir)mod_meta$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f_src_dir)mod_meta$(f90_ext) -o $@
+							$(f-src_dir)mod_meta$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
 	@echo 
 	
 # ------------------------------------------------------------------------------
