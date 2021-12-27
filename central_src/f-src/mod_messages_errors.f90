@@ -10,7 +10,6 @@ MODULE messages_errors
 
    USE global_std
    USE strings
-   USE MPI
 
 IMPLICIT NONE
 
