@@ -65,7 +65,7 @@ else
     do
         system=`basename -s .sh $sys_file`
         #
-        test $system = $1 && source ${prefix}/auxiliaries/system_environments/${sys_file} && sys_set=1
+        test $system = $1 && source ${prefix}/central_src/auxiliaries/system_environments/${sys_file} && sys_set=1
         #
         # System
         export IP_SYS=$1
