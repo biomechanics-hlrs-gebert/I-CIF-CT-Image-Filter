@@ -6,10 +6,11 @@
 # Created:         10.05.2021
 # Last edit:       27.12.2021
 # ----------------------------------------------------------------------------------------
-if which git ; then # > /dev/null 2> /dev/null (to suppress cmd line output)
+which git > /dev/null 2> /dev/null
+if  [ $? -eq 0 ] ; then 
     git subtree pull --prefix \
     central_src git@github.com:biomechanics-hlrs-gebert/A-CESO-Central_Sources.git \
-    main --squash > /dev/null 2> /dev/null
+    main --squash
 fi
 # ----------------------------------------------------------------------------------------
 if [ -z $SITE_NAME ]; then
