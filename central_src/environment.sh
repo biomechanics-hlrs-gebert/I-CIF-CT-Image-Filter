@@ -6,6 +6,12 @@
 # Created:         10.05.2021
 # Last edit:       27.12.2021
 # ----------------------------------------------------------------------------------------
+if which git ; then # > /dev/null 2> /dev/null (to suppress cmd line output)
+    git subtree pull --prefix \
+    central_src git@github.com:biomechanics-hlrs-gebert/A-CESO-Central_Sources.git \
+    main --squash > /dev/null 2> /dev/null
+fi
+# ----------------------------------------------------------------------------------------
 if [ -z $SITE_NAME ]; then
     red='\033[0;31m'
     green='\033[0;32m'
