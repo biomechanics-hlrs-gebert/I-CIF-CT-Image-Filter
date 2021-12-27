@@ -2,9 +2,7 @@
 ! PROGRAM: Computed Tomography Image Filter
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-!> @author Benjamin Schnabel - HLRS - NUM - schnabel@hlrs.de
 !------------------------------------------------------------------------------
-
 PROGRAM CTIF
 
 USE global_std
@@ -14,10 +12,7 @@ USE kernels
 USE strings
 USE aux_routines_ip
 
-IMPLICIT NONE
-
-! For use with MPI (Calls), variables must be declared the same type like MPI was built.
-! MPI: Kind=32 Bit / 4 Byte / ik=4 - Change in «working_directory/f-src/mod_standards.f90 
+IMPLICIT NONE 
 
 ! Parameter
 INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
@@ -56,7 +51,7 @@ INTEGER  (KIND=ik) :: histo_bnd_local_lo,  histo_bnd_local_hi
 INTEGER  (KIND=ik), DIMENSION(3) :: hbnds
 INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
 INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
-INTEGER(KIND=ik) :: fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof, fh_csv_fihi
+INTEGER(KIND=ik) :: fh_csv_prf  = 200, fh_csv_pof  = 210, fh_csv_aprf = 220, fh_csv_apof = 230, fh_csv_fihi = 240
 
 ! Read Input file
 CHARACTER(len=mcl) :: line, parameterfile, prefix
@@ -178,11 +173,6 @@ IF (my_rank == 0) THEN
         !------------------------------------------------------------------------------
         CALL meta_start_ascii(fhl, log_suf)
 
-        fh_csv_prf  = 200
-        fh_csv_pof  = 210
-        fh_csv_aprf = 220
-        fh_csv_apof = 230
-        fh_csv_fihi = 240
         CALL meta_start_ascii(fh_csv_prf, "_hist_PRE__FILTER"//csv_suf)
         CALL meta_start_ascii(fh_csv_pof, "_hist_POST_FILTER"//csv_suf)
         CALL meta_start_ascii(fh_csv_aprf, "_hist_avg_PRE__FILTER"//csv_suf)
@@ -219,32 +209,7 @@ IF (my_rank == 0) THEN
         CALL CPU_TIME(init_finish)
 
 !!!!!!!!!!!!!!!!!!!!!!!!! GO ON !!!!!!!!! VTK TO RAW AT FIRST? !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-    IF( filename(LEN_TRIM(filename)-2 : LEN_TRIM(filename)) /= "vtk" )  THEN
-        WRITE(std_out,'(A)') 'Input file to read VTK subroutine has no vtk suffix. Therefor pressumably is none.'  
-        CLOSE(std_out)  
-        CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
-    ENDIF
-
-    CALL check_file_exist( filename=filename, must_exist=1_ik, mpi=.TRUE.)
-
-    ! Read VTK file header
-    CALL read_vtk_meta (fh=fh_data_in, filename=filename, dims=dims, spcng=spcng, origin=origin, &
-        typ=typ, displacement=displacement, std_out=std_out, status_o=status)
-
-    IF (status == 1_ik) THEN
-        WRITE(std_out,'(A)')  'Something went wrong while reading IP_DATA_IN header. Program Aborted.'
-        CLOSE(std_out)     
-        CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)      
-    ENDIF
        
-    ! Get the output filenames of the Histograms
-    histogram_fn_pre__Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_PRE__FILTER.csv'
-    histogram_fn_post_Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_POST_FILTER.csv'
-    histo_avg_fn_pre__Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_avg_PRE__FILTER.csv'
-    histo_avg_fn_post_Filter = TRIM(basename)//'_'//TRIM(inp_para)//'_hist_avg_POST_FILTER.csv'
-    histogram_filename_tex_Filter  = TRIM(basename)//'_'//TRIM(inp_para)//'_Filter_Histogram.tex'
 ENDIF ! (my_rank == 0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
