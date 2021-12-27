@@ -6,6 +6,8 @@
 # Created:         10.05.2021
 # Last edit:       27.12.2021
 # ----------------------------------------------------------------------------------------
+# Update the subtree
+#
 which git > /dev/null 2> /dev/null
 if  [ $? -eq 0 ] ; then 
     git subtree pull --prefix \
@@ -13,6 +15,8 @@ if  [ $? -eq 0 ] ; then
     main --squash
 fi
 # ----------------------------------------------------------------------------------------
+# Set colors for text output
+#
 if [ -z $SITE_NAME ]; then
     red='\033[0;31m'
     green='\033[0;32m'
@@ -26,6 +30,10 @@ else
     yellow=''
     nc=''
 fi
+# ----------------------------------------------------------------------------------------
+# System environment files
+#
+sys_env_path='/central_src/auxiliaries/system_environments/'
 # ----------------------------------------------------------------------------------------
 #
 usage ()
@@ -61,11 +69,11 @@ else
     fi
     #
     sys_set=0
-    for sys_file in `ls --color=never ${prefix}/auxiliaries/system_environments`
+    for sys_file in "ls --color=never "${prefix}${sys_env_path}
     do
         system=`basename -s .sh $sys_file`
         #
-        test $system = $1 && source ${prefix}/central_src/auxiliaries/system_environments/${sys_file} && sys_set=1
+        test $system = $1 && source ${prefix}${sys_env_path}${sys_file} && sys_set=1
         #
         # System
         export IP_SYS=$1
