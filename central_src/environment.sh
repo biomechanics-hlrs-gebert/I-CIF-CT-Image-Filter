@@ -4,7 +4,7 @@
 #
 # Author:          Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Created:         10.05.2021
-# Last edit:       27.12.2021
+# Last edit:       28.12.2021
 # ----------------------------------------------------------------------------------------
 # Update the subtree
 #
@@ -76,7 +76,7 @@ else
         test $system = $1 && source ${prefix}${sys_env_path}${sys_file} && sys_set=1
         #
         # System
-        export IP_SYS=$1
+        export SYS_ENV=$1
     done
 
     if [ $sys_set -eq 0 ]; then
@@ -86,12 +86,7 @@ else
     else
 	#
 	# ----------------------------------------
-	# DDTC Environment
-	#
-	# Basepath -------------------------------
-	export IP_PREFIX=${prefix}/
-	#
-	# PATH extensions ------------------------
+	# PATH extensions
 	export PATH=${prefix}/bin:$PATH
 	#
     if [ "NO_OUTPUT" != "YES" ]; then

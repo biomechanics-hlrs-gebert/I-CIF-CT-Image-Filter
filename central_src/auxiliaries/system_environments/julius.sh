@@ -35,7 +35,7 @@ dbg_err=0
 if [ "$NO_OUTPUT" != "YES" ]; then
     for tool in "${tools[@]}"; do
         echo -n "-- "
-        if ! which ${tool} ; then # > /dev/null 2> /dev/null (to suppress cmd line output)
+        if ! which ${tool} ; then > /dev/null 2> /dev/null # (to suppress cmd line output)
             echo "-- Please provide ${yellow}${tool}${nc} to use gdb with mpi."
             dbg_err=1
         fi
