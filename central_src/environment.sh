@@ -69,11 +69,10 @@ else
     fi
     #
     sys_set=0
-    for sys_file in "ls --color=never "${prefix}${sys_env_path}
+    for sys_file in $(ls --color=never ${prefix}${sys_env_path})
     do
-        system=`basename -s .sh $sys_file`
+        system=$(basename -s .sh $sys_file)
         #
-        echo ${prefix}${sys_env_path}
         test $system = $1 && source ${prefix}${sys_env_path}${sys_file} && sys_set=1
         #
         # System
