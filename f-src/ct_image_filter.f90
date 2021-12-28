@@ -6,11 +6,22 @@
 PROGRAM CTIF
 
 USE global_std
+USE messages_errors
+USE meta
 USE MPI
 USE file_routines_mpi  
 USE kernels
-USE strings
 USE aux_routines_ip
+
+
+  USE meta
+  USE meta_puredat_interface
+  USE chain_routines
+  USE MPI
+  USE decomp 
+  USE sp_aux_routines
+  USE PETSC
+  USE petsc_opt
 
 IMPLICIT NONE 
 

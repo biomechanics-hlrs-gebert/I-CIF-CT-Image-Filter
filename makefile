@@ -20,13 +20,13 @@ endif
 # -----------------------------------------------------------------------------
 # Check for environment
 check-env:
-ifeq ($(IP_SYS),)
+ifeq ($(SYS_ENV),)
 	@echo "-----------------------------------------------"
 	@echo "-- Please source environment.sh <system> first."
 	@echo "-----------------------------------------------"
 else
 	@echo "-----------------------------------------------"
-	@echo "-- Environment to build for: "$(IP_SYS)
+	@echo "-- Environment to build for: "$(SYS_ENV)
 	@echo "-----------------------------------------------"
 	$(MAKE) all
 endif
@@ -37,6 +37,10 @@ export build_path
 #
 # ------------------------------------------------------------------------------
 # Directories
+subtree_path= $(build_path)/central_src/
+#
+subtree_obj_dir = $(subtree_path)/obj/
+#
 mod_dir   = $(build_path)/mod/
 obj_dir   = $(build_path)/obj/
 lib_dir   = $(build_path)/lib/
@@ -90,48 +94,24 @@ main_bin = $(bin_dir)$(bin_name)_$(trgt_vrsn)$(bin_suf)
 # ------------------------------------------------------------------------------
 # Generate objects
 #
-f-objects = $(obj_dir)mod_global_std$(obj_ext)\
-			$(obj_dir)mod_strings$(obj_ext)\
-			$(obj_dir)mod_messages_errors$(obj_ext) \
-			$(obj_dir)mod_meta$(obj_ext) \
+f-objects = $(subtree_obj_dir)mod_global_std$(obj_ext)\
+			$(subtree_obj_dir)mod_strings$(obj_ext)\
+			$(subtree_obj_dir)mod_messages_errors$(obj_ext) \
+			$(subtree_obj_dir)mod_meta$(obj_ext) \
 			$(obj_dir)mod_kernels$(obj_ext)\
 			$(obj_dir)mod_file_routines_mpi$(obj_ext)\
 			$(obj_dir)mod_aux_routines_ip$(obj_ext)\
 			$(obj_dir)ct_image_filter$(obj_ext)
+
+# ------------------------------------------------------------------------------
+# Build the subtree directory first
+subtree: 
+	$(MAKE) all -C $(subtree_path)
+
 # ------------------------------------------------------------------------------
 # Begin Building
-all: $(main_bin)
+all: subtree $(main_bin)  
 
-# ------------------------------------------------------------------------------
-# Standards Module
-$(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_global_std$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_global_std$(f90_ext) -o $@
-	@echo
-
-# ------------------------------------------------------------------------------
-# External source to parse input
-$(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strings$(f90_ext)
-	@echo "----- Compiling " $(ext_f-src)strings$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(ext_f-src)strings$(f90_ext) -o $@
-	@echo
-
-# -----------------------------------------------------------------------------
-#-- Error Handling Module -----------------------------------------------------
-$(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
-									$(f-src_dir)mod_messages_errors$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_messages_errors$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_messages_errors$(f90_ext) -o $@
-	@echo 
-
-# -----------------------------------------------------------------------------
-#-- Meta Module ---------------------------------------------------------------
-$(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)messages_errors$(mod_ext) \
-							$(f-src_dir)mod_meta$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
-	@echo 
-	
 # ------------------------------------------------------------------------------
 # Module containing Convolutional matrices
 $(obj_dir)mod_kernels$(obj_ext):$(f-src_dir)mod_kernels$(f90_ext)
