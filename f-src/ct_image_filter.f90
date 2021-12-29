@@ -6,12 +6,13 @@
 PROGRAM CTIF
 
 USE global_std
-USE messages_errors
 USE meta
+USE messages_errors
+USE raw_binary  
+USE formatted_plain
 USE MPI
-USE file_routines_mpi  
 USE kernels
-USE aux_routines_ip
+
 
 IMPLICIT NONE 
 

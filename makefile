@@ -36,10 +36,13 @@ build_path = $(CURDIR)
 export build_path
 #
 # ------------------------------------------------------------------------------
-# Directories
-subtree_path= $(build_path)/central_src/
+# Directories 
+# st: "Subtree" - A git procedure to inherit another repository as some sort of
+# submodule. https://gist.github.com/SKempin/b7857a6ff6bddb05717cc17a44091202
+st_path= $(build_path)/central_src/
 #
-subtree_obj_dir = $(subtree_path)/obj/
+st_obj_dir = $(st_path)/obj/
+st_mod_dir = $(st_path)/mod/
 #
 mod_dir   = $(build_path)/mod/
 obj_dir   = $(build_path)/obj/
@@ -75,17 +78,23 @@ export compiler
 # Programming Environment - gnu, LLVM
 PE = gnu
 # ------------------------------------------------------------------------------
+# Compile mode - dev, prod
+compile_MODE = dev
+# ------------------------------------------------------------------------------
 # Compile flags GNU Compiler
+# The subtree structure requires two directories containing modules. 
+# In this case, the program root/mod directory addressed by the -J 
+# http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
 ifeq ($(PE),gnu)
-   c_flags_f90 = -J$(mod_dir) -I$(mod_dir) \
-				-g \
-				-o \
-				-O3 \
-				-fbacktrace \
-				-fbounds-check \
-				-fbackslash \
-				-Wno-conversion \
-				-Wall
+	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir)
+	f90_dev_flags  = -ggdb -o -O3 -fbacktrace -fbounds-check -fbackslash -Wno-conversion -Wall
+	f90_prod_flags = -O3 -fbounds-check
+
+	ifeq ($(compile_MODE),prod)
+		c_flags_f90 = $(f90_std_IJ) $(f90_prod_flags)
+	else
+		c_flags_f90 =  $(f90_std_IJ) $(f90_dev_flags)
+	endif
 endif
 # ------------------------------------------------------------------------------
 # Executable
@@ -94,51 +103,47 @@ main_bin = $(bin_dir)$(bin_name)_$(trgt_vrsn)$(bin_suf)
 # ------------------------------------------------------------------------------
 # Generate objects
 #
-f-objects = $(subtree_obj_dir)mod_global_std$(obj_ext)\
-			$(subtree_obj_dir)mod_strings$(obj_ext)\
-			$(subtree_obj_dir)mod_messages_errors$(obj_ext) \
-			$(subtree_obj_dir)mod_meta$(obj_ext) \
+f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
+			$(st_obj_dir)mod_strings$(obj_ext)\
+			$(st_obj_dir)mod_messages_errors$(obj_ext) \
+			$(st_obj_dir)mod_meta$(obj_ext) \
 			$(obj_dir)mod_kernels$(obj_ext)\
 			$(obj_dir)mod_file_routines_mpi$(obj_ext)\
 			$(obj_dir)mod_aux_routines_ip$(obj_ext)\
 			$(obj_dir)ct_image_filter$(obj_ext)
 
 # ------------------------------------------------------------------------------
-# Build the subtree directory first
-subtree: 
-	$(MAKE) all -C $(subtree_path)
+# Build the st directory first
+st: 
+	$(MAKE) all -C $(st_path)
+	@echo 
 
 # ------------------------------------------------------------------------------
 # Begin Building
-all: subtree $(main_bin)  
+all: st $(main_bin)  
 
 # ------------------------------------------------------------------------------
-# Module containing Convolutional matrices
+# Histogram module
+$(obj_dir)mod_aux_routines_ip$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(f-src_dir)mod_aux_routines_ip$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_aux_routines_ip$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_aux_routines_ip$(f90_ext) -o $@
+	@echo
+
+
+# ------------------------------------------------------------------------------
+# Module containing convolutional kernels
 $(obj_dir)mod_kernels$(obj_ext):$(f-src_dir)mod_kernels$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_kernels$(f90_ext)" -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_kernels$(f90_ext) -o $@
 	@echo
 
-# ------------------------------------------------------------------------------
-# Files routines module
-$(obj_dir)mod_file_routines_mpi$(obj_ext):$(mod_dir)global_std$(mod_ext) $(f-src_dir)mod_file_routines_mpi$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_file_routines_mpi$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_file_routines_mpi$(f90_ext) -o $@
-	@echo
-
-# ------------------------------------------------------------------------------
-# Histogram module
-$(obj_dir)mod_aux_routines_ip$(obj_ext):$(mod_dir)global_std$(mod_ext) $(f-src_dir)mod_aux_routines_ip$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_aux_routines_ip$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_aux_routines_ip$(f90_ext) -o $@
-	@echo
 
 # ------------------------------------------------------------------------------
 # Main object 
-$(obj_dir)ct_image_filter$(obj_ext):$(mod_dir)global_std$(mod_ext)\
+$(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
 						 $(mod_dir)kernels$(mod_ext)\
-						 $(mod_dir)file_routines_mpi$(mod_ext)\
- 			             $(mod_dir)strings$(mod_ext)\
+						 $(st_mod_dir)vtk_meta_data$(mod_ext)\
+ 			             $(st_mod_dir)strings$(mod_ext)\
 			             $(mod_dir)aux_routines_ip$(mod_ext)\
 						 $(f-src_dir)ct_image_filter$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)ct_image_filter$(f90_ext) " -----"
