@@ -446,6 +446,8 @@ MODULE vtk_meta_data
 
 USE ISO_FORTRAN_ENV
 USE global_std
+USE strings
+USE user_interaction
 
 IMPLICIT NONE
 
