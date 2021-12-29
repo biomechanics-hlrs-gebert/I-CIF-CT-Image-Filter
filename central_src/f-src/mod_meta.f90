@@ -1,7 +1,7 @@
 !------------------------------------------------------------------------------
 ! MODULE: meta
 !------------------------------------------------------------------------------
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 ! @Description:
 !> Module containing all meta file read/write routines.
@@ -12,11 +12,6 @@ MODULE meta
    USE messages_errors
 
 IMPLICIT NONE
-
-   !------------------------------------------------------------------------------
-   ! Provide versioning information for transparent data tracking
-   !------------------------------------------------------------------------------  
-   INCLUDE 'include_f90/revision_meta.f90'
 
    INTEGER, PARAMETER :: meta_ik = 4
    INTEGER, PARAMETER :: meta_rk = 8
@@ -41,6 +36,8 @@ IMPLICIT NONE
    INTEGER(KIND=meta_ik), PARAMETER :: fh_csv      = 26, fhc    = 26
    INTEGER(KIND=meta_ik), PARAMETER :: fh_head     = 27, fhh    = 27
    INTEGER(KIND=meta_ik), PARAMETER :: fh_tex      = 28, fht    = 28
+   INTEGER(KIND=meta_ik), PARAMETER :: fh_vtk      = 29, fhv    = 29
+   INTEGER(KIND=meta_ik), PARAMETER :: fh_raw      = 30, fhra   = 30
    CHARACTER(LEN=*), PARAMETER :: log_suf  = '.log'
    CHARACTER(LEN=*), PARAMETER :: lock_suf = '.lock'
    CHARACTER(LEN=*), PARAMETER :: head_suf = '.head'
@@ -49,6 +46,8 @@ IMPLICIT NONE
    CHARACTER(LEN=*), PARAMETER :: res_suf  = '.result'
    CHARACTER(LEN=*), PARAMETER :: csv_suf  = '.csv'
    CHARACTER(LEN=*), PARAMETER :: tex_suf  = '.tex'
+   CHARACTER(LEN=*), PARAMETER :: vtk_suf  = '.vtk'
+   CHARACTER(LEN=*), PARAMETER :: raw_suf  = '.raw'
 
    ! Meta data basename handling
    TYPE basename
@@ -122,7 +121,7 @@ lockname=TRIM(in%path)//'.'//TRIM(in%bsnm)//lock_suf
 
 INQUIRE (FILE = TRIM(lockname), EXIST = exist)
 
-IF((restart .EQ. 'N') .AND. (exist)) THEN
+IF((restart == 'N') .AND. (exist)) THEN
    mssg='The .*.lock file is set and a restart prohibited by default or the user.'
 
    INQUIRE (FILE = out%full, EXIST = exist)
@@ -138,12 +137,12 @@ END IF
 !------------------------------------------------------------------------------
 ! Create a new lock file.
 !------------------------------------------------------------------------------
-IF(((restart .EQ. 'Y') .AND. (.NOT. exist)) .OR. ((restart .EQ. 'N') .AND. (.NOT. exist))) THEN
+IF(((restart == 'Y') .AND. (.NOT. exist)) .OR. ((restart == 'N') .AND. (.NOT. exist))) THEN
    CALL execute_command_line ('touch '//TRIM(lockname), CMDSTAT=ios)
    CALL print_err_stop(std_out, 'The .*.lock file could not be set.', err=ios)
 END IF
 
-IF((restart .EQ. 'Y') .AND. (exist)) CONTINUE
+IF((restart == 'Y') .AND. (exist)) CONTINUE
 
 END SUBROUTINE meta_handle_lock_file
 
@@ -167,6 +166,54 @@ CALL meta_continue(meta_as_rry)
 
 END SUBROUTINE meta_append
 
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_create_new
+!---------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Subroutine to create a new meta file
+!
+!> @param[inout] basename_requested Input basename
+!---------------------------------------------------------------------------  
+SUBROUTINE meta_create_new(filename_with_suffix)
+
+CHARACTER(LEN=*), INTENT(IN) :: filename_with_suffix      
+
+INTEGER  (KIND=meta_ik) :: ntokens
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+LOGICAL :: exist
+
+!------------------------------------------------------------------------------
+! Automatically aborts if there is no input file found on the drive
+!------------------------------------------------------------------------------
+INQUIRE (FILE = TRIM(filename_with_suffix), EXIST = exist)
+IF (.NOT. exist) THEN
+   mssg = "The file "//TRIM(filename_with_suffix)//" does not exist."
+   CALL print_err_stop(std_out, TRIM(mssg), 1)
+END IF
+
+CALL parse( str=filename_with_suffix, delims=".", args=tokens, nargs=ntokens)
+
+!------------------------------------------------------------------------------
+! Accepts any input suffix
+!------------------------------------------------------------------------------
+CALL parse_basename(filename_with_suffix, "."//tokens(ntokens))
+
+!------------------------------------------------------------------------------
+! Create the meta input file
+!------------------------------------------------------------------------------
+INQUIRE (FILE = TRIM(in%p_n_bsnm)//meta_suf, EXIST = exist)
+IF (exist) THEN
+   mssg = "The file "//TRIM(filename_with_suffix)//" already exists."
+   CALL print_err_stop(std_out, TRIM(mssg), 1)
+END IF
+
+OPEN(UNIT=fhmeo, FILE=TRIM(in%p_n_bsnm)//meta_suf, &
+   ACTION='READWRITE', ACCESS='SEQUENTIAL', STATUS='NEW')
+
+END SUBROUTINE meta_create_new
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_invoke
@@ -195,26 +242,8 @@ IF (.NOT. exist) CALL print_err_stop(std_out, "The file "//TRIM(in%full)//" does
 
 CALL parse( str=in%full, delims=".", args=tokens, nargs=ntokens)
 
-IF ( '.'//TRIM(tokens(ntokens)) .EQ. meta_suf) THEN
-   !------------------------------------------------------------------------------
-   ! Parse all basename and path details.
-   !------------------------------------------------------------------------------
-   in%p_n_bsnm = in%full(1:LEN_TRIM(in%full)-LEN_TRIM(meta_suf)) 
-   
-   CALL parse( str=TRIM(in%p_n_bsnm), delims="/", args=tokens, nargs=ntokens)
-
-   in%path = in%p_n_bsnm(1:LEN_TRIM(in%p_n_bsnm) - LEN_TRIM(tokens(ntokens)))     
-   in%bsnm = TRIM(tokens(ntokens))
-
-   CALL parse( str=TRIM(in%bsnm), delims="_", args=tokens, nargs=ntokens)
-
-   in%dataset = TRIM(tokens(1))
-   in%type    = TRIM(tokens(2))
-   in%purpose = TRIM(tokens(3))
-   in%app      = TRIM(tokens(4))
-   in%features = TRIM(tokens(5))
-
-   out = in  
+IF ( '.'//TRIM(tokens(ntokens)) == meta_suf) THEN
+   CALL parse_basename(in%full, meta_suf)
 ELSE
    ! File is not a meta file
    CALL print_err_stop(std_out, "The input file is not a *"//meta_suf//" file.", 1)
@@ -235,16 +264,6 @@ DO ii=1, lines
    READ(fhmei,'(A)') meta_as_rry(ii)
 END DO
 
-!------------------------------------------------------------------------------
-! Parse and check basename
-!------------------------------------------------------------------------------
-CALL parse(str=TRIM(in%bsnm), delims='_', args=tokens, nargs=ntokens)
-
-! Check if the basename consists of exactly the 5 parts.
-IF(ntokens /= 5_meta_ik) THEN   
-   mssg='The basename »'//TRIM(in%bsnm)//'« of the meta-file was ill-defined. It may be parsed wrong.'
-   CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), 0)
-END IF
 
 END SUBROUTINE meta_invoke
 
@@ -416,8 +435,6 @@ END SUBROUTINE meta_stop_ascii
 
 
 
-!============================================================================
-!> Subroutine for counting lines in an ascii file
 !------------------------------------------------------------------------------
 ! SUBROUTINE: count_lines
 !------------------------------------------------------------------------------  
@@ -434,8 +451,8 @@ function count_lines(un) result(no_lines)
 Integer, Intent(in) :: un
 Integer(kind=ik)    :: no_lines
 
-Integer             :: io_stat
-Character(len=2)    :: temp_char
+Integer :: io_stat
+Character(len=2) :: temp_char
 
 io_stat = 0
 no_lines=0
@@ -487,6 +504,53 @@ ELSE
 END IF
 
 END SUBROUTINE check_keyword
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: parse_basename
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Parse the basename
+!
+!> @param[in] filename Full name of the file
+!> @param[in] suf Expected suffix
+!------------------------------------------------------------------------------  
+SUBROUTINE parse_basename(filename, suf)
+
+CHARACTER(LEN=*) :: filename, suf
+INTEGER  (KIND=meta_ik) :: ntokens
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+
+in%full = TRIM(ADJUSTL(filename))
+
+!------------------------------------------------------------------------------
+! Parse all basename and path details.
+!------------------------------------------------------------------------------
+in%p_n_bsnm = in%full(1:LEN_TRIM(in%full)-LEN_TRIM(TRIM(ADJUSTL(suf)))) 
+
+CALL parse( str=TRIM(in%p_n_bsnm), delims="/", args=tokens, nargs=ntokens)
+
+in%path = in%p_n_bsnm(1:LEN_TRIM(in%p_n_bsnm) - LEN_TRIM(tokens(ntokens)))     
+in%bsnm = TRIM(tokens(ntokens))
+
+CALL parse( str=TRIM(in%bsnm), delims="_", args=tokens, nargs=ntokens)
+
+IF (ntokens /= 5) THEN
+   mssg = "Invalid basename given: "//TRIM(in%p_n_bsnm)
+   CALL print_err_stop(std_out, mssg, 1)
+END IF
+
+in%dataset = TRIM(tokens(1))
+in%type    = TRIM(tokens(2))
+in%purpose = TRIM(tokens(3))
+in%app      = TRIM(tokens(4))
+in%features = TRIM(tokens(5))
+
+out = in  
+
+END SUBROUTINE parse_basename
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: check_unit
@@ -805,19 +869,28 @@ WRITE(fh, fmt, ADVANCE='NO') "w ", keyword
 WRITE(fmt, '(A,I0,A)') "(A, T", stdspc+1, ")"
 WRITE(fh, fmt, ADVANCE='NO') TRIM(ADJUSTL(stdspcfill))
 
-WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
-WRITE(fh, fmt, ADVANCE='NO') unit
-   
-CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
+!------------------------------------------------------------------------------
+! Only write if stdspcfill (are of actual information/data) was not overflowed
+! < instead of <= to get 1 space clearance
+!------------------------------------------------------------------------------  
+IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc) THEN
+   WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
+   WRITE(fh, fmt, ADVANCE='NO') unit
+END IF
 
-str = ''
-str = date(7:8)//'.'//date(5:6)//'.'//date(1:4)
-str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
-str = TRIM(str)//' '//timezone
+! Same as comment before
+IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc+ucl) THEN
+   CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
 
+   str = ''
+   str = date(7:8)//'.'//date(5:6)//'.'//date(1:4)
+   str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
+   str = TRIM(str)//' '//timezone
 
-WRITE(fh, '(A)') TRIM(str)
-
+   WRITE(fh, '(A)') TRIM(str)
+ELSE
+   WRITE(fh, '(A)') "" ! Basically a newline
+END IF
 END SUBROUTINE meta_write_keyword
 
 
@@ -1036,7 +1109,7 @@ SUBROUTINE meta_write_R1D (fh, keyword, unit, real_1D)
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
 CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
-REAL(KIND=meta_ik), INTENT(IN), DIMENSION(:) :: real_1D 
+REAL(KIND=meta_rk), INTENT(IN), DIMENSION(:) :: real_1D 
 
 CHARACTER(LEN=meta_scl) :: stdspcfill, str
 INTEGER  (KIND=meta_ik) :: ii
@@ -1046,7 +1119,7 @@ str = ''
 
 DO ii=1, SIZE(real_1D)
    str = ''
-   WRITE(str, '(F15.7)') real_1D(ii)
+   WRITE(str, '(F10.6)') real_1D(ii)
 
    CALL trimzero(str)
 
@@ -1068,10 +1141,14 @@ END SUBROUTINE meta_write_R1D
 !> @description
 !> Requires a "revision.meta" or similar inclusion of verisoning info, 
 !> provided by a makefile. Furhermore, it requires a global_stds file.
+!
+!> @param[in] revision Version number of the program
+!> @param[in] hash Git hash of the repository
+!> @param[in] binary_name Name of the executable
 !------------------------------------------------------------------------------
-SUBROUTINE meta_signing(binary_name)
+SUBROUTINE meta_signing(revision, hash, binary_name)
 
-CHARACTER(LEN=*), INTENT(IN)  :: binary_name
+CHARACTER(LEN=*), INTENT(IN)  :: revision, hash, binary_name
 
 WRITE(fhmeo, '(A)')
 CALL meta_write (fhmeo, 'PROGRAM_VERSION' , revision)
