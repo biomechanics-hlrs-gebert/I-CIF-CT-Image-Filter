@@ -20,8 +20,8 @@ IMPLICIT NONE
 
    ! Character lengths
    INTEGER, PARAMETER :: kcl    = 25   ! Keyword character  length
-   INTEGER, PARAMETER :: ucl    = 10   ! Unit    character  length
-   INTEGER, PARAMETER :: stdspc = 30   ! Keyword standard space
+   INTEGER, PARAMETER :: ucl    = 8    ! Unit    character  length
+   INTEGER, PARAMETER :: stdspc = 39   ! Keyword standard space
 
    CHARACTER(LEN=kcl) :: global_meta_program_keyword
    CHARACTER(LEN=kcl) :: global_meta_prgrm_mstr_app
@@ -738,7 +738,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
 
-READ(tokens(3), '(I10)') int_0D 
+READ(tokens(3), '(I12)') int_0D 
 
 END SUBROUTINE meta_read_I0D
 
@@ -769,7 +769,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
 
-READ(tokens(3), '(F30.10)') real_0D 
+READ(tokens(3), '(F39.10)') real_0D 
 
 END SUBROUTINE meta_read_R0D
 
@@ -799,7 +799,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, SIZE(int_1D), m_in, tokens, ntokens)
 
-READ(tokens(3:2+SIZE(int_1D)), '(I10)') int_1D
+READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
 END SUBROUTINE meta_read_I1D
 
@@ -830,7 +830,7 @@ INTEGER(KIND=meta_ik) :: ntokens
 
 CALL meta_extract_keyword_data (fh, keyword, SIZE(real_1D), m_in, tokens, ntokens)
 
-READ(tokens(3:2+SIZE(real_1D)), '(F30.10)') real_1D
+READ(tokens(3:2+SIZE(real_1D)), '(F39.10)') real_1D
 
 END SUBROUTINE meta_read_R1D
 
@@ -855,6 +855,7 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: stdspcfill 
 CHARACTER(LEN=*), INTENT(IN) :: unit
 
+INTEGER(KIND=ik) :: rpt
 CHARACTER(LEN=meta_scl) :: fmt, str
 CHARACTER(LEN=8)  :: date
 CHARACTER(LEN=10) :: time
@@ -876,14 +877,17 @@ WRITE(fh, fmt, ADVANCE='NO') TRIM(ADJUSTL(stdspcfill))
 IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc) THEN
    WRITE(fmt, '(A,I0,A)') "(A, T", ucl+1, ")"
    WRITE(fh, fmt, ADVANCE='NO') unit
+   rpt=0
+ELSE
+   rpt = stdspc+ucl-LEN_TRIM(ADJUSTL(stdspcfill))
 END IF
 
 ! Same as comment before
 IF(LEN_TRIM(ADJUSTL(stdspcfill)) <  stdspc+ucl) THEN
    CALL DATE_AND_TIME(DATE=date, TIME=time, ZONE=timezone)
 
-   str = ''
-   str = date(7:8)//'.'//date(5:6)//'.'//date(1:4)
+   str = '' ! Clear string
+   str = REPEAT(' ', rpt)//date(7:8)//'.'//date(5:6)//'.'//date(1:4)
    str = TRIM(str)//' '//time(1:2)//':'//time(3:4)//':'//time(5:10)
    str = TRIM(str)//' '//timezone
 
@@ -989,8 +993,8 @@ END SUBROUTINE meta_write_sha256sum
 SUBROUTINE meta_write_C (fh, keyword, stdspcfill)
    
 INTEGER  (KIND=meta_ik), INTENT(IN) :: fh 
-CHARACTER(LEN=*)  , INTENT(IN) :: keyword
-CHARACTER(LEN=*)  , INTENT(IN) :: stdspcfill 
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=*), INTENT(IN) :: stdspcfill 
 
 CALL meta_write_keyword (fh, keyword, stdspcfill, '')
 
@@ -1044,9 +1048,10 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 REAL(KIND=meta_ik), INTENT(IN) :: real_0D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill
+CHARACTER(LEN=meta_scl) :: stdspcfill, fmt
 
-WRITE(stdspcfill, '(F30.7)') real_0D
+WRITE(fmt, '(A,I0,A)') "(F", stdspc, ".7)"
+WRITE(stdspcfill, fmt) real_0D ! '(F30.7)'
 
 CALL trimzero(stdspcfill)
 
@@ -1075,7 +1080,7 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 INTEGER(KIND=meta_ik), INTENT(IN), DIMENSION(:) :: int_1D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, str
+CHARACTER(LEN=meta_scl) :: stdspcfill, str, fmt
 INTEGER  (KIND=meta_ik) :: ii
 
 stdspcfill = ''
@@ -1083,7 +1088,8 @@ str = ''
 
 DO ii=1, SIZE(int_1D)
    str = ''
-   WRITE(str, '(I0)') int_1D(ii)
+   WRITE(fmt, '(A,I0,A)') "(I", (stdspc/3)-1, ")"
+   WRITE(str, fmt) int_1D(ii) ! '(I0)'
    stdspcfill = TRIM(stdspcfill)//' '//TRIM(str)
 END DO
 
@@ -1111,7 +1117,7 @@ CHARACTER(LEN=*), INTENT(IN) :: keyword
 CHARACTER(LEN=*), INTENT(IN) :: unit
 REAL(KIND=meta_rk), INTENT(IN), DIMENSION(:) :: real_1D 
 
-CHARACTER(LEN=meta_scl) :: stdspcfill, str
+CHARACTER(LEN=meta_scl) :: stdspcfill, str, fmt
 INTEGER  (KIND=meta_ik) :: ii
 
 stdspcfill = ''
@@ -1119,9 +1125,9 @@ str = ''
 
 DO ii=1, SIZE(real_1D)
    str = ''
-   WRITE(str, '(F10.6)') real_1D(ii)
-
-   CALL trimzero(str)
+   WRITE(fmt, '(A,I0,A)') "(F", (stdspc/3)-1, ".7)"
+   WRITE(str, fmt) real_1D(ii)
+   ! CALL trimzero(str) ! Choose preferred formatting
 
    stdspcfill = TRIM(stdspcfill)//' '//TRIM(str)
 END DO

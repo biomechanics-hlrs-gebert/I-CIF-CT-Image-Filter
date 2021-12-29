@@ -72,7 +72,8 @@ endif
 f-objects = $(obj_dir)mod_global_std$(obj_ext)\
 			$(obj_dir)mod_strings$(obj_ext)\
 			$(obj_dir)mod_messages_errors$(obj_ext) \
-			$(obj_dir)mod_meta$(obj_ext)
+			$(obj_dir)mod_meta$(obj_ext)\
+			$(obj_dir)mod_vtk_raw$(obj_ext)
 # ------------------------------------------------------------------------------
 # Begin Building
 all: $(f-objects)
@@ -91,7 +92,7 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 	@echo
 
 # -----------------------------------------------------------------------------
-#-- Error Handling Module -----------------------------------------------------
+#-- Error Handling Module 
 $(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
 									$(f-src_dir)mod_messages_errors$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_messages_errors$(f90_ext) " -----"
@@ -99,12 +100,20 @@ $(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir
 	@echo 
 
 # -----------------------------------------------------------------------------
-#-- Meta Module ---------------------------------------------------------------
+#-- Meta Module 
 $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)messages_errors$(mod_ext) \
 							$(f-src_dir)mod_meta$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
 	@echo 
+
+# ------------------------------------------------------------------------------
+# Files routines module
+$(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext)\
+								$(f-src_dir)mod_vtk_raw$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@
+	@echo
 
 help:
 	@echo "----------------------------------------------------------------------------------"
