@@ -30,6 +30,7 @@ Character(Len=*), Parameter :: FMT_ERR_AI0  = "('EE ', *(A,I0))"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
 
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A = "('-- ',A,1X,F0.6,1x,A)"
 
 !------------------------------------------------------------------------------
 ! Message formats
