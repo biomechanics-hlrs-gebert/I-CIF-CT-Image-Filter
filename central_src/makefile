@@ -3,20 +3,24 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      27.12.2021
-# Last edit: 27.12.2021
+# Last edit: 29.12.2021
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # ------------------------------------------------------------------------------
-# Handling of the subtree hash is not entirely clear yet (Dec 2021)
-# 
-# ifeq ($(PROVIDES_GIT),YES)
-# # Get git hash https://jblevins.org/log/vc
-# 	rev = $(shell git rev-parse HEAD)
-# else
-# 	rev = NO_GIT_REPOSITORY
-# endif
-# ------------------------------------------------------------------------------
-long_name="centralized sources"
+long_name="Centralized Sources"
+# -----------------------------------------------------------------------------
+# Check for environment
+check-env:
+ifeq ($(SYS_ENV),)
+	@echo "-----------------------------------------------"
+	@echo "-- Please source environment.sh <system> first."
+	@echo "-----------------------------------------------"
+else
+	@echo "-----------------------------------------------"
+	@echo "-- Environment to build for: "$(SYS_ENV)
+	@echo "-----------------------------------------------"
+	$(MAKE) all
+endif
 # ------------------------------------------------------------------------------
 # Build path
 subtree_build_path = $(CURDIR)
@@ -46,7 +50,7 @@ c_ext = .c
 clean_cmd = rm -f
 # ------------------------------------------------------------------------------
 # Compilers
-f90_compiler = "gfortran"
+f90_compiler = "mpif90"
 export f90_compiler
 c_compiler = "gcc"
 export c_compiler
@@ -54,34 +58,59 @@ export c_compiler
 # Programming Environment - gnu, LLVM
 PE = gnu
 # ------------------------------------------------------------------------------
+# Compile mode - dev, prod - Defined in environment.sh
+# compile_MODE = dev
+# ------------------------------------------------------------------------------
 # Compile flags GNU Compiler
+# The subtree structure requires two directories containing modules. 
+# In this case, the program root/mod directory addressed by the -J 
+# http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
 ifeq ($(PE),gnu)
-   c_flags_f90 = -J$(mod_dir) -I$(mod_dir) \
-				-g \
-				-o \
-				-O3 \
-				-fbacktrace \
-				-fbounds-check \
-				-fbackslash \
-				-Wno-conversion \
-				-Wall
+	f90_std_IJ     = -J$(mod_dir) -I$(subtree_build_path)
+	f90_dev_flags  = -ggdb -o -O3 -fbacktrace -fbounds-check -fbackslash -Wno-conversion -Wall
+	f90_prod_flags = -O3 -fbounds-check
+
+	ifeq ($(compile_MODE),prod)
+		c_flags_f90 = $(f90_std_IJ) $(f90_prod_flags)
+	else
+		c_flags_f90 =  $(f90_std_IJ) $(f90_dev_flags)
+	endif
 endif
 # ------------------------------------------------------------------------------
 # Generate objects
 #
 f-objects = $(obj_dir)mod_global_std$(obj_ext)\
 			$(obj_dir)mod_strings$(obj_ext)\
+			$(obj_dir)mod_math$(obj_ext)\
+			$(obj_dir)mod_mechanical$(obj_ext)\
 			$(obj_dir)mod_messages_errors$(obj_ext) \
 			$(obj_dir)mod_meta$(obj_ext)\
-			$(obj_dir)mod_vtk_raw$(obj_ext)
+			$(obj_dir)mod_vtk_raw$(obj_ext)\
+			$(obj_dir)mod_formatted_plain$(obj_ext)
+
 # ------------------------------------------------------------------------------
 # Begin Building
 all: $(f-objects)
+
 # ------------------------------------------------------------------------------
 # Standards Module
 $(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_global_std$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_global_std$(f90_ext) -o $@
+	@echo
+
+# ------------------------------------------------------------------------------
+# Standards Module
+$(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_math$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_math$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_math$(f90_ext) -o $@
+	@echo
+
+# ------------------------------------------------------------------------------
+# Standards Module
+$(obj_dir)mod_mechanical$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_mechanical$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_mechanical$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_mechanical$(f90_ext) -o $@
 	@echo
 
 # ------------------------------------------------------------------------------
@@ -92,7 +121,7 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 	@echo
 
 # -----------------------------------------------------------------------------
-#-- Error Handling Module 
+# Error Handling Module 
 $(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
 									$(f-src_dir)mod_messages_errors$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_messages_errors$(f90_ext) " -----"
@@ -100,16 +129,25 @@ $(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir
 	@echo 
 
 # -----------------------------------------------------------------------------
-#-- Meta Module 
+# Meta Module 
 $(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)messages_errors$(mod_ext) \
 							$(f-src_dir)mod_meta$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
 	@echo 
 
+# -----------------------------------------------------------------------------
+# Formatted Plain Module
+$(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)math$(mod_ext)\
+										$(f-src_dir)mod_formatted_plain$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_formatted_plain$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_formatted_plain$(f90_ext) -o $@
+	@echo 
+
 # ------------------------------------------------------------------------------
-# Files routines module
-$(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext)\
+# Module vtk structured points and raw data
+$(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
+								$(mod_dir)messages_errors$(mod_ext) \
 								$(f-src_dir)mod_vtk_raw$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@

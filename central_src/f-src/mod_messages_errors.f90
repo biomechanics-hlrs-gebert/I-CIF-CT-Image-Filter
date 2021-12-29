@@ -1,15 +1,16 @@
 !------------------------------------------------------------------------------
 ! MODULE: messages_errors
 !------------------------------------------------------------------------------
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 ! @Description:
 !> Module containing the formatting of all (error) messages
 !------------------------------------------------------------------------------
 MODULE messages_errors
 
-   USE global_std
-   USE strings
+    USE MPI
+    USE global_std
+    USE strings
 
 IMPLICIT NONE
 
@@ -198,6 +199,33 @@ END IF
 
 End function give_new_unit
 
+!------------------------------------------------------------------------------
+! SUBROUTINE: mpi_err
+!------------------------------------------------------------------------------  
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
+!
+!> @brief
+!> Evaluates allocation errors
+!
+!> @param[in] ierr Errorcode 
+!> @param[out] text Message to print
+!------------------------------------------------------------------------------  
+subroutine mpi_err(ierr, text)
+
+   !-- Dummy parameters
+   integer(kind=mik), intent(in) :: ierr
+   character(len=*), intent(in) :: text
+   
+   if (ierr /= MPI_SUCCESS) THEN
+      write(*, "(100('!'))")
+      write(*, '(A,I0,A)') 'MPI ERROR :', ierr,";"
+      write(*, '(A)') trim(text)
+      write(*, "(100('!'))")
+      write(*, *) 'Exit ...'
+      stop
+    end if
+   
+end subroutine mpi_err
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: print_err_stop
