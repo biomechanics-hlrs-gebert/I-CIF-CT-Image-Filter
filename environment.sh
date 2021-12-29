@@ -59,6 +59,18 @@ else
         export NO_OUTPUT=YES
     fi
     #
+    #------------------------------------------------------------------------------
+    # Check current directory first
+    if [ ! -d $PWD${sys_env_path} ]; then
+        sys_env_path='/auxiliaries/system_environments/'
+        
+        if [ ! -d $PWD${sys_env_path} ]; then
+            echo "-- Sys env directories do not exist."
+        fi
+    fi
+    #
+    #------------------------------------------------------------------------------
+    # Read the system environment directory
     sys_set=0
     for sys_file in $(ls --color=never ${prefix}${sys_env_path})
     do
