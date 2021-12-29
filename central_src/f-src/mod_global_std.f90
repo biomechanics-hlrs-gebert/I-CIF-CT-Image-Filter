@@ -39,4 +39,7 @@ CHARACTER(len=5) :: creturn = achar(13)
 !-- Mpi-specific kinds
 INTEGER,PARAMETER :: mik = 4 ! MPI INTEGER Kind; Compile with corresponding mpi.
 
+! Provide versioning information for transparent data tracking
+INCLUDE 'include_f90/revision_meta.f90'
+
 END MODULE global_std

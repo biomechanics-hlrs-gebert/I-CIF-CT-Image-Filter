@@ -1,12 +1,12 @@
 !------------------------------------------------------------------------------
-! MODULE: messages_errors
+! MODULE: mod_user_interaction
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 ! @Description:
 !> Module containing the formatting of all (error) messages
 !------------------------------------------------------------------------------
-MODULE messages_errors
+MODULE user_interaction
 
     USE MPI
     USE global_std
@@ -85,9 +85,79 @@ CHARACTER(LEN=*), PARAMETER ::  FMT_nocolor = "\x1B[0m"
 CONTAINS
 
 !------------------------------------------------------------------------------
+! SUBROUTINE: get_cmd_args
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Parse cmd args of the process chain. Standard approach.
+!
+!> @param[out] binary Name of the program
+!> @param[out] infile Name of the input file (not meta; XTOM...)
+!> @param[out] stp Stop the program?
+!> @param[out] restart Check whether a restart is required
+!> @param[out] cmd_arg_history Ravision of the program
+!------------------------------------------------------------------------------
+SUBROUTINE get_cmd_args(binary, infile, stp, restart, cmd_arg_history)
+
+CHARACTER(LEN=*), INTENT(OUT) :: binary, infile
+LOGICAL                       :: stp
+CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: restart, cmd_arg_history
+
+CHARACTER(LEN=mcl) :: cmd_arg
+INTEGER(KIND=ik) :: ii
+
+stp = .FALSE.
+
+IF (command_argument_count() == 0) THEN 
+
+    CALL GET_COMMAND_ARGUMENT(0, binary)
+
+    CALL usage(binary)
+
+    mssg = "No command argument given."
+    stp = .TRUE. 
+ELSE
+    DO ii=1, 15 ! Read up to 15 command arguments.
+    
+        CALL GET_COMMAND_ARGUMENT(ii, cmd_arg)
+
+        IF (cmd_arg == '') EXIT
+
+        infile = TRIM(cmd_arg)
+        
+        cmd_arg_history = TRIM(cmd_arg_history)//' '//TRIM(cmd_arg)
+
+        IF (cmd_arg(1:1) == '-') THEN
+            SELECT CASE( cmd_arg(2:LEN_TRIM(cmd_arg)) )
+            CASE('-restart', '-Restart')
+                restart = 'Y'
+            CASE('v', '-Version', '-version')
+                CALL show_title(longname, revision)
+                stp = .TRUE. 
+            CASE('h', '-Help', '-help')
+                CALL usage(binary)
+                stp = .TRUE. 
+            END SELECT
+            !
+            SELECT CASE( cmd_arg(3:4) )
+            CASE('NO', 'no', 'No', 'nO');  restart = 'N'
+            END SELECT
+        END IF
+    END DO
+
+    IF(TRIM(infile) == '') THEN
+        mssg = "No input file given via command argument."
+        stp = .TRUE. 
+    END IF 
+END IF
+
+END SUBROUTINE get_cmd_args
+
+!------------------------------------------------------------------------------
 ! SUBROUTINE: show_title
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Show brief information about the program
@@ -111,7 +181,7 @@ END SUBROUTINE show_title
 !------------------------------------------------------------------------------
 ! FUNCITON: usage
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert,   gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Print program usage. 
@@ -139,7 +209,7 @@ END SUBROUTINE usage
 !------------------------------------------------------------------------------
 ! FUNCITON: determine_stout
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert,   gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Check whether the program can access a std_out. Usually given by the
@@ -167,7 +237,7 @@ END FUNCTION determine_stout
 !------------------------------------------------------------------------------
 ! SUBROUTINE: give_new_unit
 !------------------------------------------------------------------------------  
-!> @author Ralf Schneider, schneider@hlrs.de, HLRS/NUM
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
 !> @brief
 !> Function which returns a new free unit
@@ -230,7 +300,7 @@ end subroutine mpi_err
 !------------------------------------------------------------------------------
 ! SUBROUTINE: print_err_stop
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Subroutine to print and handle error messages. Mpi handling written by 
@@ -265,4 +335,4 @@ END IF
 
 END SUBROUTINE print_err_stop
 
-END MODULE messages_errors
+END MODULE user_interaction
