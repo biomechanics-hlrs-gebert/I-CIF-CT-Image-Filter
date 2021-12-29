@@ -13,16 +13,6 @@ USE file_routines_mpi
 USE kernels
 USE aux_routines_ip
 
-
-  USE meta
-  USE meta_puredat_interface
-  USE chain_routines
-  USE MPI
-  USE decomp 
-  USE sp_aux_routines
-  USE PETSC
-  USE petsc_opt
-
 IMPLICIT NONE 
 
 ! Parameter
@@ -123,7 +113,7 @@ IF (my_rank == 0) THEN
                 CASE('-restart', '-Restart')
                     restart_cmdarg = 'Y'
                 CASE('v', '-Version', '-version')
-                        CALL show_title(revision)
+                        CALL show_title(longname, revision)
                         GOTO 1001   ! Jump to the end of the program.
                 CASE('h', '-Help', '-help')
                     CALL usage()
