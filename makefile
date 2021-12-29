@@ -107,8 +107,8 @@ f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 			$(st_obj_dir)mod_strings$(obj_ext)\
 			$(st_obj_dir)mod_messages_errors$(obj_ext) \
 			$(st_obj_dir)mod_meta$(obj_ext) \
+			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
 			$(obj_dir)mod_kernels$(obj_ext)\
-			$(obj_dir)mod_file_routines_mpi$(obj_ext)\
 			$(obj_dir)mod_aux_routines_ip$(obj_ext)\
 			$(obj_dir)ct_image_filter$(obj_ext)
 
@@ -132,7 +132,7 @@ $(obj_dir)mod_aux_routines_ip$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(f-sr
 
 # ------------------------------------------------------------------------------
 # Module containing convolutional kernels
-$(obj_dir)mod_kernels$(obj_ext):$(f-src_dir)mod_kernels$(f90_ext)
+$(obj_dir)mod_kernels$(obj_ext):$(st_mod_dir)math$(mod_ext) $(f-src_dir)mod_kernels$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_kernels$(f90_ext)" -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_kernels$(f90_ext) -o $@
 	@echo
@@ -141,11 +141,11 @@ $(obj_dir)mod_kernels$(obj_ext):$(f-src_dir)mod_kernels$(f90_ext)
 # ------------------------------------------------------------------------------
 # Main object 
 $(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
-						 $(mod_dir)kernels$(mod_ext)\
-						 $(st_mod_dir)vtk_meta_data$(mod_ext)\
- 			             $(st_mod_dir)strings$(mod_ext)\
-			             $(mod_dir)aux_routines_ip$(mod_ext)\
-						 $(f-src_dir)ct_image_filter$(f90_ext)
+									$(mod_dir)kernels$(mod_ext)\
+									$(st_mod_dir)vtk_meta_data$(mod_ext)\
+ 			            			$(st_mod_dir)strings$(mod_ext)\
+			            			$(mod_dir)aux_routines_ip$(mod_ext)\
+									$(f-src_dir)ct_image_filter$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)ct_image_filter$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)ct_image_filter$(f90_ext) -o $@
 
@@ -153,11 +153,12 @@ $(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
 # Final Link step of MAIN -----------------------------------------------------
 $(main_bin):$(f-objects)
 	@echo "----------------------------------------------------------------------------------"
-	@echo '--- Write revision and git info'
-	@echo "CHARACTER(LEN = scl), PARAMETER :: revision = '$(trgt_vrsn)'" > $(f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN = scl), PARAMETER :: hash = '$(rev)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo '-- Write revision and git info'
+	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "----------------------------------------------------------------------------------"
-	@echo '--- Final link step of $(long_name) executable'
+	@echo '-- Final link step of $(long_name) executable'
 	@echo "----------------------------------------------------------------------------------"
 	$(compiler) $(f-objects) -o $(main_bin)
 	@echo
@@ -167,10 +168,11 @@ $(main_bin):$(f-objects)
 
 help:
 	@echo "----------------------------------------------------------------------------------"
-	@echo "$(long_name) make targets"
-	@echo "Regular:       »make (all)«   - Build the $(long_name)"
-	@echo "Cleaning:      »make clean«   - Remove generated files, keep the config"
-	@echo "Documentation: »make docs     - Build the html and the tex documentation"
+	@echo "-- $(long_name) make targets"
+	@echo "-- Regular:  »make (all)«    - Build the $(long_name)"
+	@echo "-- Cleaning: »make clean«    - Remove build files, keep the central_src"
+	@echo "-- Cleaning: »make cleanall« - Remove all build files."
+	@echo "-- Docs:     »make docs      - Build the html and the tex documentation."
 	@echo "----------------------------------------------------------------------------------"
 
 docs: 
@@ -204,11 +206,14 @@ clean:
 	@echo "----------------------------------------------------------------------------------"
 	@echo "-- Cleaning object directory"
 	@echo "----------------------------------------------------------------------------------"
-	$(clean_cmd) $(f-objects)
+	$(clean_cmd) $(obj_dir)*$(obj_ext)
 	@echo "----------------------------------------------------------------------------------"
 	@echo "-- Cleaning MAIN binary"
 	@echo "----------------------------------------------------------------------------------"
-	$(clean_cmd) $(MAIN_bin)
+	$(clean_cmd) $(main_bin)
+	
+cleanall: clean
 	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning completed."
+	@echo "-- Cleaning central_src st"
 	@echo "----------------------------------------------------------------------------------"
+	$(MAKE) clean -C $(st_path)

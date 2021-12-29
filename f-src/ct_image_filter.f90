@@ -7,7 +7,7 @@ PROGRAM CTIF
 
 USE global_std
 USE meta
-USE messages_errors
+USE user_interaction
 USE raw_binary  
 USE formatted_plain
 USE MPI
@@ -22,37 +22,35 @@ INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 ! Internal Variables
 CHARACTER(LEN=mcl) :: filename, filenameExportVtk, typ
 CHARACTER(LEN=mcl) :: selectKernel
-REAL     (KIND=rk) :: global_start, init_finish, read_t_vtk, prep_Histo
-REAL     (KIND=rk) :: calculation, extract_Histo, global_finish
-INTEGER  (KIND=ik) :: ii, jj, kk, ll, mm, nn
-INTEGER  (KIND=ik) :: displacement, counter, border, frcs=0
-INTEGER  (KIND=ik), DIMENSION(2) :: kernel_spec
 
-INTEGER  (KIND=ik), DIMENSION(3) :: dims, original_image_padding, subarray_origin
-INTEGER  (KIND=ik), DIMENSION(3) :: sections, rank_section, subarray_dims
-INTEGER  (KIND=ik), DIMENSION(3) :: dims_reduced, remainder_per_dir, subarray_dims_overlap
+INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
+INTEGER(KIND=ik) :: displacement, counter, border, frcs=0
+INTEGER(KIND=ik), DIMENSION(2) :: kernel_spec
+INTEGER(KIND=ik), DIMENSION(3) :: dims, original_image_padding, subarray_origin
+INTEGER(KIND=ik), DIMENSION(3) :: sections, rank_section, subarray_dims
+INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, remainder_per_dir, subarray_dims_overlap
+INTEGER(KIND=ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
+INTEGER(KIND=ik), DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
 
-REAL     (KIND=rk) :: sigma, accumulator
-CHARACTER(LEN=mcl) :: version, basename, inp_para
+CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
+CHARACTER(LEN=mcl) :: version, inp_para
 CHARACTER(LEN=  8) :: date
 CHARACTER(LEN= 10) :: time
-INTEGER  (KIND=ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
-REAL     (KIND=rk), DIMENSION(3) :: spcng, origin
-REAL     (KIND=rk), DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
-REAL     (KIND=rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
-INTEGER  (KIND=ik), DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
+
+REAL(KIND=rk) :: global_start, init_finish, read_t_vtk, prep_Histo
+REAL(KIND=rk) :: calculation, extract_Histo, global_finish, sigma, accumulator
+REAL(KIND=rk), DIMENSION(3) :: spcng, origin
+REAL(KIND=rk), DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
+REAL(KIND=rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
 
 ! Histogram Variables
-CHARACTER(LEN=mcl) :: histogram_fn_pre__Filter
-CHARACTER(LEN=mcl) :: histogram_fn_post_Filter
-CHARACTER(LEN=mcl) :: histo_avg_fn_pre__Filter
-CHARACTER(LEN=mcl) :: histo_avg_fn_post_Filter
-CHARACTER(LEN=mcl) :: histogram_filename_tex_Filter
-INTEGER  (KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi
-INTEGER  (KIND=ik) :: histo_bnd_local_lo,  histo_bnd_local_hi
-INTEGER  (KIND=ik), DIMENSION(3) :: hbnds
-INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE  :: histogram_pre__F       , histogram_post_F
-INTEGER  (KIND=ik), DIMENSION(:), ALLOCATABLE  :: histogram_pre__F_global, histogram_post_F_global
+CHARACTER(LEN=mcl) :: fn_pre_Filter, avg_fn_post_Filter
+CHARACTER(LEN=mcl) :: fn_post_Filter, avg_fn_pre_Filter, flnm_tex_Filter, binary, debug
+
+INTEGER(KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
+INTEGER(KIND=ik), DIMENSION(3) :: hbnds
+INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F
+INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: pre_F_global, post_F_global
 INTEGER(KIND=ik) :: fh_csv_prf  = 200, fh_csv_pof  = 210, fh_csv_aprf = 220, fh_csv_apof = 230, fh_csv_fihi = 240
 
 ! Read Input file
@@ -89,140 +87,86 @@ IF (my_rank == 0) THEN
     ! Initialization
     CALL CPU_TIME(global_start)
 
-        !------------------------------------------------------------------------------
-        ! Parse the command arguments
-        !------------------------------------------------------------------------------
-        IF (command_argument_count() == 0) THEN 
-            CALL usage()
-            GOTO 1001
-        END IF
+    !------------------------------------------------------------------------------
+    ! Parse the command arguments
+    !------------------------------------------------------------------------------
+    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg)
+    IF(stp) GOTO 1001
 
-        DO ii=0, 15 ! Read up to 15 command arguments.
-         
-            CALL GET_COMMAND_ARGUMENT(ii, cmd_arg)
+    !------------------------------------------------------------------------------
+    ! Check and open the input file; Modify the Meta-Filename / Basename
+    ! Define the new application name first
+    !------------------------------------------------------------------------------
+    global_meta_prgrm_mstr_app = 'CTIF' 
+    global_meta_program_keyword = 'CT_IMAGE_FILTER'
+    CALL meta_append(m_rry)
+    
+    !------------------------------------------------------------------------------
+    ! Parse input
+    !------------------------------------------------------------------------------
+    CALL meta_read (std_out, 'DEBUG_LVL'    , m_rry, debug)
+    CALL meta_read (std_out, 'FILTER_DIM'   , m_rry, kernel_spec(1))
+    CALL meta_read (std_out, 'FILTER_SIZE'  , m_rry, kernel_spec(2))
+    CALL meta_read (std_out, 'FILTER_KERNEL', m_rry, selectKernel )
+    CALL meta_read (std_out, 'FILTER_SIGMA' , m_rry, sigma)
 
-            IF (cmd_arg == '') EXIT
+    !------------------------------------------------------------------------------
+    ! Restart handling
+    ! Done after meta_io to decide based on keywords
+    !------------------------------------------------------------------------------
+    CALL meta_handle_lock_file(restart, restart_cmdarg)
 
-            IF (ii == 0) binary = cmd_arg
+    !------------------------------------------------------------------------------
+    ! Spawn a log file and the csv-data for the tex environment
+    !------------------------------------------------------------------------------
+    CALL meta_start_ascii(fhl, log_suf)
 
-            infile = TRIM(cmd_arg)
-            
-            cmd_arg_history = TRIM(cmd_arg_history)//' '//TRIM(cmd_arg)
+    CALL meta_start_ascii(fh_csv_prf, "_hist_PRE__FILTER"//csv_suf)
+    CALL meta_start_ascii(fh_csv_pof, "_hist_POST_FILTER"//csv_suf)
+    CALL meta_start_ascii(fh_csv_aprf, "_hist_avg_PRE__FILTER"//csv_suf)
+    CALL meta_start_ascii(fh_csv_apof, "_hist_avg_POST_FILTER"//csv_suf)
+    CALL meta_start_ascii(fh_csv_fihi, "_Filter_Histogram"//csv_suf)
 
-            IF (cmd_arg(1:1) .EQ. '-') THEN
-                SELECT CASE( cmd_arg(2:LEN_TRIM(cmd_arg)) )
-                CASE('-restart', '-Restart')
-                    restart_cmdarg = 'Y'
-                CASE('v', '-Version', '-version')
-                        CALL show_title(longname, revision)
-                        GOTO 1001   ! Jump to the end of the program.
-                CASE('h', '-Help', '-help')
-                    CALL usage()
-                    GOTO 1001   ! Jump to the end of the program.
-                END SELECT
-                !
-                SELECT CASE( cmd_arg(3:4) )
-                CASE('NO', 'no', 'No', 'nO');  restart_cmdarg = 'N'
-                END SELECT
-            END IF
-        END DO
+    CALL meta_start_ascii(fht, tex_suf)
+    
+    IF (std_out/=6) THEN
+        CALL meta_start_ascii(std_out, '.std_out')
 
-        IF(TRIM(infile) == '') THEN
-            CALL print_err_stop(std_out, 'No input file given via command argument.', 1)
-        END IF 
+        CALL show_title(revision) 
+    END IF
 
-        in%full = TRIM(infile)
 
-        !------------------------------------------------------------------------------
-        ! Check and open the input file; Modify the Meta-Filename / Basename
-        ! Define the new application name first
-        !------------------------------------------------------------------------------
-        global_meta_prgrm_mstr_app = 'CTIF' 
-        global_meta_program_keyword = 'CT-IMAGE_FILTER'
-        CALL meta_append(m_rry)
+    CALL DATE_AND_TIME(date, time)
+
+    IF ((debug >= 0) .AND. (my_rank == 0)) THEN
+        WRITE(std_out, FMT_TXT) "This Logfile:"//TRIM(log_file)
+        WRITE(std_out, FMT_TXT) 
+        WRITE(std_out, FMT_TXT) "HLRS - NUM"
+        WRITE(std_out, FMT_TXT) "CT Image Filtering"//TRIM(version)
+        WRITE(std_out, FMT_TXT) date//" [ccyymmdd]"//time//" [hhmmss.sss]"  
+        WRITE(std_out, FMT_TXT_SEP)
+        WRITE(std_out, FMT_MSG_AI0) "Debug Level:", debug
+        WRITE(std_out, FMT_MSG_AI0) "Processors:", size_mpi  
+        WRITE(std_out, FMT_MSG_AI0) "Filter Dimension:", kernel_spec(1)
+        WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_spec(2)
+        WRITE(std_out, FMT_MSG)     "Filter Kernel:"//TRIM(selectKernel)
+        WRITE(std_out, FMT_TXT_SEP)
+        FLUSH(std_out)
+    END IF
+    
+    CALL CPU_TIME(init_finish)
       
-        !------------------------------------------------------------------------------
-        ! Parse input
-        !------------------------------------------------------------------------------
-        CALL meta_read (std_out, 'DEBUG_LVL'    , m_rry, debug)
-        CALL meta_read (std_out, 'FILTER_DIM'   , m_rry, kernel_spec(1))
-        CALL meta_read (std_out, 'FILTER_SIZE'  , m_rry, kernel_spec(2))
-        CALL meta_read (std_out, 'FILTER_KERNEL', m_rry, selectKernel )
-        CALL meta_read (std_out, 'FILTER_SIGMA' , m_rry, sigma)
-
-        !------------------------------------------------------------------------------
-        ! Restart handling
-        ! Done after meta_io to decide based on keywords
-        !------------------------------------------------------------------------------
-        IF (restart_cmdarg /= 'U') THEN
-            mssg = "The keyword »restart« was overwritten by the command flag --"
-            IF (restart_cmdarg == 'N') THEN
-                restart = restart_cmdarg
-                mssg=TRIM(mssg)//"no-"
-            ELSE IF (restart_cmdarg == 'Y') THEN
-                restart = restart_cmdarg
-            END IF
-
-            mssg=TRIM(mssg)//"restart"
-            WRITE(std_out, FMT_WRN) TRIM(mssg)
-            WRITE(std_out, FMT_WRN_SEP)
-        END IF
-
-        CALL meta_handle_lock_file(restart)
-
-        !------------------------------------------------------------------------------
-        ! Spawn a log file and the csv-data for the tex environment
-        !------------------------------------------------------------------------------
-        CALL meta_start_ascii(fhl, log_suf)
-
-        CALL meta_start_ascii(fh_csv_prf, "_hist_PRE__FILTER"//csv_suf)
-        CALL meta_start_ascii(fh_csv_pof, "_hist_POST_FILTER"//csv_suf)
-        CALL meta_start_ascii(fh_csv_aprf, "_hist_avg_PRE__FILTER"//csv_suf)
-        CALL meta_start_ascii(fh_csv_apof, "_hist_avg_POST_FILTER"//csv_suf)
-        CALL meta_start_ascii(fh_csv_fihi, "_Filter_Histogram"//csv_suf)
-
-        CALL meta_start_ascii(fht, tex_suf)
-        
-        IF (std_out/=6) THEN
-            CALL meta_start_ascii(std_out, '.std_out')
-
-            CALL show_title(revision) 
-        END IF
-
-
-        CALL DATE_AND_TIME(date, time)
-
-        IF ( (debug .GE. 0_ik) .AND. (my_rank == 0_ik)) THEN
-            WRITE(std_out, FMT_TXT) "This Logfile:"//TRIM(log_file)
-            WRITE(std_out, FMT_TXT) 
-            WRITE(std_out, FMT_TXT) "HLRS - NUM"
-            WRITE(std_out, FMT_TXT) "CT Image Filtering"//TRIM(version)
-            WRITE(std_out, FMT_TXT) date//" [ccyymmdd]"//time//" [hhmmss.sss]"  
-            WRITE(std_out, FMT_TXT_SEP)
-            WRITE(std_out, FMT_MSG_AI0) "Debug Level:", debug
-            WRITE(std_out, FMT_MSG_AI0) "Processors:", size_mpi  
-            WRITE(std_out, FMT_MSG_AI0) "Filter Dimension:", kernel_spec(1)
-            WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_spec(2)
-            WRITE(std_out, FMT_MSG)     "Filter Kernel:"//TRIM(selectKernel)
-            WRITE(std_out, FMT_TXT_SEP)
-            FLUSH(std_out)
-        END IF
-        
-        CALL CPU_TIME(init_finish)
-
-!!!!!!!!!!!!!!!!!!!!!!!!! GO ON !!!!!!!!! VTK TO RAW AT FIRST? !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       
 ENDIF ! (my_rank == 0)
 
 ! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
 ! May be packed into less BCasts
-CALL MPI_BCAST (filename    , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (typ         , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (dims        , 3_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (displacement, 1_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(filename    , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(typ         , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(dims        , 3_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(displacement, 1_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
 
 ! Get sections per direction
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
@@ -255,18 +199,18 @@ END IF
 subarray_dims     = (dims_reduced / sections)
 subarray_dims_overlap = subarray_dims + original_image_padding
 
-IF ( (debug .GE. 1_ik) .AND. (my_rank == 0_ik) ) THEN
-    WRITE(std_out,'(A)')      std_lnbrk
-    WRITE(std_out,'(A)')      "Calculation of domain sectioning:"
-    WRITE(std_out,'(A)')
-    WRITE(std_out,'(A, 3I5)') "sections:           ", sections
-    WRITE(std_out,'(A, 3I5)') "dims:           ", dims
-    WRITE(std_out,'(A, 3I5)') "border:         ", border
-    WRITE(std_out,'(A, 3I5)') "original_image_padding: ", original_image_padding
-    WRITE(std_out,'(A, 3I5)') "remainder_per_dir:      ", remainder_per_dir
-    WRITE(std_out,'(A, 3I5)') "dims_reduced:       ", dims_reduced
-    WRITE(std_out,'(A, 3I5)') "subarray_dims:      ", subarray_dims
-    WRITE(std_out,'(A)')      std_lnbrk
+IF ((debug >= 1) .AND. (my_rank == 0)) THEN
+    WRITE(std_out,FMT_TXT_SEP)
+    WRITE(std_out,FMT_TXT) "Calculation of domain sectioning:"
+    WRITE(std_out,FMT_TXT)
+    WRITE(std_out,FMT_TXT_A3I0) "sections:           ", sections
+    WRITE(std_out,FMT_TXT_A3I0) "dims:           ", dims
+    WRITE(std_out,FMT_TXT_A3I0) "border:         ", border
+    WRITE(std_out,FMT_TXT_A3I0) "original_image_padding: ", original_image_padding
+    WRITE(std_out,FMT_TXT_A3I0) "remainder_per_dir:      ", remainder_per_dir
+    WRITE(std_out,FMT_TXT_A3I0) "dims_reduced:       ", dims_reduced
+    WRITE(std_out,FMT_TXT_A3I0) "subarray_dims:      ", subarray_dims
+    WRITE(std_out,FMT_TXT_SEP)
     FLUSH(std_out)
 END IF
 
@@ -325,9 +269,9 @@ IF (kernel_spec(1) == 2_ik) THEN
         CASE DEFAULT;     CALL kernel_identity_2d(kernel2d, kernel_spec(2))
     END SELECT
 
-    DO ii = srb(1), srb(4)
-    DO jj = srb(2), srb(5)
     DO kk = srb(3), srb(6)
+    DO jj = srb(2), srb(5)
+    DO ii = srb(1), srb(4)
         accumulator = 0
         DO ll = -border, border
         DO mm = -border, border
@@ -350,9 +294,9 @@ ELSE
         CASE DEFAULT;     CALL kernel_identity_3d(kernel3d, kernel_spec(2))
     END SELECT
     
-    DO ii = srb(1), srb(4)
-    DO jj = srb(2), srb(5)
     DO kk = srb(3), srb(6)
+    DO jj = srb(2), srb(5)
+    DO ii = srb(1), srb(4)
         accumulator = 0
         DO ll = -border, border
         DO mm = -border, border
@@ -380,15 +324,15 @@ CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)
 
 ! Allocate memory for global histogram
 IF (my_rank == 0_ik) THEN
-    ALLOCATE(histogram_pre__F_global(hbnds(1):hbnds(2)))
-    ALLOCATE(histogram_post_F_global(hbnds(1):hbnds(2)))
+    ALLOCATE(pre_F_global(hbnds(1):hbnds(2)))
+    ALLOCATE(post_F_global(hbnds(1):hbnds(2)))
 END IF
 
 ! Collect the data of the histogram post filtering       
-CALL MPI_REDUCE (histogram_pre__F, histogram_pre__F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
+CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
     MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
-CALL MPI_REDUCE (histogram_post_F, histogram_post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
+CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
     MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 CALL CPU_TIME(extract_Histo)
@@ -396,17 +340,17 @@ CALL CPU_TIME(extract_Histo)
 IF (my_rank == 0_ik) THEN
 
     ! Export Histograms
-    CALL write_histo_csv (fh_pre,      histogram_fn_pre__Filter, hbnds, 0_ik       , histogram_pre__F_global)
-    CALL write_histo_csv (fh_post,     histogram_fn_post_Filter, hbnds, 0_ik       , histogram_post_F_global)
-    CALL write_histo_csv (fh_pre__avg, histo_avg_fn_pre__Filter, hbnds, mov_avg_width, histogram_pre__F_global)
-    CALL write_histo_csv (fh_post_avg, histo_avg_fn_post_Filter, hbnds, mov_avg_width, histogram_post_F_global)
+    CALL write_histo_csv (fh_csv_prf,  fn_pre_Filter, hbnds, 0_ik, pre_F_global)
+    CALL write_histo_csv (fh_csv_pof,  fn_post_Filter, hbnds, 0_ik, post_F_global)
+    CALL write_histo_csv (fh_csv_aprf, avg_fn_pre_Filter, hbnds, mov_avg_width, pre_F_global)
+    CALL write_histo_csv (fh_csv_apof, avg_fn_post_Filter, hbnds, mov_avg_width, post_F_global)
 
     CALL write_tex_for_histogram (fun3, &
-        histogram_filename_tex_Filter, &
-        histogram_fn_pre__Filter, &
-        histogram_fn_post_Filter, &
-        histo_avg_fn_pre__Filter, &
-        histo_avg_fn_post_Filter)
+        flnm_tex_Filter, &
+        fn_pre_Filter, &
+        fn_post_Filter, &
+        avg_fn_pre_Filter, &
+        avg_fn_post_Filter)
 
     filenameExportVtk = TRIM(basename)//'_'//TRIM(inp_para)//'.vtk'
 
@@ -452,25 +396,25 @@ IF (my_rank == 0_ik) THEN
 
     CALL CPU_TIME(global_finish)
 
-        WRITE(std_out,'(A         )')  std_lnbrk
-        WRITE(std_out,'(A, F13.3, A)') 'Init and parsing     = ', (init_finish        - global_start),' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Read File            = ', (read_t_vtk         - init_finish) ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Prep Histograms      = ', (prep_Histo - read_t_vtk)          ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Calculation          = ', (calculation        - prep_Histo)  ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Extract Histograms   = ', (extract_Histo - calculation)      ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Write all data       = ', (global_finish      - extract_Histo)                    ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start)                     ,' Seconds'
-        WRITE(std_out,'(A, F13.3, A)') 'Overall Time         = ', (global_finish      - global_start) / 60                ,' Minutes'
-        WRITE(std_out,'(A         )')  std_lnbrk
-        WRITE(std_out,'(A, F13.3, A)') 'CPU time             = ', (global_finish      - global_start) / 60 / 60 * size_mpi,' Hours'
+    WRITE(std_out,FMT_TXT_SEP)  
+    WRITE(std_out,FMT_TXT_AF0A) 'Init and parsing     = ', (init_finish- global_start),' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Read File            = ', (read_t_vtk - init_finish) ,' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Prep Histograms      = ', (prep_Histo - read_t_vtk)  ,' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Calculation          = ', (calculation - prep_Histo) ,' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Extract Histograms   = ', (extract_Histo - calculation) ,' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Write all data       = ', (global_finish - extract_Histo),' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Overall Time         = ', (global_finish - global_start) ,' Seconds'
+    WRITE(std_out,FMT_TXT_AF0A) 'Overall Time         = ', (global_finish - global_start) / 60,' Minutes'
+    WRITE(std_out,FMT_TXT_SEP)  
+    WRITE(std_out,FMT_TXT_AF0A) 'CPU time             = ', (global_finish - global_start) / 60 / 60 * size_mpi,' Hours'
 
     CLOSE(std_out)     
 ENDIF 
 
 1001 Continue
 
-IF(rank_mpi == 0) THEN
+IF(my_rank == 0) THEN
     CALL meta_signing(binary)
     CALL meta_close()
 
@@ -486,7 +430,7 @@ IF(rank_mpi == 0) THEN
 
     IF (std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
-END IF ! (rank_mpi == 0)
+END IF ! (my_rank == 0)
 
 Call MPI_FINALIZE(ierr)
 CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, KIND=ik))
