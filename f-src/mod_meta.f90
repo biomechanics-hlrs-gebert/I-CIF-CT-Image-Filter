@@ -9,7 +9,7 @@
 MODULE meta
 
    USE strings
-   USE messages_errors
+   USE user_interaction
 
 IMPLICIT NONE
 
@@ -1242,7 +1242,7 @@ END MODULE meta
 MODULE meta_puredat_interface
 
    USE meta
-   USE messages_errors
+   USE user_interaction
 
 IMPLICIT NONE
 

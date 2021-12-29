@@ -83,7 +83,7 @@ f-objects = $(obj_dir)mod_global_std$(obj_ext)\
 			$(obj_dir)mod_strings$(obj_ext)\
 			$(obj_dir)mod_math$(obj_ext)\
 			$(obj_dir)mod_mechanical$(obj_ext)\
-			$(obj_dir)mod_messages_errors$(obj_ext) \
+			$(obj_dir)mod_user_interaction$(obj_ext)\
 			$(obj_dir)mod_meta$(obj_ext)\
 			$(obj_dir)mod_vtk_raw$(obj_ext)\
 			$(obj_dir)mod_formatted_plain$(obj_ext)
@@ -121,16 +121,16 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 	@echo
 
 # -----------------------------------------------------------------------------
-# Error Handling Module 
-$(obj_dir)mod_messages_errors$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
-									$(f-src_dir)mod_messages_errors$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_messages_errors$(f90_ext) " -----"
-	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_messages_errors$(f90_ext) -o $@
+# Module for User Interaction
+$(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \
+									$(f-src_dir)mod_user_interaction$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_user_interaction$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_user_interaction$(f90_ext) -o $@
 	@echo 
 
 # -----------------------------------------------------------------------------
 # Meta Module 
-$(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)messages_errors$(mod_ext) \
+$(obj_dir)mod_meta$(obj_ext):$(mod_dir)strings$(mod_ext) $(mod_dir)user_interaction$(mod_ext) \
 							$(f-src_dir)mod_meta$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_meta$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_meta$(f90_ext) -o $@
@@ -147,7 +147,7 @@ $(obj_dir)mod_formatted_plain$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir
 # ------------------------------------------------------------------------------
 # Module vtk structured points and raw data
 $(obj_dir)mod_vtk_raw$(obj_ext):$(mod_dir)global_std$(mod_ext) \
-								$(mod_dir)messages_errors$(mod_ext) \
+								$(mod_dir)user_interaction$(mod_ext) \
 								$(f-src_dir)mod_vtk_raw$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_vtk_raw$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_vtk_raw$(f90_ext) -o $@

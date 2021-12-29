@@ -23,7 +23,7 @@ MODULE raw_binary
 USE ISO_FORTRAN_ENV
 USE MPI
 USE global_std
-USE messages_errors
+USE user_interaction
 
 IMPLICIT NONE
 Interface mpi_read_raw
@@ -446,7 +446,6 @@ MODULE vtk_meta_data
 
 USE ISO_FORTRAN_ENV
 USE global_std
-USE messages_errors
 
 IMPLICIT NONE
 
