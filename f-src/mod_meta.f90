@@ -105,14 +105,34 @@ CONTAINS
 !> Subroutine to encapsule the lock file handling
 !
 !> @param[in] restart Whether to restart or not to.
+!> @param[in] restart_cmdarg Possible cmd argument override
 !---------------------------------------------------------------------------  
-SUBROUTINE meta_handle_lock_file(restart)
+SUBROUTINE meta_handle_lock_file(restart, restart_cmdarg)
 
-CHARACTER, INTENT(IN) :: restart
+CHARACTER, INTENT(INOUT) :: restart
+CHARACTER, INTENT(IN), OPTIONAL :: restart_cmdarg
 
 LOGICAL :: exist=.FALSE.
 INTEGER  (KIND=meta_ik) :: ios
 CHARACTER(LEN=meta_mcl) :: lockname
+
+!------------------------------------------------------------------------------
+! Restart handling
+! Done after meta_io to decide based on keywords
+!------------------------------------------------------------------------------
+IF (restart_cmdarg /= 'U') THEN
+   mssg = "The keyword »restart« was overwritten by the command flag --"
+   IF (restart_cmdarg == 'N') THEN
+      restart = restart_cmdarg
+      mssg=TRIM(mssg)//"no-"
+   ELSE IF (restart_cmdarg == 'Y') THEN
+      restart = restart_cmdarg
+   END IF
+
+   mssg=TRIM(mssg)//"restart"
+   WRITE(std_out, FMT_WRN) TRIM(mssg)
+   WRITE(std_out, FMT_WRN_SEP)
+END IF
 
 !------------------------------------------------------------------------------
 ! Automatically aborts if there is no input file found on the drive
