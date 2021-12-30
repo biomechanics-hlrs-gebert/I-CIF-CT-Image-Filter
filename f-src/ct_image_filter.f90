@@ -24,11 +24,10 @@ CHARACTER(LEN=mcl) :: filename, filenameExportVtk, typ
 CHARACTER(LEN=mcl) :: selectKernel
 
 INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
-INTEGER(KIND=ik) :: displacement, counter, border, frcs=0
-INTEGER(KIND=ik), DIMENSION(2) :: kernel_spec
-INTEGER(KIND=ik), DIMENSION(3) :: dims, original_image_padding, subarray_origin
+INTEGER(KIND=ik) :: hdr, counter, border, frcs=0, kernel_size, kernel_dim
+INTEGER(KIND=ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
 INTEGER(KIND=ik), DIMENSION(3) :: sections, rank_section, subarray_dims
-INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, remainder_per_dir, subarray_dims_overlap
+INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, rmndr_dir, subarray_dims_overlap
 INTEGER(KIND=ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
 INTEGER(KIND=ik), DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
 
@@ -60,8 +59,8 @@ CHARACTER(len=mcl) :: tokens(100)
 CHARACTER(len=mcl) :: tkns(100)
 
 ! MPI Variables
-INTEGER  (KIND = mik) :: ierr, my_rank, size_mpi, status
-INTEGER  (KIND = mik) :: wr_vtk_hdr_lngth
+INTEGER(KIND=mik) :: ierr, my_rank, size_mpi, status
+INTEGER(KIND=mik) :: wr_vtk_hdr_lngth
 
 
 ! Initialize MPI Environment
@@ -104,11 +103,11 @@ IF (my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
-    CALL meta_read (std_out, 'DEBUG_LVL'    , m_rry, debug)
-    CALL meta_read (std_out, 'FILTER_DIM'   , m_rry, kernel_spec(1))
-    CALL meta_read (std_out, 'FILTER_SIZE'  , m_rry, kernel_spec(2))
-    CALL meta_read (std_out, 'FILTER_KERNEL', m_rry, selectKernel )
-    CALL meta_read (std_out, 'FILTER_SIGMA' , m_rry, sigma)
+    CALL meta_read(std_out, 'DEBUG_LVL'    , m_rry, debug)
+    CALL meta_read(std_out, 'FILTER_DIM'   , m_rry, kernel_dim)
+    CALL meta_read(std_out, 'FILTER_SIZE'  , m_rry, kernel_size)
+    CALL meta_read(std_out, 'FILTER_KERNEL', m_rry, selectKernel )
+    CALL meta_read(std_out, 'FILTER_SIGMA' , m_rry, sigma)
 
     !------------------------------------------------------------------------------
     ! Restart handling
@@ -147,8 +146,8 @@ IF (my_rank == 0) THEN
         WRITE(std_out, FMT_TXT_SEP)
         WRITE(std_out, FMT_MSG_AI0) "Debug Level:", debug
         WRITE(std_out, FMT_MSG_AI0) "Processors:", size_mpi  
-        WRITE(std_out, FMT_MSG_AI0) "Filter Dimension:", kernel_spec(1)
-        WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_spec(2)
+        WRITE(std_out, FMT_MSG_AI0) "Filter Dimension:", kernel_dim
+        WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_size
         WRITE(std_out, FMT_MSG)     "Filter Kernel:"//TRIM(selectKernel)
         WRITE(std_out, FMT_TXT_SEP)
         FLUSH(std_out)
@@ -158,46 +157,55 @@ IF (my_rank == 0) THEN
       
 ENDIF ! (my_rank == 0)
 
-! kernel_spec 0 (/ selectKernel, sizeKernel /) (in the first iteration of this program and for get_cmd_arg)
-! May be packed into less BCasts
-CALL MPI_BCAST(filename    , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(typ         , INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(kernel_spec , 2_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(sigma       , 1_mik             , MPI_DOUBLE_PRECISION, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(selectKernel, INT(mcl, KIND=mik), MPI_CHAR            , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(dims        , 3_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(displacement, 1_mik             , MPI_INTEGER         , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(selectKernel, INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(filename    , INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(typ         , INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(sigma       , 1_mik, MPI_DOUBLE_PRECISION , 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(kernel_dim  , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(hdr , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 
+!------------------------------------------------------------------------------
 ! Get sections per direction
+!------------------------------------------------------------------------------
 CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
 CALL get_rank_section (domain=my_rank, sections=sections, rank_section=rank_section)
 
+!------------------------------------------------------------------------------
 ! Calculate Padding to decrease "size of array" to a corresponding size
-! Size if Kernel always an odd number. Num-1 = Voxels on both sides of filtered Voxel
-original_image_padding =  kernel_spec(2)-1_ik         ! 1D Array
-border         = (kernel_spec(2)-1_ik) / 2_ik     ! 0D Array (scalar)
+! Size if Kernel always an odd number. 
+! Num-1 = Voxels on both sides of filtered Voxel
+!------------------------------------------------------------------------------
+in_img_padding = kernel_size-1_ik ! 1D Array
+border = (kernel_size-1_ik) / 2_ik        ! 0D Array (scalar)
 
+!------------------------------------------------------------------------------
 ! Remainder per direction gets almost fully ignored (!) 
-! It's assumed, that even if we split into 32768 processes (/ 32, 32, 32 /) sections,
-! max. 31 x 31 x 31 Voxel get lost (Worst Case). Considering large input sets,
-! which are imperative for utilizing large amounts of processors, losing 31 voxel at
-! ~ 2000 ... 4000 Voxel per direction is not an issue.
-! On the other hand, Distribution of the array gets way easier and presumably quicker.
+! It's assumed, that even if we split into 32768 processes [32, 32, 32]
+! sections, max. 31 x 31 x 31 Voxel get lost (Worst Case). Considering large 
+! input sets, which are imperative for utilizing large amounts of processors, 
+! losing 31 voxel at ~ 2000 ... 4000 Voxel per direction is not an issue.
+! On the other hand, Distribution of the array gets way easier and presumably 
+! quicker.
+!------------------------------------------------------------------------------
+rmndr_dir = MODULO(dims, sections)
 
-remainder_per_dir = MODULO(dims, sections)
-
-! If remainder per direction is larger than the padding, simply shift the array to distribute to ranks
-! into the center of array. Then add the border. This way, no artifical padding is required.
-IF ((remainder_per_dir(1) <= original_image_padding(1)) .OR. & 
-    (remainder_per_dir(2) <= original_image_padding(2)) .OR. &
-    (remainder_per_dir(3) <= original_image_padding(3))) THEN
-    dims_reduced   = dims - original_image_padding
+!------------------------------------------------------------------------------
+! If remainder per direction is larger than the padding, simply shift the 
+! array to distribute to ranks into the center of array. Then add the border. 
+! This way, no artifical padding is required.
+!------------------------------------------------------------------------------
+IF ((rmndr_dir(1) <= in_img_padding(1)) .OR. & 
+    (rmndr_dir(2) <= in_img_padding(2)) .OR. &
+    (rmndr_dir(3) <= in_img_padding(3))) THEN
+    dims_reduced   = dims - in_img_padding
 ELSE
-    dims_reduced   = dims - remainder_per_dir
+    dims_reduced   = dims - rmndr_dir
 END IF
 
 subarray_dims     = (dims_reduced / sections)
-subarray_dims_overlap = subarray_dims + original_image_padding
+subarray_dims_overlap = subarray_dims + in_img_padding
 
 IF ((debug >= 1) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_TXT_SEP)
@@ -206,67 +214,69 @@ IF ((debug >= 1) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_TXT_A3I0) "sections:           ", sections
     WRITE(std_out,FMT_TXT_A3I0) "dims:           ", dims
     WRITE(std_out,FMT_TXT_A3I0) "border:         ", border
-    WRITE(std_out,FMT_TXT_A3I0) "original_image_padding: ", original_image_padding
-    WRITE(std_out,FMT_TXT_A3I0) "remainder_per_dir:      ", remainder_per_dir
+    WRITE(std_out,FMT_TXT_A3I0) "input_img_padding: ", in_img_padding
+    WRITE(std_out,FMT_TXT_A3I0) "rmndr_dir:      ", rmndr_dir
     WRITE(std_out,FMT_TXT_A3I0) "dims_reduced:       ", dims_reduced
     WRITE(std_out,FMT_TXT_A3I0) "subarray_dims:      ", subarray_dims
     WRITE(std_out,FMT_TXT_SEP)
     FLUSH(std_out)
 END IF
 
-ALLOCATE( subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3) ) )
+ALLOCATE(subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3)))
 
 subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
 
-CALL read_raw_mpi(filename=filename, type_in=TRIM(typ), type_out=typ, hdr_lngth=INT(displacement, KIND=8), &
-            dims=dims, subarray_dims=subarray_dims_overlap, subarray_origin=subarray_origin, subarray=subarray, &
-            displacement=displacement, log_un=std_out, status_o=status)
+CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, INT(hdr, KIND=8), dims, &
+    subarray_dims_overlap, subarray_origin, subarray)
 
-IF ((status == 1_ik) .AND. (my_rank == 1_ik)) THEN
-    WRITE(std_out,'(A)')  'Something during MPI File read went wrong. Please check/debug.'
-    CLOSE(std_out)
-    CALL MPI_ABORT (MPI_COMM_WORLD, 1_mik, ierr)
-END IF
-
-! Prepare collecting the subarrays to assemble a global vtk file.
+!------------------------------------------------------------------------------
+! Prepare collecting the subarrays to assemble a global binary data.
+!------------------------------------------------------------------------------
 IF (my_rank == 0_ik) CALL CPU_TIME(read_t_vtk)
 
-! subarray_reduced_bndaries           ! No Overlap
-srb (1:3) = 1_ik + border
-srb (4:6) = subarray_dims_overlap - border
+srb(1:3) = 1_ik + border
+srb(4:6) = subarray_dims_overlap - border
 
-! Define new subarray_origin
+!------------------------------------------------------------------------------
+! Define new subarray_origin - required?
 ! subarray_origin = subarray_dims * (rank_section-1_ik) + 1_ik 
+!------------------------------------------------------------------------------
 
-ALLOCATE( result_subarray (subarray_dims(1), subarray_dims(2), subarray_dims(3) ) )
+ALLOCATE(result_subarray (subarray_dims(1), subarray_dims(2), subarray_dims(3) ) )
 
+!------------------------------------------------------------------------------
 ! Get information about the data range of the Histogram globally. 
+!------------------------------------------------------------------------------
 histo_bnd_local_lo = MINVAL(subarray)
 histo_bnd_local_hi = MAXVAL(subarray)
 
 CALL MPI_ALLREDUCE(histo_bnd_local_lo, histo_bnd_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, ierr)
 CALL MPI_ALLREDUCE(histo_bnd_local_hi, histo_bnd_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-hbnds    = (/ histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - histo_bnd_global_lo /)
+hbnds = [ histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - histo_bnd_global_lo ]
 
+!------------------------------------------------------------------------------
 ! Prior to image filtering
 ! Get Histogram of Scalar Values
-CALL extract_histogram_scalar_array (subarray(srb(1):srb(4), & 
+!------------------------------------------------------------------------------
+CALL extract_histogram_scalar_array(subarray(srb(1):srb(4), & 
                             srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)        
 
 IF (my_rank == 0_ik) CALL CPU_TIME(prep_Histo)
 
+!------------------------------------------------------------------------------
 ! Start image processing
-! result_image is necessary, because otherwise, filtered Voxels will be used for filtering following voxels.
-! Therefore, doesn't really work in place
-! Ensure image padding manually in front of this branch
-IF (kernel_spec(1) == 2_ik) THEN
+! result_image is necessary, because otherwise, filtered Voxels will be used
+! for filtering following voxels. Therefore, doesn't really work in place.
+! Ensure image padding manually in front of this branch.
+!------------------------------------------------------------------------------
+IF (kernel_dim == 2_ik) THEN
     ! 2D must be ordered explicitly.
-    ALLOCATE( kernel2d ( kernel_spec(2), kernel_spec(2) ))
+    ALLOCATE(kernel2d(kernel_size, kernel_size))
 
     SELECT CASE(selectKernel)
-        CASE("Gaussian"); CALL kernel_gauss_2d   (kernel2d, kernel_spec(2), sigma)
-        CASE DEFAULT;     CALL kernel_identity_2d(kernel2d, kernel_spec(2))
+        CASE("Gaussian"); CALL kernel_gauss_2d   (kernel2d, kernel_size, sigma)
+        CASE DEFAULT;     CALL kernel_identity_2d(kernel2d, kernel_size)
     END SELECT
 
     DO kk = srb(3), srb(6)
@@ -287,11 +297,11 @@ IF (kernel_spec(1) == 2_ik) THEN
     DEALLOCATE(kernel2d)
 ELSE    
     ! 3D is considered a default
-    ALLOCATE( kernel3d(kernel_spec(2), kernel_spec(2), kernel_spec(2)))
+    ALLOCATE( kernel3d(kernel_size, kernel_size, kernel_size))
 
     SELECT CASE(selectKernel)
-        CASE("Gaussian"); CALL kernel_gauss_3d   (kernel3d, kernel_spec(2), sigma)
-        CASE DEFAULT;     CALL kernel_identity_3d(kernel3d, kernel_spec(2))
+        CASE("Gaussian"); CALL kernel_gauss_3d   (kernel3d, kernel_size, sigma)
+        CASE DEFAULT;     CALL kernel_identity_3d(kernel3d, kernel_size)
     END SELECT
     
     DO kk = srb(3), srb(6)
@@ -318,17 +328,23 @@ DEALLOCATE(subarray)
 
 IF (my_rank == 0_ik) CALL CPU_TIME(calculation)
 
+!------------------------------------------------------------------------------
 ! After image filtering
 ! Get Histogram of Scalar Values
+!------------------------------------------------------------------------------
 CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)        
 
+!------------------------------------------------------------------------------
 ! Allocate memory for global histogram
+!------------------------------------------------------------------------------
 IF (my_rank == 0_ik) THEN
     ALLOCATE(pre_F_global(hbnds(1):hbnds(2)))
     ALLOCATE(post_F_global(hbnds(1):hbnds(2)))
 END IF
 
+!------------------------------------------------------------------------------
 ! Collect the data of the histogram post filtering       
+!------------------------------------------------------------------------------
 CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
     MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
@@ -339,7 +355,9 @@ CALL CPU_TIME(extract_Histo)
 
 IF (my_rank == 0_ik) THEN
 
+    !------------------------------------------------------------------------------
     ! Export Histograms
+    !------------------------------------------------------------------------------
     CALL write_histo_csv (fh_csv_prf,  fn_pre_Filter, hbnds, 0_ik, pre_F_global)
     CALL write_histo_csv (fh_csv_pof,  fn_post_Filter, hbnds, 0_ik, post_F_global)
     CALL write_histo_csv (fh_csv_aprf, avg_fn_pre_Filter, hbnds, mov_avg_width, pre_F_global)
@@ -366,7 +384,6 @@ IF (my_rank == 0_ik) THEN
 
 END IF ! (my_rank == 0_ik)
 
-! BCAST used in some way of a Barrier.
 CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR   , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST (wr_vtk_hdr_lngth , 1_mik         , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 

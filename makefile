@@ -3,19 +3,21 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      25.04.2021
-# Last edit: 25.12.2021
+# Last edit: 30.12.2021
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # ------------------------------------------------------------------------------
-trgt_vrsn="v4.0.1"
 bin_name="ctif"
 long_name="Computed Tomography Image Filter"
 # ------------------------------------------------------------------------------
 ifeq ($(PROVIDES_GIT),YES)
 # Get git hash https://jblevins.org/log/vc
+# rev = $(shell git describe --tags --always)
 	rev = $(shell git rev-parse HEAD)
+	trgt_vrsn = $(shell git describe --tags --abbrev=0)
 else
 	rev = NO_GIT_REPOSITORY
+	trgt_vrsn = ""
 endif
 # -----------------------------------------------------------------------------
 # Check for environment
@@ -43,6 +45,7 @@ st_path= $(build_path)/central_src/
 #
 st_obj_dir = $(st_path)/obj/
 st_mod_dir = $(st_path)/mod/
+st_f-src_dir = $(st_path)/f-src/
 #
 mod_dir   = $(build_path)/mod/
 obj_dir   = $(build_path)/obj/
@@ -149,14 +152,19 @@ $(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
 	@echo "----- Compiling " $(f-src_dir)ct_image_filter$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)ct_image_filter$(f90_ext) -o $@
 
-# -----------------------------------------------------------------------------
-# Final Link step of MAIN -----------------------------------------------------
-$(main_bin):$(f-objects)
+# --------------------------------------------------------------------------------------------------
+# Export revision
+export_revision:
 	@echo "----------------------------------------------------------------------------------"
 	@echo '-- Write revision and git info'
-	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "----------------------------------------------------------------------------------"
+
+# -----------------------------------------------------------------------------
+# Final Link step of MAIN
+$(main_bin): export_revision $(f-objects)
 	@echo "----------------------------------------------------------------------------------"
 	@echo '-- Final link step of $(long_name) executable'
 	@echo "----------------------------------------------------------------------------------"
