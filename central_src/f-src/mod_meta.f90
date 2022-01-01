@@ -1202,7 +1202,7 @@ SUBROUTINE meta_close()
 LOGICAL :: opened
 
 WRITE(fhmeo, '(A)')
-WRITE(fhmeo, "(80('-'))")
+WRITE(fhmeo, "(100('-'))")
 
 !------------------------------------------------------------------------------
 ! Check and close files - Routine: (fh, filename, abrt, stat)
