@@ -26,17 +26,17 @@ USE global_std
 USE user_interaction
 
 IMPLICIT NONE
-Interface mpi_read_raw
-   Module Procedure mpi_read_raw_rk4
-   Module Procedure mpi_read_raw_rk8
-   Module Procedure mpi_read_raw_ik4
-   Module Procedure mpi_read_raw_ik2
-End Interface mpi_read_raw
+INTERFACE mpi_read_raw
+   MODULE PROCEDURE mpi_read_raw_rk4
+   MODULE PROCEDURE mpi_read_raw_rk8
+   MODULE PROCEDURE mpi_read_raw_ik4
+   MODULE PROCEDURE mpi_read_raw_ik2
+END INTERFACE mpi_read_raw
 
-Interface mpi_write_raw
-   Module Procedure mpi_write_raw_ik4
-   Module Procedure mpi_write_raw_ik2
-End Interface mpi_write_raw
+INTERFACE mpi_write_raw
+   MODULE PROCEDURE mpi_write_raw_ik4
+   MODULE PROCEDURE mpi_write_raw_ik2
+END INTERFACE mpi_write_raw
 
 CONTAINS
 

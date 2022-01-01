@@ -9,6 +9,7 @@
 MODULE math
 
 USE global_std
+USE strings
 
 IMPLICIT NONE
 

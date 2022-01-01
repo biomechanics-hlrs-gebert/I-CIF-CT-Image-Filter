@@ -32,6 +32,7 @@ CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
 
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A = "('-- ',A,1X,F0.6,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_A3I0 = "('-- ',A,3(1x,I0))"
 
 !------------------------------------------------------------------------------
 ! Message formats
@@ -133,7 +134,7 @@ ELSE
             CASE('-restart', '-Restart')
                 restart = 'Y'
             CASE('v', '-Version', '-version')
-                CALL show_title(longname, revision)
+                CALL show_title()
                 stp = .TRUE. 
             CASE('h', '-Help', '-help')
                 CALL usage(binary)
@@ -160,19 +161,13 @@ END SUBROUTINE get_cmd_args
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Show brief information about the program
-!
-!> @param[in] application_name Name of the program
-!> @param[in] revision Ravision of the program
+!> Show brief information about the program. Variables from global_std module!
 !------------------------------------------------------------------------------
-SUBROUTINE show_title(application_name, revision)
-
-CHARACTER(LEN=*), INTENT(IN) :: application_name, revision
-
+SUBROUTINE show_title()
 WRITE(std_out, FMT_TXT_SEP)
 WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
 WRITE(std_out, FMT_TXT) ''
-WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(application_name))//' '//TRIM(ADJUSTL(revision))
+WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(longname))//' '//TRIM(ADJUSTL(revision))
 WRITE(std_out, FMT_TXT) ''     
 WRITE(std_out, FMT_TXT) 'Developer & maintainer: Johannes Gebert, M.Sc. (HLRS, NUM)'
 WRITE(std_out, FMT_TXT_SEP)
