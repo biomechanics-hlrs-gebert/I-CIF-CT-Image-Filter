@@ -100,14 +100,7 @@ $(obj_dir)mod_global_std$(obj_ext):$(f-src_dir)mod_global_std$(f90_ext)
 	@echo
 
 # ------------------------------------------------------------------------------
-# Standards Module
-$(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_math$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_math$(f90_ext) " -----"
-	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_math$(f90_ext) -o $@
-	@echo
-
-# ------------------------------------------------------------------------------
-# Standards Module
+# Mechanical Module
 $(obj_dir)mod_mechanical$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(f-src_dir)mod_mechanical$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)mod_mechanical$(f90_ext) " -----"
 	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_mechanical$(f90_ext) -o $@
@@ -120,6 +113,15 @@ $(obj_dir)mod_strings$(obj_ext):$(mod_dir)global_std$(mod_ext)	$(ext_f-src)strin
 	$(f90_compiler) $(c_flags_f90) -c $(ext_f-src)strings$(f90_ext) -o $@
 	@echo
 
+# ------------------------------------------------------------------------------
+# Math Module
+$(obj_dir)mod_math$(obj_ext):$(mod_dir)global_std$(mod_ext)	\
+							$(mod_dir)strings$(mod_ext)\
+							$(f-src_dir)mod_math$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_math$(f90_ext) " -----"
+	$(f90_compiler) $(c_flags_f90) -c $(f-src_dir)mod_math$(f90_ext) -o $@
+	@echo
+	
 # -----------------------------------------------------------------------------
 # Module for User Interaction
 $(obj_dir)mod_user_interaction$(obj_ext):$(mod_dir)global_std$(mod_ext) $(mod_dir)strings$(mod_ext) \

@@ -1167,20 +1167,19 @@ END SUBROUTINE meta_write_R1D
 !> @description
 !> Requires a "revision.meta" or similar inclusion of verisoning info, 
 !> provided by a makefile. Furhermore, it requires a global_stds file.
+!> Some of the variables are retrieved from global_std module.
 !
-!> @param[in] rev Version number of the program
-!> @param[in] hsh Git hash of the repository
-!> @param[in] binary_name Name of the executable
+!> @param[in] binary Name of the executable
 !------------------------------------------------------------------------------
-SUBROUTINE meta_signing(rev, hsh, binary_name)
+SUBROUTINE meta_signing(binary)
 
-CHARACTER(LEN=*), INTENT(IN)  :: rev, hsh, binary_name
+CHARACTER(LEN=*), INTENT(IN)  :: binary
 
 WRITE(fhmeo, '(A)')
-CALL meta_write (fhmeo, 'PROGRAM_VERSION' , rev)
-CALL meta_write (fhmeo, 'PROGRAM_GIT_HASH' , hsh)
+CALL meta_write (fhmeo, 'PROGRAM_VERSION', revision)
+CALL meta_write (fhmeo, 'PROGRAM_GIT_HASH', hash)
 
-CALL meta_write_sha256sum (binary_name)
+CALL meta_write_sha256sum (binary)
 
 CALL meta_write (fhmeo, 'COMPUTATION_FINISHED' , 'Succesfully')
 

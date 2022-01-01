@@ -108,11 +108,13 @@ main_bin = $(bin_dir)$(bin_name)_$(trgt_vrsn)$(bin_suf)
 #
 f-objects = $(st_obj_dir)mod_global_std$(obj_ext)\
 			$(st_obj_dir)mod_strings$(obj_ext)\
-			$(st_obj_dir)mod_messages_errors$(obj_ext) \
+			$(st_obj_dir)mod_math$(obj_ext)\
+			$(st_obj_dir)mod_user_interaction$(obj_ext) \
 			$(st_obj_dir)mod_meta$(obj_ext) \
 			$(st_obj_dir)mod_vtk_raw$(obj_ext)\
+			$(st_obj_dir)mod_formatted_plain$(obj_ext) \
 			$(obj_dir)mod_kernels$(obj_ext)\
-			$(obj_dir)mod_aux_routines_ip$(obj_ext)\
+			$(obj_dir)mod_histogram_routines$(obj_ext)\
 			$(obj_dir)ct_image_filter$(obj_ext)
 
 # ------------------------------------------------------------------------------
@@ -127,9 +129,12 @@ all: st $(main_bin)
 
 # ------------------------------------------------------------------------------
 # Histogram module
-$(obj_dir)mod_aux_routines_ip$(obj_ext):$(st_mod_dir)global_std$(mod_ext) $(f-src_dir)mod_aux_routines_ip$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_aux_routines_ip$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_aux_routines_ip$(f90_ext) -o $@
+$(obj_dir)mod_histogram_routines$(obj_ext):$(st_mod_dir)global_std$(mod_ext) \
+											$(st_mod_dir)meta$(mod_ext) \
+											$(st_mod_dir)formatted_plain$(mod_ext) \
+											$(f-src_dir)mod_histogram_routines$(f90_ext)
+	@echo "----- Compiling " $(f-src_dir)mod_histogram_routines$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_histogram_routines$(f90_ext) -o $@
 	@echo
 
 
@@ -147,7 +152,7 @@ $(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
 									$(mod_dir)kernels$(mod_ext)\
 									$(st_mod_dir)vtk_meta_data$(mod_ext)\
  			            			$(st_mod_dir)strings$(mod_ext)\
-			            			$(mod_dir)aux_routines_ip$(mod_ext)\
+			            			$(mod_dir)histogram_routines$(mod_ext)\
 									$(f-src_dir)ct_image_filter$(f90_ext)
 	@echo "----- Compiling " $(f-src_dir)ct_image_filter$(f90_ext) " -----"
 	$(compiler) $(c_flags_f90) -c $(f-src_dir)ct_image_filter$(f90_ext) -o $@

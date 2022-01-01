@@ -7,44 +7,42 @@ PROGRAM CTIF
 
 USE global_std
 USE meta
-USE user_interaction
 USE raw_binary  
+USE user_interaction
 USE formatted_plain
 USE MPI
 USE kernels
+USE histogram_routines
 
 
 IMPLICIT NONE 
 
 ! Parameter
+INTEGER(KIND=ik), PARAMETER :: debug = 1   ! Choose an even integer!!
 INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 
 ! Internal Variables
-CHARACTER(LEN=mcl) :: filename, filenameExportVtk, typ
-CHARACTER(LEN=mcl) :: selectKernel
-
-INTEGER(KIND=ik) :: ii, jj, kk, ll, mm, nn
-INTEGER(KIND=ik) :: hdr, counter, border, frcs=0, kernel_size, kernel_dim
+INTEGER(KIND=ik) :: hdr, border, kernel_size
 INTEGER(KIND=ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
-INTEGER(KIND=ik), DIMENSION(3) :: sections, rank_section, subarray_dims
-INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, rmndr_dir, subarray_dims_overlap
+INTEGER(KIND=ik), DIMENSION(3) :: sections, rank_section, srry_dims
+INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, rmndr_dir, srry_dims_overlap
 INTEGER(KIND=ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
-INTEGER(KIND=ik), DIMENSION(:,:,:), ALLOCATABLE  :: subarray, result_subarray     ! Dealt with internally as int32
+INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_ik2
+INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
 CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
-CHARACTER(LEN=mcl) :: version, inp_para
+CHARACTER(LEN=scl) :: type, selectKernel, restart, restart_cmd_arg
+CHARACTER(LEN=mcl) :: version
 CHARACTER(LEN=  8) :: date
 CHARACTER(LEN= 10) :: time
 
 REAL(KIND=rk) :: global_start, init_finish, read_t_vtk, prep_Histo
-REAL(KIND=rk) :: calculation, extract_Histo, global_finish, sigma, accumulator
-REAL(KIND=rk), DIMENSION(3) :: spcng, origin
-REAL(KIND=rk), DIMENSION(:,:)  , ALLOCATABLE  :: kernel2d
-REAL(KIND=rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel3d
+REAL(KIND=rk) :: calculation, extract_Histo, global_finish, sigma
+REAL(KIND=rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
+REAL(KIND=rk), DIMENSION(3) :: spcng
 
-! Histogram Variables
-CHARACTER(LEN=mcl) :: fn_pre_Filter, avg_fn_post_Filter
-CHARACTER(LEN=mcl) :: fn_post_Filter, avg_fn_pre_Filter, flnm_tex_Filter, binary, debug
+CHARACTER(LEN=mcl) :: binary
+CHARACTER(LEN=scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
 
 INTEGER(KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
 INTEGER(KIND=ik), DIMENSION(3) :: hbnds
@@ -52,16 +50,10 @@ INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_
 INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: pre_F_global, post_F_global
 INTEGER(KIND=ik) :: fh_csv_prf  = 200, fh_csv_pof  = 210, fh_csv_aprf = 220, fh_csv_apof = 230, fh_csv_fihi = 240
 
-! Read Input file
-CHARACTER(len=mcl) :: line, parameterfile, prefix
-INTEGER  (KIND=ik) :: io_status, ntokens
-CHARACTER(len=mcl) :: tokens(100)
-CHARACTER(len=mcl) :: tkns(100)
+LOGICAL :: stp
 
 ! MPI Variables
-INTEGER(KIND=mik) :: ierr, my_rank, size_mpi, status
-INTEGER(KIND=mik) :: wr_vtk_hdr_lngth
-
+INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
 
 ! Initialize MPI Environment
 CALL MPI_INIT(ierr)
@@ -89,7 +81,7 @@ IF (my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse the command arguments
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg)
+    CALL get_cmd_args(binary, in%full, stp, restart, restart_cmd_arg)
     IF(stp) GOTO 1001
 
     !------------------------------------------------------------------------------
@@ -103,8 +95,10 @@ IF (my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
-    CALL meta_read(std_out, 'DEBUG_LVL'    , m_rry, debug)
-    CALL meta_read(std_out, 'FILTER_DIM'   , m_rry, kernel_dim)
+    CALL meta_read(std_out, 'TYPE_RAW'  , m_rry, type)
+    CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
+    CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
+
     CALL meta_read(std_out, 'FILTER_SIZE'  , m_rry, kernel_size)
     CALL meta_read(std_out, 'FILTER_KERNEL', m_rry, selectKernel )
     CALL meta_read(std_out, 'FILTER_SIGMA' , m_rry, sigma)
@@ -113,40 +107,42 @@ IF (my_rank == 0) THEN
     ! Restart handling
     ! Done after meta_io to decide based on keywords
     !------------------------------------------------------------------------------
-    CALL meta_handle_lock_file(restart, restart_cmdarg)
+    CALL meta_handle_lock_file(restart, restart_cmd_arg)
 
     !------------------------------------------------------------------------------
     ! Spawn a log file and the csv-data for the tex environment
     !------------------------------------------------------------------------------
     CALL meta_start_ascii(fhl, log_suf)
 
-    CALL meta_start_ascii(fh_csv_prf, "_hist_PRE__FILTER"//csv_suf)
-    CALL meta_start_ascii(fh_csv_pof, "_hist_POST_FILTER"//csv_suf)
-    CALL meta_start_ascii(fh_csv_aprf, "_hist_avg_PRE__FILTER"//csv_suf)
-    CALL meta_start_ascii(fh_csv_apof, "_hist_avg_POST_FILTER"//csv_suf)
-    CALL meta_start_ascii(fh_csv_fihi, "_Filter_Histogram"//csv_suf)
+    suf_csv_prf = "_hist_PRE__FILTER"//csv_suf
+    suf_csv_pof = "_hist_POST_FILTER"//csv_suf
+    suf_csv_aprf = "_hist_avg_PRE__FILTER"//csv_suf
+    suf_csv_apof = "_hist_avg_POST_FILTER"//csv_suf
+    suf_csv_fihi = "_Filter_Histogram"//csv_suf
+    
+    CALL meta_start_ascii(fh_csv_prf, suf_csv_prf)
+    CALL meta_start_ascii(fh_csv_pof, suf_csv_pof)
+    CALL meta_start_ascii(fh_csv_aprf, suf_csv_aprf)
+    CALL meta_start_ascii(fh_csv_apof, suf_csv_apof)
+    CALL meta_start_ascii(fh_csv_fihi, suf_csv_fihi)
 
     CALL meta_start_ascii(fht, tex_suf)
     
     IF (std_out/=6) THEN
         CALL meta_start_ascii(std_out, '.std_out')
 
-        CALL show_title(revision) 
+        CALL show_title() 
     END IF
-
 
     CALL DATE_AND_TIME(date, time)
 
     IF ((debug >= 0) .AND. (my_rank == 0)) THEN
-        WRITE(std_out, FMT_TXT) "This Logfile:"//TRIM(log_file)
-        WRITE(std_out, FMT_TXT) 
         WRITE(std_out, FMT_TXT) "HLRS - NUM"
         WRITE(std_out, FMT_TXT) "CT Image Filtering"//TRIM(version)
         WRITE(std_out, FMT_TXT) date//" [ccyymmdd]"//time//" [hhmmss.sss]"  
         WRITE(std_out, FMT_TXT_SEP)
         WRITE(std_out, FMT_MSG_AI0) "Debug Level:", debug
         WRITE(std_out, FMT_MSG_AI0) "Processors:", size_mpi  
-        WRITE(std_out, FMT_MSG_AI0) "Filter Dimension:", kernel_dim
         WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_size
         WRITE(std_out, FMT_MSG)     "Filter Kernel:"//TRIM(selectKernel)
         WRITE(std_out, FMT_TXT_SEP)
@@ -158,10 +154,8 @@ IF (my_rank == 0) THEN
 ENDIF ! (my_rank == 0)
 
 CALL MPI_BCAST(selectKernel, INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(filename    , INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(typ         , INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(type        , INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(sigma       , 1_mik, MPI_DOUBLE_PRECISION , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(kernel_dim  , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(hdr , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
@@ -204,8 +198,8 @@ ELSE
     dims_reduced   = dims - rmndr_dir
 END IF
 
-subarray_dims     = (dims_reduced / sections)
-subarray_dims_overlap = subarray_dims + in_img_padding
+srry_dims     = (dims_reduced / sections)
+srry_dims_overlap = srry_dims + in_img_padding
 
 IF ((debug >= 1) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_TXT_SEP)
@@ -217,52 +211,59 @@ IF ((debug >= 1) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_TXT_A3I0) "input_img_padding: ", in_img_padding
     WRITE(std_out,FMT_TXT_A3I0) "rmndr_dir:      ", rmndr_dir
     WRITE(std_out,FMT_TXT_A3I0) "dims_reduced:       ", dims_reduced
-    WRITE(std_out,FMT_TXT_A3I0) "subarray_dims:      ", subarray_dims
+    WRITE(std_out,FMT_TXT_A3I0) "srry_dims:      ", srry_dims
     WRITE(std_out,FMT_TXT_SEP)
     FLUSH(std_out)
 END IF
 
-ALLOCATE(subarray(subarray_dims_overlap(1), subarray_dims_overlap(2), subarray_dims_overlap(3)))
+subarray_origin = (rank_section-1_ik) * (srry_dims) !+ 1_ik
 
-subarray_origin = (rank_section-1_ik) * (subarray_dims) !+ 1_ik
+!------------------------------------------------------------------------------
+! Allocate memory and read data
+!------------------------------------------------------------------------------
+SELECT CASE(type)
+    CASE('ik2') 
+        ALLOCATE(subarray_ik2(srry_dims_overlap(1), srry_dims_overlap(2), srry_dims_overlap(3)))
+        ALLOCATE(result_subarray_ik2(srry_dims(1), srry_dims(2), srry_dims(3)))
 
-CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, INT(hdr, KIND=8), dims, &
-    subarray_dims_overlap, subarray_origin, subarray)
+        result_subarray_ik2 = 0
+
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, INT(hdr, KIND=8), dims, &
+            srry_dims_overlap, subarray_origin, subarray_ik2)
+
+        !------------------------------------------------------------------------------
+        ! Adjust the the data range of the Histogram to min/max of the subarray and
+        ! exchange information with all other ranks to get the global min/max.
+        !------------------------------------------------------------------------------
+        histo_bnd_local_lo = MINVAL(subarray_ik2)
+        histo_bnd_local_hi = MAXVAL(subarray_ik2)
+    CASE('ik4') 
+        ALLOCATE(subarray_ik4(srry_dims_overlap(1), srry_dims_overlap(2), srry_dims_overlap(3)))
+        ALLOCATE(result_subarray_ik4(srry_dims(1), srry_dims(2), srry_dims(3)))
+
+        result_subarray_ik4 = 0
+
+        CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, INT(hdr, KIND=8), dims, &
+            srry_dims_overlap, subarray_origin, subarray_ik4)
+
+        histo_bnd_local_lo = MINVAL(subarray_ik4)
+        histo_bnd_local_hi = MAXVAL(subarray_ik4)
+END SELECT
 
 !------------------------------------------------------------------------------
 ! Prepare collecting the subarrays to assemble a global binary data.
 !------------------------------------------------------------------------------
-IF (my_rank == 0_ik) CALL CPU_TIME(read_t_vtk)
+IF (my_rank == 0) CALL CPU_TIME(read_t_vtk)
 
 srb(1:3) = 1_ik + border
-srb(4:6) = subarray_dims_overlap - border
-
-!------------------------------------------------------------------------------
-! Define new subarray_origin - required?
-! subarray_origin = subarray_dims * (rank_section-1_ik) + 1_ik 
-!------------------------------------------------------------------------------
-
-ALLOCATE(result_subarray (subarray_dims(1), subarray_dims(2), subarray_dims(3) ) )
-
-!------------------------------------------------------------------------------
-! Get information about the data range of the Histogram globally. 
-!------------------------------------------------------------------------------
-histo_bnd_local_lo = MINVAL(subarray)
-histo_bnd_local_hi = MAXVAL(subarray)
+srb(4:6) = srry_dims_overlap - border
 
 CALL MPI_ALLREDUCE(histo_bnd_local_lo, histo_bnd_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, ierr)
 CALL MPI_ALLREDUCE(histo_bnd_local_hi, histo_bnd_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-hbnds = [ histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - histo_bnd_global_lo ]
+hbnds=[histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - histo_bnd_global_lo]  
 
-!------------------------------------------------------------------------------
-! Prior to image filtering
-! Get Histogram of Scalar Values
-!------------------------------------------------------------------------------
-CALL extract_histogram_scalar_array(subarray(srb(1):srb(4), & 
-                            srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)        
-
-IF (my_rank == 0_ik) CALL CPU_TIME(prep_Histo)
+IF (my_rank == 0) CALL CPU_TIME(prep_Histo)
 
 !------------------------------------------------------------------------------
 ! Start image processing
@@ -270,74 +271,49 @@ IF (my_rank == 0_ik) CALL CPU_TIME(prep_Histo)
 ! for filtering following voxels. Therefore, doesn't really work in place.
 ! Ensure image padding manually in front of this branch.
 !------------------------------------------------------------------------------
-IF (kernel_dim == 2_ik) THEN
-    ! 2D must be ordered explicitly.
-    ALLOCATE(kernel2d(kernel_size, kernel_size))
+ALLOCATE(kernel(kernel_size, kernel_size, kernel_size))
 
-    SELECT CASE(selectKernel)
-        CASE("Gaussian"); CALL kernel_gauss_2d   (kernel2d, kernel_size, sigma)
-        CASE DEFAULT;     CALL kernel_identity_2d(kernel2d, kernel_size)
-    END SELECT
+SELECT CASE(selectKernel)
+    CASE("Gaussian"); CALL kernel_gauss_3d   (kernel, kernel_size, sigma)
+    CASE DEFAULT;     CALL kernel_identity_3d(kernel, kernel_size)
+END SELECT
 
-    DO kk = srb(3), srb(6)
-    DO jj = srb(2), srb(5)
-    DO ii = srb(1), srb(4)
-        accumulator = 0
-        DO ll = -border, border
-        DO mm = -border, border
-            accumulator = accumulator + (kernel2d( ll+border+1_ik, mm+border+1_ik ) * &
-                    subarray(ii + ll, jj + mm, ii))
-        END DO
-        END DO
-        result_subarray(ii - border, jj - border, kk - border) = accumulator
-    END DO
-    END DO
-    END DO
+SELECT CASE(type)
+    CASE('ik2') 
+        !------------------------------------------------------------------------------
+        ! Prior to image filtering
+        ! Get Histogram of Scalar Values
+        !------------------------------------------------------------------------------
+        CALL extract_histogram_scalar_array(&
+            subarray_ik2(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
+                            
+        CALL filter(subarray_ik2, kernel, srb, result_subarray_ik2)
+        DEALLOCATE(subarray_ik2)
 
-    DEALLOCATE(kernel2d)
-ELSE    
-    ! 3D is considered a default
-    ALLOCATE( kernel3d(kernel_size, kernel_size, kernel_size))
+        !------------------------------------------------------------------------------
+        ! After image filtering
+        ! Get Histogram of Scalar Values
+        !------------------------------------------------------------------------------
+        CALL extract_histogram_scalar_array(result_subarray_ik2, hbnds, histogram_post_F)        
 
-    SELECT CASE(selectKernel)
-        CASE("Gaussian"); CALL kernel_gauss_3d   (kernel3d, kernel_size, sigma)
-        CASE DEFAULT;     CALL kernel_identity_3d(kernel3d, kernel_size)
-    END SELECT
-    
-    DO kk = srb(3), srb(6)
-    DO jj = srb(2), srb(5)
-    DO ii = srb(1), srb(4)
-        accumulator = 0
-        DO ll = -border, border
-        DO mm = -border, border
-        DO nn = -border, border
-            accumulator = accumulator + (kernel3d( ll+border+1_ik, mm+border+1_ik, nn+border+1_ik) * &
-                    subarray(ii + ll, jj + mm, kk + nn))
-        END DO
-        END DO
-        END DO
-        result_subarray(ii - border, jj - border, kk - border) = accumulator
-    END DO
-    END DO
-    END DO
+    CASE('ik4') 
+        CALL extract_histogram_scalar_array(&
+            subarray_ik4(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
 
-    DEALLOCATE(kernel3d)
-ENDIF
+        CALL filter(subarray_ik4, kernel, srb, result_subarray_ik4)
+        DEALLOCATE(subarray_ik4)
 
-DEALLOCATE(subarray)
+        CALL extract_histogram_scalar_array(result_subarray_ik4, hbnds, histogram_post_F)
+END SELECT
 
-IF (my_rank == 0_ik) CALL CPU_TIME(calculation)
+DEALLOCATE(kernel)
 
-!------------------------------------------------------------------------------
-! After image filtering
-! Get Histogram of Scalar Values
-!------------------------------------------------------------------------------
-CALL extract_histogram_scalar_array (result_subarray, hbnds, histogram_post_F)        
+IF(my_rank == 0) CALL CPU_TIME(calculation)
 
 !------------------------------------------------------------------------------
 ! Allocate memory for global histogram
 !------------------------------------------------------------------------------
-IF (my_rank == 0_ik) THEN
+IF (my_rank == 0) THEN
     ALLOCATE(pre_F_global(hbnds(1):hbnds(2)))
     ALLOCATE(post_F_global(hbnds(1):hbnds(2)))
 END IF
@@ -353,64 +329,34 @@ CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), KI
 
 CALL CPU_TIME(extract_Histo)
 
-IF (my_rank == 0_ik) THEN
+!------------------------------------------------------------------------------
+! Export Histograms
+!------------------------------------------------------------------------------
+IF (my_rank == 0) THEN
+    CALL write_histo_csv(fh_csv_prf,  "scaledHU, Voxels", hbnds, 0_ik, pre_F_global)
+    CALL write_histo_csv(fh_csv_pof,  "scaledHU, Voxels", hbnds, 0_ik, post_F_global)
+    CALL write_histo_csv(fh_csv_aprf, "scaledHU, Voxels", hbnds, mov_avg_width, pre_F_global)
+    CALL write_histo_csv(fh_csv_apof, "scaledHU, Voxels", hbnds, mov_avg_width, post_F_global)
 
-    !------------------------------------------------------------------------------
-    ! Export Histograms
-    !------------------------------------------------------------------------------
-    CALL write_histo_csv (fh_csv_prf,  fn_pre_Filter, hbnds, 0_ik, pre_F_global)
-    CALL write_histo_csv (fh_csv_pof,  fn_post_Filter, hbnds, 0_ik, post_F_global)
-    CALL write_histo_csv (fh_csv_aprf, avg_fn_pre_Filter, hbnds, mov_avg_width, pre_F_global)
-    CALL write_histo_csv (fh_csv_apof, avg_fn_post_Filter, hbnds, mov_avg_width, post_F_global)
-
-    CALL write_tex_for_histogram (fun3, &
-        flnm_tex_Filter, &
-        fn_pre_Filter, &
-        fn_post_Filter, &
-        avg_fn_pre_Filter, &
-        avg_fn_post_Filter)
-
-    filenameExportVtk = TRIM(basename)//'_'//TRIM(inp_para)//'.vtk'
-
-    CALL write_vtk_meta (fh=fh_data_out, &
-                filename=filenameExportVtk, & 
-                type=TRIM(typ), &
-                atStart=.TRUE., &
-                spcng=spcng, &
-                origin=origin, &
-                dims=sections*subarray_dims)
-
-    INQUIRE(FILE=filenameExportVtk, SIZE=wr_vtk_hdr_lngth)
-
-END IF ! (my_rank == 0_ik)
-
-CALL MPI_BCAST (filenameExportVtk, INT(mcl, KIND=mik), MPI_CHAR   , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST (wr_vtk_hdr_lngth , 1_mik         , MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
-
-IF (TRIM(typ) == "int2") THEN
-CALL write_raw_mpi (type=TRIM(typ), &
-            hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8), &
-            filename=filenameExportVtk, &
-            dims=sections*subarray_dims, &
-            subarray_dims=subarray_dims, &
-            subarray_origin=subarray_origin, &
-            subarray2=INT(result_subarray, KIND=INT16))
-ELSE
-CALL write_raw_mpi (type=TRIM(typ), &
-            hdr_lngth=INT(wr_vtk_hdr_lngth, KIND=8) , &
-            filename=filenameExportVtk, &
-            dims=sections*subarray_dims, &
-            subarray_dims=subarray_dims, &
-            subarray_origin=subarray_origin, &
-            subarray4=result_subarray)
+    CALL write_tex_for_histogram(fh_csv_fihi, suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof)
 END IF
 
-DEALLOCATE(result_subarray)
+CALL MPI_BCAST(out%p_n_bsnm, INT(mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 
-IF (my_rank == 0_ik) THEN
+!------------------------------------------------------------------------------
+! Write binary data. Since no other data types are required within this 
+! doctoral project, no other types are implemented yet.
+!------------------------------------------------------------------------------
+SELECT CASE(type)
+    CASE('ik2') 
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, srry_dims, subarray_origin, result_subarray_ik2)
+        DEALLOCATE(result_subarray_ik2)
+    CASE('ik4') 
+        CALL mpi_write_raw(TRIM(out%p_n_bsnm)//raw_suf, 0_8, dims, srry_dims, subarray_origin, result_subarray_ik4)
+        DEALLOCATE(result_subarray_ik4)
+END SELECT
 
-    CALL write_vtk_meta (fh=fh_data_out, filename=filenameExportVtk, atStart=.FALSE.)
-
+IF (my_rank == 0) THEN
     CALL CPU_TIME(global_finish)
 
     WRITE(std_out,FMT_TXT_SEP)  
@@ -425,13 +371,15 @@ IF (my_rank == 0_ik) THEN
     WRITE(std_out,FMT_TXT_AF0A) 'Overall Time         = ', (global_finish - global_start) / 60,' Minutes'
     WRITE(std_out,FMT_TXT_SEP)  
     WRITE(std_out,FMT_TXT_AF0A) 'CPU time             = ', (global_finish - global_start) / 60 / 60 * size_mpi,' Hours'
-
-    CLOSE(std_out)     
-ENDIF 
+END IF  ! (my_rank == 0)
 
 1001 Continue
 
 IF(my_rank == 0) THEN
+    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(mm)' , srry_dims*sections*spcng)
+    CALL meta_write(fhmeo, 'DIMENSIONS', '(-)',      srry_dims*sections)
+    CALL meta_write(fhmeo, 'ENTRIES', '(-)', PRODUCT(srry_dims*sections))
+
     CALL meta_signing(binary)
     CALL meta_close()
 
@@ -449,7 +397,7 @@ IF(my_rank == 0) THEN
 
 END IF ! (my_rank == 0)
 
-Call MPI_FINALIZE(ierr)
+CALL MPI_FINALIZE(ierr)
 CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, KIND=ik))
 
 END PROGRAM CTIF
