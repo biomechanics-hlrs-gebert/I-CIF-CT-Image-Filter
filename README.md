@@ -2,7 +2,7 @@
 
 ![Architecture](https://img.shields.io/badge/Architecture-x86-green)
 ![OS](https://img.shields.io/badge/Linux-64Bit-green)
-![version](https://img.shields.io/badge/version-4.0.1-green)
+![version](https://img.shields.io/badge/version-5.0.0-green)
 ![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
 
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS \*.vtk files and filters them according to specific convolutional matrices/Kernels.  
