@@ -14,11 +14,10 @@ USE MPI
 USE kernels
 USE histogram_routines
 
-
 IMPLICIT NONE 
 
 ! Parameter
-INTEGER(KIND=ik), PARAMETER :: debug = 1   ! Choose an even integer!!
+INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer!!
 INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 
 ! Internal Variables
@@ -66,7 +65,7 @@ CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
 IF(size_mpi < 2) THEN
     WRITE(*,*) "my_rank: ", my_rank, " size_mpi: ", size_mpi
-    WRITE(std_out,*)"At least two ranks required to execute this program."
+    WRITE(std_out,*) "At least two ranks required to execute this program."
     CLOSE(std_out)
     CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
 END IF
@@ -110,7 +109,7 @@ IF(my_rank == 0) THEN
     CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
 
     CALL meta_read(std_out, 'FILTER_SIZE'  , m_rry, kernel_size)
-    CALL meta_read(std_out, 'FILTER_KERNEL', m_rry, selectKernel )
+    CALL meta_read(std_out, 'FILTER_KERNEL', m_rry, selectKernel)
     CALL meta_read(std_out, 'FILTER_SIGMA' , m_rry, sigma)
     
     !------------------------------------------------------------------------------
@@ -347,7 +346,7 @@ IF(my_rank == 0) THEN
 
     IF(debug >= 2) THEN
         WRITE(std_out,FMT_MSG) "Allocating memory for global histograms now."
-        WRITE(std_out,FMT_MSG_A3I0) "hbnds(1), hbnds(2): ", hbnds(1),  hbnds(2) 
+        WRITE(std_out,FMT_MSG_A3I0) "hbnds: ", hbnds(1), hbnds(2), hbnds(3)  
         WRITE(std_out,FMT_MSG_SEP)
         FLUSH(std_out)
     END IF
@@ -458,7 +457,8 @@ IF(my_rank == 0) THEN
 
     IF(std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
-    WRITE(std_out, FMT_TXT) 'Program finished successfully.'
+    WRITE(std_out,FMT_TXT) 'Program finished successfully.'
+    WRITE(std_out,FMT_MSG_SEP)
 
 END IF ! (my_rank == 0)
 
