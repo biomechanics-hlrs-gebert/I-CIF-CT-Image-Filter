@@ -107,6 +107,11 @@ IF(my_rank == 0) THEN
     CALL meta_read(std_out, 'FILTER_KERNEL', m_rry, selectKernel)
     CALL meta_read(std_out, 'FILTER_SIGMA' , m_rry, sigma)
     
+    IF((type /= "ik2") .AND. (type /= "ik4")) THEN
+        mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
+        CALL print_err_stop(std_out, mssg, 1)
+    END IF
+    
     !------------------------------------------------------------------------------
     ! Restart handling
     ! Done after meta_io to decide based on keywords
