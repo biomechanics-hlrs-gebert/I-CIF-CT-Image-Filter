@@ -25,8 +25,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 ! SUBROUTINE: write_matrix_real
 !------------------------------------------------------------------------------  
-!> @author Ralf Schneider, schneider@hlrs.de, HLRS/NUM
-!> @author Johannes Gebert,   gebert@hlrs.de, HLRS/NUM
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Subroutine to print regular tensors respectively matrices.

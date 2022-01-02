@@ -63,12 +63,7 @@ CALL MPI_ERR(ierr,"MPI_COMM_RANK couldn't be retrieved")
 CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 CALL MPI_ERR(ierr,"MPI_COMM_SIZE couldn't be retrieved")
 
-IF(size_mpi < 2) THEN
-    WRITE(*,*) "my_rank: ", my_rank, " size_mpi: ", size_mpi
-    WRITE(std_out,*) "At least two ranks required to execute this program."
-    CLOSE(std_out)
-    CALL MPI_ABORT(MPI_COMM_WORLD, 1_mik, ierr)
-END IF
+IF (size_mpi < 2) CALL print_err_stop(std_out, "At least two ranks required to execute this program.", 1)
 
 ! Initialize program itself
 IF(my_rank == 0) THEN
