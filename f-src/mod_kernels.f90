@@ -54,9 +54,9 @@ SUBROUTINE filter_ik2(subarray, kernel, srb, result_subarray)
     DO jj = srb(2), srb(5)
     DO ii = srb(1), srb(4)
         accumulator = 0
-        DO nn = -border, border
-        DO mm = -border, border
         DO ll = -border, border
+        DO mm = -border, border
+        DO nn = -border, border
             accumulator = accumulator + (kernel( ll+border+1_ik, mm+border+1_ik, nn+border+1_ik) * &
                     subarray(ii + ll, jj + mm, kk + nn))
         END DO

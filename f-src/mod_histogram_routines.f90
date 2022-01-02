@@ -117,27 +117,33 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
 !> @param[in] histogram Actual histogram data
 !------------------------------------------------------------------------------  
  SUBROUTINE write_histo_csv (fh, hdr_str, hbnds, mov_avg_width, histogram)
-   ! Arg_divider acts as a parameter defining a moving average (!)
-   ! It has an immediate effect like a filtered graph.
-   INTEGER(KIND=ik), INTENT(IN) :: fh
-   CHARACTER(len=*), INTENT(IN) :: hdr_str
-   INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: hbnds    ! histogram lower/upper bounds
-   INTEGER(KIND=ik)              , INTENT(IN) :: mov_avg_width
-   INTEGER(KIND=ik), DIMENSION(:), INTENT(IN) :: histogram
+  ! Arg_divider acts as a parameter defining a moving average (!)
+  ! It has an immediate effect like a filtered graph.
+  INTEGER(KIND=ik), INTENT(IN) :: fh
+  CHARACTER(len=*), INTENT(IN) :: hdr_str
+  INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: hbnds ! histogram lower/upper bounds
+  INTEGER(KIND=ik)              , INTENT(IN) :: mov_avg_width
+  INTEGER(KIND=ik), DIMENSION(:), INTENT(IN) :: histogram
 
-   INTEGER  (KIND=ik) :: ii, avg, span, step
-   
-   span = mov_avg_width / 2 ! int division
-
-   IF (mov_avg_width == 0) step = 1
+  INTEGER(KIND=ik) :: ii, avg, span, step
   
-   WRITE(fh,'(A)') TRIM(ADJUSTL(hdr_str)) ! "scaledHU, Voxels"
-   
-   DO ii = hbnds(1)+span, hbnds(2)-span, step
-      avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width+1)
 
-      IF (histogram(ii) >= 0 ) WRITE(fh,'(I0,A,I0)') ii," , ",avg
-   END DO
+  !------------------------------------------------------------------------------
+  ! Choose steps of loop according to the histogram boundaries.
+  !------------------------------------------------------------------------------
+  IF (mov_avg_width <= 1) THEN
+    step = 1
+  ELSE
+    span = mov_avg_width / 2 ! int division
+  END IF
+
+  WRITE(fh,'(A)') TRIM(ADJUSTL(hdr_str))
+  
+  DO ii = hbnds(1)+span, hbnds(2)-span, step
+    avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width+1)
+
+    IF (histogram(ii) >= 0 ) WRITE(fh,'(I0,A,I0)') ii," , ",avg
+  END DO
 
  END SUBROUTINE write_histo_csv
 
@@ -196,16 +202,16 @@ SUBROUTINE write_tex_for_histogram (fun, suf_csv_prf, suf_csv_pof, suf_csv_aprf,
   WRITE(fun, '(A)')  "        legend cell align={left},"
   WRITE(fun, '(A)')  "        no marks]"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsgray4] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//suf_csv_prf,"};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//TRIM(suf_csv_prf),"};"
   WRITE(fun, '(A)')  "    \addlegendentry{Raw};"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsblue4] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//suf_csv_pof,"};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//TRIM(suf_csv_pof),"};"
   WRITE(fun, '(A)')  "    \addlegendentry{Filtered};"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsgray1] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//suf_csv_aprf,"};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//TRIM(suf_csv_aprf),"};"
   WRITE(fun, '(A)')  "    \addlegendentry{Raw, averaged};"
   WRITE(fun, '(A)')  "    \addplot[line width=1pt,solid,color=hlrsblue1] %"
-  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//suf_csv_apof,"};"
+  WRITE(fun, '(3A)') "        table[x=scaledHU,y=Voxels,col sep=comma]{", TRIM(out%p_n_bsnm)//TRIM(suf_csv_apof),"};"
   WRITE(fun, '(A)')  "    \addlegendentry{Filtered, averaged};"
   WRITE(fun, '(A)')  "    \end{axis}"
   WRITE(fun, '(A)')  "    \end{tikzpicture}"

@@ -8,13 +8,15 @@
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS \*.vtk files and filters them according to specific convolutional matrices/Kernels.  
 It's tested with up to 160 Processors (4 nodes) on Vulcan. Turnaround time of roughly 200 Seconds while reading/computing/writing to storage on 18.5E09 Voxels of kind INTEGER2.
 
-## Table of contents
-- [Intent](#primary)
-- [Development](#development)
-- [Requirements](#requirements)
-- [Build](#build)
-- [Usage](#usage)
-- [Additional Information](additional-information)
+## Meta Template
+Located in: 
+```
+./datasets/I-CTIF.meta.template
+```
+For use with previously used data sets:
+```
+cat ./datasets/I-CTIF.meta.template >> Your_Meta_File.meta
+```
 
 ## Intent of this program
 *Computed Tomography Image Filter* prepares computed tomography scans to threshold and binarize the data in subsequent steps.
@@ -61,7 +63,7 @@ Create documentation: ```make docs```
 ### Set up the parametrization
 ```./auxiliaries/pbs/CF.<system>.pbs```
 
-## Start the Program
+## Usage
 For example for testing on julius:
 ```
 mpirun ./bin/ctif_v4.0.0_x86_64 -np 4  ./bin/ctif_v4.0.0_x86_64 ./datasets/SC00-0_tc_Dev_ctif_G3S11Sig10.meta
