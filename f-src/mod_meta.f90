@@ -8,6 +8,7 @@
 !------------------------------------------------------------------------------
 MODULE meta
 
+   USE ISO_FORTRAN_ENV
    USE strings
    USE user_interaction
 
@@ -67,38 +68,35 @@ IMPLICIT NONE
    ! Always provide in/out for meta driven environments
    TYPE(basename) :: in, out
 
-
    !> Interface: meta_read
    !> \author Johannes Gebert
    !> \date 10.11.2021
-   Interface meta_read
-
-      Module Procedure meta_read_C 
-      Module Procedure meta_read_I0D 
-      Module Procedure meta_read_I1D
-      Module Procedure meta_read_R0D
-      Module Procedure meta_read_R1D
-
-   End Interface meta_read
+   INTERFACE meta_read
+      MODULE PROCEDURE meta_read_C 
+      MODULE PROCEDURE meta_read_I0D 
+      MODULE PROCEDURE meta_read_I0D_long
+      MODULE PROCEDURE meta_read_I1D
+      MODULE PROCEDURE meta_read_R0D
+      MODULE PROCEDURE meta_read_R1D
+   END INTERFACE meta_read
 
    !> Interface: meta_write
    !> \author Johannes Gebert
    !> \date 10.11.2021
-   Interface meta_write
-
-      Module Procedure meta_write_C 
-      Module Procedure meta_write_I0D 
-      Module Procedure meta_write_R0D 
-      Module Procedure meta_write_I1D
-      Module Procedure meta_write_R1D
-
-   End Interface meta_write
+   INTERFACE meta_write
+      MODULE PROCEDURE meta_write_C 
+      MODULE PROCEDURE meta_write_I0D 
+      MODULE PROCEDURE meta_write_I0D_long
+      MODULE PROCEDURE meta_write_R0D 
+      MODULE PROCEDURE meta_write_I1D
+      MODULE PROCEDURE meta_write_R1D
+   END INTERFACE meta_write
 
 CONTAINS
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_handle_lock_file
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -106,7 +104,7 @@ CONTAINS
 !
 !> @param[in] restart Whether to restart or not to.
 !> @param[in] restart_cmdarg Possible cmd argument override
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_handle_lock_file(restart, restart_cmdarg)
 
 CHARACTER, INTENT(INOUT) :: restart
@@ -169,14 +167,14 @@ END SUBROUTINE meta_handle_lock_file
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_append
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
 !> Subroutine to open a meta file to append data/ keywords
 !
 !> @param[inout] meta_as_rry Meta data written into a character array
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_append(meta_as_rry)
 
 CHARACTER(LEN=meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry      
@@ -189,14 +187,14 @@ END SUBROUTINE meta_append
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_create_new
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
 !> Subroutine to create a new meta file
 !
 !> @param[inout] basename_requested Input basename
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_create_new(filename_with_suffix)
 
 CHARACTER(LEN=*), INTENT(IN) :: filename_with_suffix      
@@ -237,14 +235,14 @@ END SUBROUTINE meta_create_new
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_invoke
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
 !> Subroutine to open and prepare a meta file for use
 !
 !> @param[inout] meta_as_rry Meta data written into a character array
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_invoke(meta_as_rry)
 
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(INOUT), ALLOCATABLE :: meta_as_rry      
@@ -290,14 +288,14 @@ END SUBROUTINE meta_invoke
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_continue
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
 !> Subroutine to invoke the output meta file
 !
 !> @param[inout] m_in Meta data written into a character array
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_continue(m_in)
 
 CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
@@ -353,7 +351,7 @@ END SUBROUTINE meta_continue
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_start_ascii
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -378,7 +376,7 @@ END SUBROUTINE meta_continue
 !> @param[in] fh File handle of the input
 !> @param[in] suf Suffix of the file
 !> @param[in] restart Logfiles (temporary and permanent)
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_start_ascii(fh, suf)
 
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh
@@ -419,7 +417,7 @@ END SUBROUTINE meta_start_ascii
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_stop_ascii
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -427,7 +425,7 @@ END SUBROUTINE meta_start_ascii
 !
 !> @param[in] fh File handle of the input
 !> @param[in] suf Suffix of the file
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 SUBROUTINE meta_stop_ascii(fh, suf)
 
 INTEGER  (KIND=meta_ik), INTENT(IN) :: fh
@@ -606,10 +604,9 @@ END IF
 END SUBROUTINE check_unit
 
 
-
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_extract_keyword_data
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -626,7 +623,7 @@ END SUBROUTINE check_unit
 !> @param[in] dims Dimensions requested
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] chars Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_extract_keyword_data (fh, keyword, dims, m_in, res_tokens, res_ntokens)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -703,7 +700,7 @@ END SUBROUTINE meta_extract_keyword_data
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_C
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -713,7 +710,7 @@ END SUBROUTINE meta_extract_keyword_data
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] chars Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_read_C (fh, keyword, m_in, chars)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -731,10 +728,9 @@ chars = TRIM(ADJUSTL(tokens(3)))
 
 END SUBROUTINE meta_read_C
 
-
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_I0D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -744,7 +740,7 @@ END SUBROUTINE meta_read_C
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] int_0D Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_read_I0D (fh, keyword, m_in, int_0D)
      
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -762,10 +758,40 @@ READ(tokens(3), '(I12)') int_0D
 
 END SUBROUTINE meta_read_I0D
 
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_read_I0D_long
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Wrapper to parse Keywords with 0D integer data. Specific version to deal 
+!> with numbers greater than INT32 can deal with.
+! 
+!> @param[in] fh File handle to read a keyword from.
+!> @param[in] keyword Keyword to read
+!> @param[in] m_in Array of lines of ascii meta file
+!> @param[in] int_0D Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_read_I0D_long (fh, keyword, m_in, int_0D)
+     
+INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=meta_mcl), DIMENSION(:), INTENT(IN) :: m_in      
+INTEGER(KIND=INT64), INTENT(OUT) :: int_0D 
+
+! Internal variables
+CHARACTER(LEN=meta_mcl) :: tokens(30)
+INTEGER(KIND=meta_ik) :: ntokens
+
+CALL meta_extract_keyword_data (fh, keyword, 1, m_in, tokens, ntokens)
+
+READ(tokens(3), '(I12)') int_0D 
+
+END SUBROUTINE meta_read_I0D_long
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_R0D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -775,7 +801,7 @@ END SUBROUTINE meta_read_I0D
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] real_0D Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_read_R0D (fh, keyword, m_in, real_0D)
      
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -795,7 +821,7 @@ END SUBROUTINE meta_read_R0D
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_I1D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -805,7 +831,7 @@ END SUBROUTINE meta_read_R0D
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] int_1D Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_read_I1D (fh, keyword, m_in, int_1D)
 
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -823,10 +849,9 @@ READ(tokens(3:2+SIZE(int_1D)), '(I12)') int_1D
 
 END SUBROUTINE meta_read_I1D
 
-
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_read_R1D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -836,7 +861,7 @@ END SUBROUTINE meta_read_I1D
 !> @param[in] keyword Keyword to read
 !> @param[in] m_in Array of lines of ascii meta file
 !> @param[in] real_1D Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_read_R1D (fh, keyword, m_in, real_1D)
 
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -857,7 +882,7 @@ END SUBROUTINE meta_read_R1D
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_keyword
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -867,7 +892,7 @@ END SUBROUTINE meta_read_R1D
 !> @param[in] keyword Keyword to write
 !> @param[in] stdspcfill String with data
 !> @param[in] unit Unit of the value
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_keyword (fh, keyword, stdspcfill, unit)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -921,7 +946,7 @@ END SUBROUTINE meta_write_keyword
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_sha256sum
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -931,7 +956,7 @@ END SUBROUTINE meta_write_keyword
 !> @param[in] keyword Keyword to write
 !> @param[in] stdspcfill String with data
 !> @param[in] unit Unit of the value
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_sha256sum(binary_name)
    
 CHARACTER(LEN=*), INTENT(IN) :: binary_name
@@ -943,17 +968,17 @@ INTEGER(KIND=meta_ik) :: ios
 
 LOGICAL :: exist
 
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 ! Write "Keyword"
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 keyword = "w SHA256SUM_OF_BINARY"
 
 WRITE(fmt, '(A,I0,A)') "(2A, T", kcl, ")"
 WRITE(fhmeo, fmt, ADVANCE='NO') keyword
 
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 ! Check the buffer file
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 INQUIRE(FILE = 'temp_buffer', EXIST = exist)
 
 IF (exist) THEN
@@ -966,15 +991,15 @@ IF (exist) THEN
    END IF
 END IF
 
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 ! Check for auxiliary programs
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 CALL EXECUTE_COMMAND_LINE("which cut > /dev/null 2> /dev/null", CMDSTAT=stat(2))
 CALL EXECUTE_COMMAND_LINE("which sha256sum > /dev/null 2> /dev/null", CMDSTAT=stat(3))
 
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 ! Deal with the buffer file
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 IF(SUM(stat)==0) THEN
    OPEN(UNIT=9, FILE='temp_buffer', ACTION='READWRITE', STATUS='NEW')
 
@@ -1000,7 +1025,7 @@ END SUBROUTINE meta_write_sha256sum
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_C
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -1009,7 +1034,7 @@ END SUBROUTINE meta_write_sha256sum
 !> @param[in] fh File handle to write a log/mon or text to.
 !> @param[in] keyword Keyword to write
 !> @param[in] stdspcfill Characters to write
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_C (fh, keyword, stdspcfill)
    
 INTEGER  (KIND=meta_ik), INTENT(IN) :: fh 
@@ -1022,7 +1047,7 @@ END SUBROUTINE meta_write_C
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_I0D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -1032,7 +1057,7 @@ END SUBROUTINE meta_write_C
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] int_0D Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_I0D (fh, keyword, unit, int_0D)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -1049,8 +1074,37 @@ CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
 END SUBROUTINE meta_write_I0D
 
 !------------------------------------------------------------------------------
+! SUBROUTINE: meta_write_I0D_long
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Module to write keywords of type integer dim 0. Specific version to 
+!> deal with numbers greater than INT32 can deal with.
+!
+!> @param[in] fh File handle to write a log/mon or text to.
+!> @param[in] keyword Keyword to write
+!> @param[in] unit Unit of the value
+!> @param[in] int_0D Datatype to read in
+!------------------------------------------------------------------------------
+SUBROUTINE meta_write_I0D_long (fh, keyword, unit, int_0D)
+   
+INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=*), INTENT(IN) :: unit
+INTEGER(KIND=INT64), INTENT(IN) :: int_0D 
+
+CHARACTER(LEN=meta_scl) :: stdspcfill
+
+WRITE(stdspcfill, '(I0)') int_0D
+
+CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+
+END SUBROUTINE meta_write_I0D_long
+
+!------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_R0D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -1060,7 +1114,7 @@ END SUBROUTINE meta_write_I0D
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] real_0D Datatype to read in
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_R0D (fh, keyword, unit, real_0D)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -1082,7 +1136,7 @@ END SUBROUTINE meta_write_R0D
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_I1D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -1092,7 +1146,7 @@ END SUBROUTINE meta_write_R0D
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] int_0D Datatype
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_I1D (fh, keyword, unit, int_1D)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
@@ -1119,7 +1173,7 @@ END SUBROUTINE meta_write_I1D
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: meta_write_R1D
-!---------------------------------------------------------------------------  
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
@@ -1129,7 +1183,7 @@ END SUBROUTINE meta_write_I1D
 !> @param[in] keyword Keyword to write
 !> @param[in] unit Unit of the value
 !> @param[in] real_1D Datatype
-!---------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 SUBROUTINE meta_write_R1D (fh, keyword, unit, real_1D)
    
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
