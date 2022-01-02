@@ -38,8 +38,12 @@ INTERFACE mpi_write_raw
    MODULE PROCEDURE mpi_write_raw_ik2
 END INTERFACE mpi_write_raw
 
-CONTAINS
+INTERFACE ser_write_raw
+   MODULE PROCEDURE ser_write_raw_ik2
+   MODULE PROCEDURE ser_write_raw_ik4
+END INTERFACE ser_write_raw
 
+CONTAINS
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: get_rank_section
@@ -343,7 +347,7 @@ END SUBROUTINE mpi_read_raw_rk8
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Write the raw data of a vtk file
+!> Write raw binary data
 !
 !> @description
 !
@@ -391,7 +395,7 @@ END SUBROUTINE mpi_write_raw_ik2
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Write the raw data of a vtk file
+!> Write raw binary data
 !
 !> @description
 !
@@ -430,8 +434,57 @@ CALL MPI_TYPE_FREE(type_subarray, ierr)
 CALL MPI_FILE_CLOSE(fh, ierr)
 
 END SUBROUTINE mpi_write_raw_ik4
-END MODULE raw_binary
 
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_write_raw_ik2
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Write raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!------------------------------------------------------------------------------
+SUBROUTINE ser_write_raw_ik2(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: array
+CHARACTER(len=*), INTENT(IN) :: filename
+
+OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+WRITE(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_write_raw_ik2
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_write_raw_ik4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Write raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!------------------------------------------------------------------------------
+SUBROUTINE ser_write_raw_ik4(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: array
+CHARACTER(len=*), INTENT(IN) :: filename
+
+OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+WRITE(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_write_raw_ik4
+
+END MODULE raw_binary
 
 
 !------------------------------------------------------------------------------
@@ -509,9 +562,9 @@ WRITE(fh,'(A)')          "DATASET STRUCTURED_POINTS"
 WRITE(fh,'(A,3(I5))')    "DIMENSIONS", dims
 WRITE(fh,'(A,3(F11.6))') "SPACING ", spcng
 WRITE(fh,'(A,3(F11.6))') "ORIGIN ", origin
+WRITE(fh,'(A, I0)')      "POINT_DATA ", PRODUCT(INT(dims, KIND=INT64))
 WRITE(fh,'(A)')          "SCALARS DICOMImage "//TRIM(ADJUSTL(datatype))
 WRITE(fh,'(A)')          "LOOKUP_TABLE default"
-WRITE(fh,'(A)')          ""
 
 CLOSE(UNIT=fh)
 END SUBROUTINE write_vtk_struct_points_header
