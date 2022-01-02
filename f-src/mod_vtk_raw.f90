@@ -128,7 +128,7 @@ CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin, &
    MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray,ierr)
 
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
@@ -180,7 +180,7 @@ CALL MPI_COMM_SIZE(MPI_COMM_WORLD, size_mpi, ierr)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
 
-CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, dims, subarray_dims, subarray_origin, &
    MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray,ierr)
 
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
@@ -370,7 +370,7 @@ CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
-CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin, &
    MPI_ORDER_FORTRAN, MPI_INTEGER2, type_subarray, ierr)
 
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
@@ -417,7 +417,7 @@ CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
-CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin - 1_mik, &
+CALL MPI_TYPE_CREATE_SUBARRAY(3_mik, dims, subarray_dims, subarray_origin, &
    MPI_ORDER_FORTRAN, MPI_INTEGER, type_subarray, ierr)
 
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)

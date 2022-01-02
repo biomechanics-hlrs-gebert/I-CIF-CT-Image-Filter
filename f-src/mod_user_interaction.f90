@@ -28,16 +28,17 @@ Character(Len=*), Parameter :: FMT_ERR_AI0  = "('EE ', *(A,I0))"
 !------------------------------------------------------------------------------
 ! Text formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',A)"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',10A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
 
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A = "('-- ',A,1X,F0.6,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF15A = "('-- ',A,1X,F15.6,1x,A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_A3I0 = "('-- ',A,3(1x,I0))"
 
 !------------------------------------------------------------------------------
-! Message formats
+! Message/debug formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_MSG      = "('MM ',A)"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG      = "('MM ',10A)"
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP  = "(80('-'))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxI0 = "('MM ',A,*(1x, I0))"
@@ -110,9 +111,9 @@ INTEGER(KIND=ik) :: ii
 
 stp = .FALSE.
 
-IF (command_argument_count() == 0) THEN 
+CALL GET_COMMAND_ARGUMENT(0, binary)
 
-    CALL GET_COMMAND_ARGUMENT(0, binary)
+IF (command_argument_count() == 0) THEN 
 
     CALL usage(binary)
 

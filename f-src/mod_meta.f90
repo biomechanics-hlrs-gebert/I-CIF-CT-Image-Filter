@@ -932,7 +932,7 @@ END SUBROUTINE meta_write_keyword
 !> @param[in] stdspcfill String with data
 !> @param[in] unit Unit of the value
 !---------------------------------------------------------------------------
-SUBROUTINE meta_write_sha256sum (binary_name)
+SUBROUTINE meta_write_sha256sum(binary_name)
    
 CHARACTER(LEN=*), INTENT(IN) :: binary_name
 
@@ -988,7 +988,7 @@ END IF
 IF (SUM(stat) == 0) THEN
    WRITE(fhmeo, fmt) TRIM(ADJUSTL(stdspcfill))
 ELSE
-   WRITE(fhmeo, fmt) "Could not get sha256sum. One of the previious system calls failed."
+   WRITE(fhmeo, fmt) "Could not get sha256sum. One of the previous system calls failed."
 END IF
 
 INQUIRE(FILE='temp_buffer', EXIST=exist)
@@ -1173,15 +1173,15 @@ END SUBROUTINE meta_write_R1D
 !------------------------------------------------------------------------------
 SUBROUTINE meta_signing(binary)
 
-CHARACTER(LEN=*), INTENT(IN)  :: binary
+CHARACTER(LEN=*), INTENT(IN) :: binary
 
 WRITE(fhmeo, '(A)')
-CALL meta_write (fhmeo, 'PROGRAM_VERSION', revision)
-CALL meta_write (fhmeo, 'PROGRAM_GIT_HASH', hash)
+CALL meta_write(fhmeo, 'PROGRAM_VERSION', revision)
+CALL meta_write(fhmeo, 'PROGRAM_GIT_HASH', hash)
 
-CALL meta_write_sha256sum (binary)
+CALL meta_write_sha256sum(binary)
 
-CALL meta_write (fhmeo, 'COMPUTATION_FINISHED' , 'Succesfully')
+CALL meta_write(fhmeo, 'COMPUTATION_FINISHED' , 'Succesfully')
 
 END SUBROUTINE meta_signing
 

@@ -43,7 +43,6 @@ CONTAINS
 !> @param[in] dim2 Object to print
 !> @param[in] name Name of the object to print
 !> @param[in] mat_real Dimensions of the 2nd rank tensor, double precision
-!> @param[in] mat_int  Dimensions of the 2nd rank tensor, integer kind = 4
 !> @param[in] fmt Formatting of the data
 !> @param[in] unit Physical unit of the information to print
 !> @param[in] hide_zeros Whether to suppress zeros for printing matrices
@@ -183,7 +182,6 @@ End Subroutine write_matrix_real
 !
 !> @param[in] fh Handle of file to print to
 !> @param[in] name Name of the object to print
-!> @param[in] mat_real Dimensions of the 2nd rank tensor, double precision
 !> @param[in] mat_int  Dimensions of the 2nd rank tensor, integer kind = 4
 !> @param[in] fmt Formatting of the data
 !> @param[in] unit Physical unit of the information to print
