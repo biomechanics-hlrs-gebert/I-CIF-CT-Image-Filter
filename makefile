@@ -45,20 +45,19 @@ st_path= $(build_path)/central_src/
 #
 st_obj_dir = $(st_path)/obj/
 st_mod_dir = $(st_path)/mod/
-st_f-src_dir = $(st_path)/f-src/
+st_f_src_dir = $(st_path)/f-src/
 #
 mod_dir   = $(build_path)/mod/
 obj_dir   = $(build_path)/obj/
 lib_dir   = $(build_path)/lib/
 bin_dir   = $(build_path)/bin/
-f-src_dir = $(build_path)/f-src/
+f_src_dir = $(build_path)/f-src/
 ext_f-src = $(build_path)/f-src/ext-src_
 #
 # Directory for documentation
 doc_dir  = $(build_path)/doc/
 html_dir = $(build_path)/html/
 tex_dir  = $(build_path)/latex/
-#
 # ------------------------------------------------------------------------------
 # File extensions and suffixes
 mod_ext = .mod
@@ -133,17 +132,17 @@ all: st $(main_bin)
 $(obj_dir)mod_histogram_routines$(obj_ext):$(st_mod_dir)global_std$(mod_ext) \
 											$(st_mod_dir)meta$(mod_ext) \
 											$(st_mod_dir)formatted_plain$(mod_ext) \
-											$(f-src_dir)mod_histogram_routines$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_histogram_routines$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_histogram_routines$(f90_ext) -o $@
+											$(f_src_dir)mod_histogram_routines$(f90_ext)
+	@echo "----- Compiling " $(f_src_dir)mod_histogram_routines$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f_src_dir)mod_histogram_routines$(f90_ext) -o $@
 	@echo
 
 
 # ------------------------------------------------------------------------------
 # Module containing convolutional kernels
-$(obj_dir)mod_kernels$(obj_ext):$(st_mod_dir)math$(mod_ext) $(f-src_dir)mod_kernels$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)mod_kernels$(f90_ext)" -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)mod_kernels$(f90_ext) -o $@
+$(obj_dir)mod_kernels$(obj_ext):$(st_mod_dir)math$(mod_ext) $(f_src_dir)mod_kernels$(f90_ext)
+	@echo "----- Compiling " $(f_src_dir)mod_kernels$(f90_ext)" -----"
+	$(compiler) $(c_flags_f90) -c $(f_src_dir)mod_kernels$(f90_ext) -o $@
 	@echo
 
 
@@ -154,18 +153,18 @@ $(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
 									$(st_mod_dir)vtk_meta_data$(mod_ext)\
  			            			$(st_mod_dir)strings$(mod_ext)\
 			            			$(mod_dir)histogram_routines$(mod_ext)\
-									$(f-src_dir)ct_image_filter$(f90_ext)
-	@echo "----- Compiling " $(f-src_dir)ct_image_filter$(f90_ext) " -----"
-	$(compiler) $(c_flags_f90) -c $(f-src_dir)ct_image_filter$(f90_ext) -o $@
+									$(f_src_dir)ct_image_filter$(f90_ext)
+	@echo "----- Compiling " $(f_src_dir)ct_image_filter$(f90_ext) " -----"
+	$(compiler) $(c_flags_f90) -c $(f_src_dir)ct_image_filter$(f90_ext) -o $@
 
 # --------------------------------------------------------------------------------------------------
 # Export revision
 export_revision:
 	@echo "----------------------------------------------------------------------------------"
 	@echo '-- Write revision and git info'
-	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(st_f-src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
+	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "----------------------------------------------------------------------------------"
 
 # -----------------------------------------------------------------------------
