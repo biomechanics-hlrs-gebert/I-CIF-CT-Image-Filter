@@ -12,7 +12,7 @@ IMPLICIT NONE
 
 ! General constants
 INTEGER, PARAMETER :: sik = 2    ! INTEGER Kind
-INTEGER, PARAMETER :: ik  = 4    ! INTEGER Kind
+INTEGER, PARAMETER :: ik  = 8    ! INTEGER Kind
 INTEGER, PARAMETER :: rk  = 8    ! Real    Kind
 INTEGER, PARAMETER :: mcl = 512  ! Maximal character  length
 INTEGER, PARAMETER :: hcl = 256  ! Half    character  length

@@ -8,6 +8,7 @@
 !------------------------------------------------------------------------------
 MODULE user_interaction
 
+    USE ISO_FORTRAN_ENV
     USE MPI
     USE global_std
     USE strings
@@ -20,10 +21,10 @@ IMPLICIT NONE
 INTEGER, PARAMETER :: mw = 90  ! Message width, including leading and trailing descriptors
 
 CHARACTER(Len=*), PARAMETER :: FMT_ERR      = "('EE ', A)"
-Character(Len=*), Parameter :: FMT_ERR_STOP = "('EE PROGRAM STOPPED.')"
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_STOP = "('EE PROGRAM STOPPED.')"
 CHARACTER(Len=*), PARAMETER :: FMT_ERR_SEP  = "('EE ', 76('='))"
 
-Character(Len=*), Parameter :: FMT_ERR_AI0  = "('EE ', *(A,I0))"  
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0  = "('EE ', *(A,I0))"  
 
 !------------------------------------------------------------------------------
 ! Text formats
@@ -31,9 +32,9 @@ Character(Len=*), Parameter :: FMT_ERR_AI0  = "('EE ', *(A,I0))"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',10A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
 
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A = "('-- ',A,1X,F0.6,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A  = "('-- ',A,1X,F0.6,1x,A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF15A = "('-- ',A,1X,F15.6,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_A3I0 = "('-- ',A,3(1x,I0))"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_A3I0  = "('-- ',A,3(1x,I0))"
 
 !------------------------------------------------------------------------------
 ! Message/debug formats
@@ -59,7 +60,7 @@ CHARACTER(Len=*), PARAMETER :: FMT_MSG_AL   = "('MM ',A,1x,L1)"
 !------------------------------------------------------------------------------
 CHARACTER(Len=*), PARAMETER :: FMT_WRN      = "('WW ',A)"
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP  = "(80('-'))"
-
+!
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0  = "('WW ',A,1X,I0)"
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0A = "('WW ',A,1X,I0,1X,A)"
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_AF0  = "('WW ',A,1X,F0.6)"
@@ -103,8 +104,8 @@ CONTAINS
 SUBROUTINE get_cmd_args(binary, infile, stp, restart, cmd_arg_history)
 
 CHARACTER(LEN=*), INTENT(OUT) :: binary, infile
-LOGICAL                       :: stp
 CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: restart, cmd_arg_history
+LOGICAL :: stp
 
 CHARACTER(LEN=mcl) :: cmd_arg
 INTEGER(KIND=ik) :: ii
@@ -215,8 +216,10 @@ END SUBROUTINE usage
 !------------------------------------------------------------------------------  
 FUNCTION determine_stout() RESULT(fh_std_out)
 
-INTEGER(KIND=ik) :: fh_std_out, stat
-CHARACTER(LEN=scl) :: use_std_out
+INTEGER(KIND=ik) :: fh_std_out
+
+INTEGER(KIND=ik) :: stat
+CHARACTER(LEN=scl)  :: use_std_out
 
 CALL GET_ENVIRONMENT_VARIABLE(NAME='USE_STD_OUT', VALUE=use_std_out, STATUS=stat)
 
@@ -234,6 +237,7 @@ END FUNCTION determine_stout
 ! SUBROUTINE: give_new_unit
 !------------------------------------------------------------------------------  
 !> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function which returns a new free unit
@@ -242,8 +246,8 @@ END FUNCTION determine_stout
 !------------------------------------------------------------------------------
 function give_new_unit() result(new_unit)
 
-Integer :: new_unit
-Integer :: ii
+Integer(KIND=ik) :: new_unit
+Integer(KIND=ik) :: ii
 Logical :: unit_is_open
 
 Do ii = 300, huge(new_unit)-1
@@ -260,7 +264,7 @@ End Do
 if ( unit_is_open ) then
     mssg = 'Something bad and unexpected happened during search for free unit: &
     &Could not find a new unit between 100 and huge(Int(kind=4))'
-    CALL print_err_stop(std_out, mssg, 1)
+    CALL print_err_stop(std_out, mssg, 1_ik)
 END IF
 
 End function give_new_unit
@@ -278,17 +282,17 @@ End function give_new_unit
 !------------------------------------------------------------------------------  
 subroutine mpi_err(ierr, text)
 
-   !-- Dummy parameters
-   integer(kind=mik), intent(in) :: ierr
-   character(len=*), intent(in) :: text
+    !-- Dummy parameters
+    integer(kind=mik), intent(in) :: ierr
+    character(len=*), intent(in) :: text
    
-   if (ierr /= MPI_SUCCESS) THEN
-      write(*, "(100('!'))")
-      write(*, '(A,I0,A)') 'MPI ERROR :', ierr,";"
-      write(*, '(A)') trim(text)
-      write(*, "(100('!'))")
-      write(*, *) 'Exit ...'
-      stop
+    if (ierr /= MPI_SUCCESS) THEN
+        write(*, "(100('!'))")
+        write(*, '(A,I0,A)') 'MPI ERROR :', ierr,";"
+        write(*, '(A)') trim(text)
+        write(*, "(100('!'))")
+        write(*, *) 'Exit ...'
+        stop
     end if
    
 end subroutine mpi_err
@@ -299,14 +303,8 @@ end subroutine mpi_err
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Subroutine to print and handle error messages. Mpi handling written by 
-!> Ralf Schneider. Accepts readily written strings. *No* numbers!
-!
-!> @Description
-!> Aborts with errors.
-!> Errors:  err > 0
-!> Warings: err < 0
-!> Colorized output in case it's printing to std_out.
+!> Aborts if err > 0. err is required to call this routine after another one 
+!> with a status feedback.
 !
 !> @param[in] fh Handle of file to print to
 !> @param[in] txt Error message to print
@@ -314,19 +312,14 @@ end subroutine mpi_err
 !------------------------------------------------------------------------------  
 SUBROUTINE print_err_stop(fh, txt, err) ! , pro_path, pro_name
 
-INTEGER(KIND=ik), INTENT(IN) :: fh 
+INTEGER(KIND=ik), INTENT(IN) :: fh , err
 CHARACTER(LEN=*), INTENT(IN) :: txt
-INTEGER(KIND=ik) :: err
 
 IF (err /= 0) THEN
-
    WRITE(fh, FMT_ERR) TRIM(txt)
    WRITE(fh, FMT_ERR_STOP)
-
-   WRITE(*,'(A)') "MPI_FINALIZE did not succeed"
-   WRITE(*,'(A)') "Can't stop gracefully."
+   WRITE(*,FMT_ERR) "Can't stop gracefully."
    STOP 
-
 END IF
 
 END SUBROUTINE print_err_stop
