@@ -25,8 +25,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 ! SUBROUTINE: write_matrix_real
 !------------------------------------------------------------------------------  
-!> @author Ralf Schneider, schneider@hlrs.de, HLRS/NUM
-!> @author Johannes Gebert,   gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
 !> @brief
 !> Subroutine to print regular tensors respectively matrices.
@@ -39,17 +39,14 @@ CONTAINS
 !> 'spl'/'simple' for traditional formatting
 !
 !> @param[in] fh Handle of file to print to
-!> @param[in] dim1 Object to print
-!> @param[in] dim2 Object to print
 !> @param[in] name Name of the object to print
-!> @param[in] mat_real Dimensions of the 2nd rank tensor, double precision
 !> @param[in] fmt Formatting of the data
 !> @param[in] unit Physical unit of the information to print
-!> @param[in] hide_zeros Whether to suppress zeros for printing matrices
+!> @param[in] mat Actual matrix
 !------------------------------------------------------------------------------
-SUBROUTINE write_matrix_real (fh, name, fmt, unit, mat)
+SUBROUTINE write_matrix_real(fh, name, fmt, unit, mat)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh   
+INTEGER(KIND=INT64), INTENT(IN) :: fh   
 CHARACTER(LEN=*), INTENT(IN) :: name 
 REAL   (KIND=rk), DIMENSION(:, :), INTENT(IN) :: mat    
 CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: fmt 
@@ -81,7 +78,7 @@ IF (PRESENT(unit)) THEN
 END IF
 
 IF (dim1 == dim2) THEN
-    CALL check_sym(fh, mat, name, sym_out=sym_out)
+    CALL check_sym(INT(fh, KIND=ik), mat, name, sym_out=sym_out)
     sym_u = .TRUE.
 END IF
 
@@ -169,8 +166,8 @@ End Subroutine write_matrix_real
 !------------------------------------------------------------------------------
 ! SUBROUTINE: write_matrix_int
 !------------------------------------------------------------------------------  
-!> @author Ralf Schneider, schneider@hlrs.de, HLRS/NUM
-!> @author Johannes Gebert,   gebert@hlrs.de, HLRS/NUM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
 !> @brief
 !> Subroutine to print regular tensors respectively matrices.
@@ -182,16 +179,15 @@ End Subroutine write_matrix_real
 !
 !> @param[in] fh Handle of file to print to
 !> @param[in] name Name of the object to print
-!> @param[in] mat_int  Dimensions of the 2nd rank tensor, integer kind = 4
 !> @param[in] fmt Formatting of the data
 !> @param[in] unit Physical unit of the information to print
-!> @param[in] hide_zeros Whether to suppress zeros for printing matrices
+!> @param[in] mat Actual matrix
 !------------------------------------------------------------------------------
-SUBROUTINE write_matrix_int (fh, name, fmt, unit, mat)
+SUBROUTINE write_matrix_int(fh, name, fmt, unit, mat)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh   
+INTEGER(KIND=INT64), INTENT(IN) :: fh   
 CHARACTER(LEN=*), INTENT(IN) :: name 
-INTEGER(KIND=ik), DIMENSION(:, :), INTENT(IN) :: mat    
+INTEGER(KIND=INT64), DIMENSION(:, :), INTENT(IN) :: mat    
 CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: fmt 
 CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: unit 
 
@@ -218,7 +214,8 @@ IF (PRESENT(unit)) THEN
 END IF
 
 IF (dim1 == dim2) THEN
-    CALL check_sym(fh, REAL(mat, KIND=rk), name, sym_out=sym_out)
+    ! ik for file handle required to support different standard iks.
+    CALL check_sym(INT(fh, KIND=ik), REAL(mat, KIND=rk), name, sym_out=sym_out)
     sym_u = .TRUE.
 END IF
 
@@ -276,6 +273,7 @@ END DO
 
 WRITE(fh, '(A)') ''
 End Subroutine write_matrix_int
+
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: underscore_to_blank

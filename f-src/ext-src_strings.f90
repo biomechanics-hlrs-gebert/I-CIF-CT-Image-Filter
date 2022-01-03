@@ -30,6 +30,7 @@ subroutine parse(str,delims,args,nargs)
 character(len=*) :: str,delims
 character(len=len_trim(str)) :: strsav
 character(len=mcl),dimension(:) :: args
+integer(kind=ik) :: nargs
 
 strsav=str
 call compact(str)
