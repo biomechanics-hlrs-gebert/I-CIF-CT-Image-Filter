@@ -32,7 +32,7 @@ if [[ -f "f-src/struct_process.f90" ]]; then
     #
     # ----------------------------------------
     # PETSc installation
-    petsc_prefix=/opt/petsc/petsc-3.15
+    petsc_prefix=/opt/petsc/petsc-I8-3.15
     export PETSC_INCPATH=${petsc_prefix}/include
     export PETSC_LIBPATH=${petsc_prefix}/lib
     export LD_LIBRARY_PATH=${petsc_prefix}/lib:$LD_LIBRARY_PATH

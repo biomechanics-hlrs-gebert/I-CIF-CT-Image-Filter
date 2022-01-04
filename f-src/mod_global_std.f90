@@ -9,10 +9,15 @@
 MODULE global_std
 
 IMPLICIT NONE
+! Parameters
+CHARACTER(LEN=*), PARAMETER :: out_amount  = "DEBUG" ! "PRODUCTION" 
 
 ! General constants
+
 INTEGER, PARAMETER :: sik = 2    ! INTEGER Kind
 INTEGER, PARAMETER :: ik  = 8    ! INTEGER Kind
+INTEGER, PARAMETER :: pik = 8    ! PETSc INTEGER Kind; Compile with corresponding mpi.
+INTEGER, PARAMETER :: mik = 8    ! MPI INTEGER Kind; Compile with corresponding mpi.
 INTEGER, PARAMETER :: rk  = 8    ! Real    Kind
 INTEGER, PARAMETER :: mcl = 512  ! Maximal character  length
 INTEGER, PARAMETER :: hcl = 256  ! Half    character  length
@@ -35,9 +40,6 @@ INTEGER(KIND=ik), PARAMETER :: fhsterr  = 10
 
 !-- StdOut Characters
 CHARACTER(len=5) :: creturn = achar(13)
-
-!-- Mpi-specific kinds
-INTEGER,PARAMETER :: mik = 4 ! MPI INTEGER Kind; Compile with corresponding mpi.
 
 ! Provide versioning information for transparent data tracking
 INCLUDE 'include_f90/revision_meta.f90'
