@@ -36,7 +36,7 @@ The program may be ported to other architectures. Maybe not :-)
 ## Build
 It's tested and therefore recommended to build and run the program as follows.
 ### Set up the Environment
-```vim ./auxiliaries/system_environments/<system>.sh```
+```vim ./central_src/auxiliaries/system_environments/<system>.sh```
 ```source ./environment.sh <system>``` 
 
 * Set an architecture/a system
