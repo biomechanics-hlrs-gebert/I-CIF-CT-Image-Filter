@@ -219,7 +219,7 @@ FUNCTION determine_stout() RESULT(fh_std_out)
 INTEGER(KIND=ik) :: fh_std_out
 
 INTEGER(KIND=ik) :: stat
-CHARACTER(LEN=scl)  :: use_std_out
+CHARACTER(LEN=scl) :: use_std_out
 
 CALL GET_ENVIRONMENT_VARIABLE(NAME='USE_STD_OUT', VALUE=use_std_out, STATUS=stat)
 
