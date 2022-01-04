@@ -23,7 +23,8 @@ INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 ! Internal Variables
 INTEGER(KIND=ik) :: border, kernel_size
 INTEGER(KIND=ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
-INTEGER(KIND=ik), DIMENSION(3) :: sections=0, rank_section, srry_dims
+INTEGER(KIND=mik), DIMENSION(3) :: sections
+INTEGER(KIND=ik), DIMENSION(3) :: sections_ik, rank_section, srry_dims
 INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, rmndr_dir, srry_dims_overlap
 INTEGER(KIND=ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
 INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_ik2
@@ -157,8 +158,8 @@ CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_
 CALL MPI_BCAST(selectKernel, INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(type        , INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(sigma       , 1_mik, MPI_DOUBLE_PRECISION , 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 
 ! DEBUG INFORMATION
 IF((debug >= 2) .AND. (my_rank == 0)) THEN
@@ -170,8 +171,11 @@ END IF
 !------------------------------------------------------------------------------
 ! Get sections per direction
 !------------------------------------------------------------------------------
-CALL MPI_DIMS_CREATE (size_mpi, 3_mik, sections, ierr)
-CALL get_rank_section (domain=my_rank, sections=sections, rank_section=rank_section)
+sections=0
+CALL MPI_DIMS_CREATE(size_mpi, 3_mik, sections, ierr)
+sections_ik = INT(sections, KIND=ik)
+
+CALL get_rank_section(domain=INT(my_rank, KIND=ik), sections=sections_ik, rank_section=rank_section)
 
 !------------------------------------------------------------------------------
 ! Calculate Padding to decrease "size of array" to a corresponding size
@@ -190,7 +194,7 @@ border = (kernel_size-1_ik) / 2_ik ! 0D Array (scalar)
 ! On the other hand, Distribution of the array gets way easier and presumably 
 ! quicker.
 !------------------------------------------------------------------------------
-rmndr_dir = MODULO(dims, sections)
+rmndr_dir = MODULO(dims, sections_ik)
 
 !------------------------------------------------------------------------------
 ! If remainder per direction is larger than the padding, simply shift the 
@@ -213,7 +217,7 @@ subarray_origin = ((rank_section-1_ik) * (srry_dims))
 IF((debug >= 2) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_MSG) "Calculation of domain sectioning:"
     WRITE(std_out,FMT_MSG)
-    WRITE(std_out,FMT_MSG_A3I0) "sections: ", sections
+    WRITE(std_out,FMT_MSG_A3I0) "sections: ", sections_ik
     WRITE(std_out,FMT_MSG_A3I0) "dims: ", dims
     WRITE(std_out,FMT_MSG_A3I0) "border: ", border
     WRITE(std_out,FMT_MSG_A3I0) "input_img_padding: ", in_img_padding
@@ -266,8 +270,8 @@ IF(my_rank == 0) CALL CPU_TIME(read_t_vtk)
 srb(1:3) = 1_ik + border
 srb(4:6) = srry_dims_overlap - border
 
-CALL MPI_ALLREDUCE(histo_bnd_local_lo, histo_bnd_global_lo, 1_mik, MPI_INTEGER, MPI_MIN, MPI_COMM_WORLD, ierr)
-CALL MPI_ALLREDUCE(histo_bnd_local_hi, histo_bnd_global_hi, 1_mik, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
+CALL MPI_ALLREDUCE(histo_bnd_local_lo, histo_bnd_global_lo, 1_mik, MPI_INTEGER8, MPI_MIN, MPI_COMM_WORLD, ierr)
+CALL MPI_ALLREDUCE(histo_bnd_local_hi, histo_bnd_global_hi, 1_mik, MPI_INTEGER8, MPI_MAX, MPI_COMM_WORLD, ierr)
 
 hbnds=[histo_bnd_global_lo, histo_bnd_global_hi , histo_bnd_global_hi - histo_bnd_global_lo]  
 

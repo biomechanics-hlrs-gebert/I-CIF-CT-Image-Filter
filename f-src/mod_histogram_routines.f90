@@ -38,7 +38,7 @@ CONTAINS
 SUBROUTINE extract_histogram_scalar_array_ik2(array, hbnds, histogram)
 ! This is an inherently unflexible subroutine. It delivers exactly this kind of histogram and nothing else...
 INTEGER(KIND=INT16), DIMENSION(:,:,:) :: array
-INTEGER(KIND=ik), DIMENSION(3)             , INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
+INTEGER(KIND=ik), DIMENSION(3), INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
 INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: histogram
 
 ! Internal variables
@@ -46,15 +46,14 @@ INTEGER(KIND=ik) :: ii, jj, kk
 INTEGER(KIND=ik), DIMENSION(3) :: shp
 
 ALLOCATE(histogram(hbnds(1):hbnds(2)))
-
 histogram(:) = 0_ik
 
-shp = SHAPE(array)
+shp = INT(SHAPE(array), KIND=ik)
 
 ! Take care of sign of hmin!! Not that intuitive
-DO kk=1, shp(3)
-DO jj=1, shp(2)
-DO ii=1, shp(1)
+DO kk=1_ik, shp(3)
+DO jj=1_ik, shp(2)
+DO ii=1_ik, shp(1)
   histogram(array(ii, jj, kk)) = histogram(array(ii, jj, kk)) + 1_ik
 END DO
 END DO
@@ -89,7 +88,7 @@ ALLOCATE(histogram(hbnds(1):hbnds(2)))
 
 histogram(:) = 0_ik
 
-shp = SHAPE(array)
+shp = INT(SHAPE(array), KIND=ik)
 
 ! Take care of sign of hmin!! Not that intuitive
 DO kk=1, shp(3)
