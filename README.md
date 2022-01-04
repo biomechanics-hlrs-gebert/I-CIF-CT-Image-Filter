@@ -1,10 +1,4 @@
 # Computed Tomography Image Filter
-
-![Architecture](https://img.shields.io/badge/Architecture-x86-green)
-![OS](https://img.shields.io/badge/Linux-64Bit-green)
-![version](https://img.shields.io/badge/version-5.0.0-green)
-![Contributors](https://img.shields.io/badge/HLRS-NUM-blue)
-
 This program reads 3-Dimensional scalar fields out of STRUCTURED-POINTS \*.vtk files and filters them according to specific convolutional matrices/Kernels.  
 It's tested with up to 160 Processors (4 nodes) on Vulcan. Turnaround time of roughly 200 Seconds while reading/computing/writing to storage on 18.5E09 Voxels of kind INTEGER2.
 
@@ -17,11 +11,7 @@ For use with previously used data sets:
 ```
 cat ./datasets/I-CTIF.meta.template >> Your_Meta_File.meta
 ```
-
-## Intent of this program
-*Computed Tomography Image Filter* prepares computed tomography scans to threshold and binarize the data in subsequent steps.
 ## [semantic versioning](https://semver.org):
-
 Given a version number MAJOR.MINOR.PATCH, increment the:
 
 * MAJOR version when you major Features (i.e. new way of image processing),
@@ -30,9 +20,9 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 ## Requirements
 * x86 64bit Hardware
-* Linux x86 64Bit Installation with a BASh
-* GNU Compiler Collection (GCC) including gcc/gfortran
-* An installation of Open MPI - run the script in the project's root directory.
+* Linux x86 64Bit Installation with a Bash
+* GNU Compiler Collection (GCC)
+* An installation of Open-MPI
 ### Message Passing Interface 
 Parallelization of the program is done with an API called MPI (Message Passing Interface).
 
