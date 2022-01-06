@@ -431,23 +431,71 @@ CHARACTER(LEN=*), INTENT(IN) :: suf
 
 CHARACTER(LEN=meta_mcl) :: temp_f_suf, perm_f_suf
 INTEGER  (KIND=meta_ik) :: ios
+LOGICAL :: op, fex
+
+op = .FALSE.
+fex = .FALSE.
 
 temp_f_suf = TRIM(out%path)//'.temporary'//TRIM(suf)
 perm_f_suf = TRIM(out%p_n_bsnm)//TRIM(suf)
 
-CLOSE (fh)
+INQUIRE(UNIT=fh, OPENED=op)
+IF(op) CLOSE(fh)
 
-!------------------------------------------------------------------------------
-! The temporary log file must be renamed to a permanent one
-!------------------------------------------------------------------------------
-CALL execute_command_line ('mv '//TRIM(temp_f_suf)//' '//TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
+INQUIRE(FILE = TRIM(temp_f_suf), EXIST=fex)
 
-IF(ios /= 0_meta_ik) THEN
-   mssg='Can not rename the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
-   CALL print_err_stop(std_out, mssg, 0)
+IF(fex) THEN
+   !------------------------------------------------------------------------------
+   ! The temporary log file must be renamed to a permanent one
+   !------------------------------------------------------------------------------
+   CALL execute_command_line ('mv '//TRIM(temp_f_suf)//' '//TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
+
+   IF(ios /= 0_meta_ik) THEN
+      mssg='Can not rename the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
+      CALL print_err_stop(std_out, mssg, 0)
+   END IF
 END IF
 
 END SUBROUTINE meta_stop_ascii
+
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_existing_ascii
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Subroutine to check and open ascii files which must exist, for example to
+!> read input data.
+!
+!> @param[in] fh File handle of the input
+!> @param[in] suf Suffix of the file
+!> @param[out] amnt_lines Amount of lines in file
+!------------------------------------------------------------------------------  
+SUBROUTINE meta_existing_ascii(fh, suf, amnt_lines)
+
+INTEGER(KIND=meta_ik), INTENT(IN) :: fh
+CHARACTER(LEN=*), INTENT(IN) :: suf
+INTEGER(KIND=meta_ik), INTENT(OUT) :: amnt_lines
+
+LOGICAL :: fex
+
+fex = .FALSE.
+
+INQUIRE(FILE = TRIM(in%p_n_bsnm)//TRIM(ADJUSTL(suf)), EXIST=fex)
+
+IF(fex) THEN
+   OPEN(UNIT=fh, FILE=TRIM(in%p_n_bsnm)//TRIM(ADJUSTL(suf)),&
+      ACTION='READWRITE', STATUS='OLD')
+
+   amnt_lines = count_lines(fh)
+ELSE
+   mssg = "The input file requested does not exist: "//&
+      TRIM(in%p_n_bsnm)//TRIM(ADJUSTL(suf))
+   CALL print_err_stop(std_out, mssg, 1)
+END IF
+
+END SUBROUTINE meta_existing_ascii
 
 
 
@@ -465,20 +513,20 @@ END SUBROUTINE meta_stop_ascii
 function count_lines(un) result(no_lines)
 
 Integer, Intent(in) :: un
-Integer(kind=ik)    :: no_lines
+Integer(kind=ik) :: no_lines
 
 Integer :: io_stat
 Character(len=2) :: temp_char
 
-io_stat = 0
-no_lines=0
-
+io_stat  = 0
+no_lines = 0
+ 
 Rewind(un)
 
 Do While (io_stat == 0)
 
-Read(un,'(A)', End=1000, iostat=io_stat) temp_char
-no_lines = no_lines + 1
+   Read(un,'(A)', End=1000, iostat=io_stat) temp_char
+   no_lines = no_lines + 1
 
 End Do
 

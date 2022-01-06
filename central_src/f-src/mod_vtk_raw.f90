@@ -41,6 +41,9 @@ END INTERFACE mpi_write_raw
 INTERFACE ser_write_raw
    MODULE PROCEDURE ser_write_raw_ik2
    MODULE PROCEDURE ser_write_raw_ik4
+   MODULE PROCEDURE ser_write_raw_ik8
+   MODULE PROCEDURE ser_write_raw_rk4
+   MODULE PROCEDURE ser_write_raw_rk8
 END INTERFACE ser_write_raw
 
 CONTAINS
@@ -483,6 +486,78 @@ WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
 END SUBROUTINE ser_write_raw_ik4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_write_raw_ik8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Write raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!------------------------------------------------------------------------------
+SUBROUTINE ser_write_raw_ik8(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(IN) :: array
+CHARACTER(len=*), INTENT(IN) :: filename
+
+OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+WRITE(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_write_raw_ik8
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_write_raw_rk4
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Write raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!------------------------------------------------------------------------------
+SUBROUTINE ser_write_raw_rk4(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(IN) :: array
+CHARACTER(len=*), INTENT(IN) :: filename
+
+OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+WRITE(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_write_raw_rk4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: ser_write_raw_rk8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Write raw binary data serially. 
+!
+!> @param[in] fh File handle
+!> @param[in] filename Name of the file
+!------------------------------------------------------------------------------
+SUBROUTINE ser_write_raw_rk8(fh, filename, array)
+
+INTEGER(KIND=ik), INTENT(IN) :: fh
+REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
+CHARACTER(len=*), INTENT(IN) :: filename
+
+OPEN (UNIT=fh, FILE=filename, ACCESS="STREAM", FORM="UNFORMATTED", &
+   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+WRITE(UNIT=fh) array
+CLOSE(UNIT=fh)
+
+END SUBROUTINE ser_write_raw_rk8
 
 END MODULE raw_binary
 

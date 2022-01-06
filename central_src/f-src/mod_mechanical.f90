@@ -12,7 +12,25 @@ USE global_std
 
 IMPLICIT NONE
 
-! Add other parameters if necessary.
+!------------------------------------------------------------------------------
+! Describe a tensor and its state in respect to the position of the control
+! volume. Required to fully trace the origin of a stiffness matrix (tensor).
+! 
+! It is expected that all other information like domain size, filter options 
+! etc. are described by the meta file format!
+!------------------------------------------------------------------------------
+TYPE tensor_2nd_rank_R66
+   INTEGER(KIND=ik) :: dmn     ! Number of the control volume
+   REAL(KIND=rk) :: density    ! Percentage of monolothic young modulus
+   REAL(KIND=rk) :: doa_zener  ! Degree of anisotropy
+   REAL(KIND=rk) :: doa_gebert ! Degree of anisotropy
+   REAL(KIND=rk), DIMENSION(3)   :: pos = 0._rk ! Positioon (deg) of alpha, eta, phi
+   REAL(KIND=rk), DIMENSION(6,6) :: mat = 0._rk
+END TYPE tensor_2nd_rank_R66
+
+!------------------------------------------------------------------------------
+! Characterize a material
+!------------------------------------------------------------------------------
 TYPE materialcard
     REAL(KIND=rk) :: E
     REAL(KIND=rk) :: nu
@@ -23,9 +41,55 @@ END TYPE materialcard
 CONTAINS
 
 !------------------------------------------------------------------------------
+! FUNCTION: doa_zener
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Function to calculate the zener ratio, an anisotropy measure for 
+!> orthotropic cases. https://en.wikipedia.org/wiki/Zener_ratio
+!
+!> @param[in] mat Young moduluss     
+!> @return doa Degree of Zener-anisotropy
+!------------------------------------------------------------------------------  
+FUNCTION doa_zener(mat) RESULT (doa)
+
+   REAL(KIND=rk), DIMENSION(6,6), INTENT(IN) :: mat
+   REAL(KIND=rk) :: doa
+
+   doa = 2*mat(4,4)/(mat(1,1)-mat(1,2))
+
+END FUNCTION doa_zener
+
+
+!------------------------------------------------------------------------------
+! FUNCTION: doa_gebert
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Function to calculate the gebert ratio, an anisotropy measure for 
+!> anisotropic cases.
+!> FIRST DRAFT
+!
+!> @param[in] mat Young moduluss     
+!> @return doa Degree of Gebert-anisotropy
+!------------------------------------------------------------------------------  
+FUNCTION doa_gebert(mat) RESULT (doa)
+
+   REAL(KIND=rk), DIMENSION(6,6), INTENT(IN) :: mat
+   REAL(KIND=rk) :: doa
+
+   doa = ((mat(4,4)+mat(5,5)+mat(6,6))/3._rk + &
+         (SUM(mat(1:3, 4:6)) + SUM(mat(4, 5:6)) + mat(5,6) / 12._rk)) &
+            / (mat(1,1)-mat(1,2)) 
+
+END FUNCTION doa_gebert
+
+!------------------------------------------------------------------------------
 ! FUNCTION: lamee_lambda
-!------------------------------------------------------------------------------ 
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!------------------------------------------------------------------------------
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to return the lamé constant lambda
@@ -46,7 +110,7 @@ END FUNCTION lamee_lambda
 !------------------------------------------------------------------------------
 ! FUNCTION: lamee_mu_shear
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to return the lamé constant µ / the shear modulus G
@@ -71,7 +135,7 @@ END FUNCTION lamee_mu_shear
 !------------------------------------------------------------------------------
 ! FUNCTION: bulk_modulus
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to return the bulk modulus
@@ -93,7 +157,7 @@ END FUNCTION bulk_modulus
 !------------------------------------------------------------------------------
 ! FUNCTION: iso_compliance_voigt
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to quickly generate an isotropic 2nd rank compliance tensor
@@ -127,7 +191,7 @@ END FUNCTION iso_compliance_voigt
 !------------------------------------------------------------------------------
 ! FUNCTION: iso_compliance_kelvin
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to quickly generate an isotropic 2nd rank compliance tensor
@@ -161,7 +225,7 @@ END FUNCTION iso_compliance_kelvin
 !------------------------------------------------------------------------------
 ! FUNCTION: iso_stiffness_voigt
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to quickly generate an isotropic 2nd rank stiffness tensor
@@ -193,7 +257,7 @@ END FUNCTION iso_stiffness_voigt
 !------------------------------------------------------------------------------
 ! FUNCTION: iso_stiffness_kelvin
 !------------------------------------------------------------------------------  
-!> @author Johannes Gebert, gebert@hlrs.de, HLRS/vM
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
 !> Function to quickly generate an isotropic 2nd rank stiffness tensor
@@ -224,5 +288,40 @@ FUNCTION iso_stiffness_kelvin(E, v) RESULT (t_iso)
    t_iso = t_iso*fctr ! Elementwise operation
 
 END FUNCTION iso_stiffness_kelvin
+
+
+!------------------------------------------------------------------------------
+! FUNCTION: gebert_density_voigt
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Calculates the density of the control volume by its mechanical performance
+!> in respect to its monolithical stiffness.
+!
+!> @param[in] mat Input tensor/matrix     
+!> @param[in] E Young modulus of the monolithic material
+!> @param[in] v Poissions ratio of the monolithic material
+!> @return density Returns the gebert-density
+!------------------------------------------------------------------------------  
+FUNCTION gebert_density_voigt(mat, E, v) RESULT (density)
+
+   REAL (KIND=rk), DIMENSION(6,6) :: mat
+   REAL (KIND=rk) :: E, v, density
+
+   REAL (KIND=rk), DIMENSION(6,6) :: dmat, voigt_mat
+
+   voigt_mat = iso_stiffness_voigt(E, v)
+
+   !------------------------------------------------------------------------------  
+   ! Minor diagonals/zero entries of the density matrix dmat are inf.  
+   !------------------------------------------------------------------------------  
+   dmat = mat / voigt_mat 
+
+   density =((dmat(1,1)+dmat(2,2)+dmat(3,3))/3._rk + &     
+             (dmat(4,4)+dmat(5,5)+dmat(6,6))/3._rk + &     
+             (dmat(1,2)+dmat(1,3)+dmat(2,3))/3._rk) / 3._rk
+
+END FUNCTION gebert_density_voigt
 
 END MODULE mechanical
