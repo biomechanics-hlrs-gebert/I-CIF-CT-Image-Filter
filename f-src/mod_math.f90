@@ -13,9 +13,11 @@ USE global_std
 USE strings
 
 IMPLICIT NONE
+
 REAL(KIND=rk), PARAMETER :: num_zero   = 1.E-9
 REAL(KIND=rk), PARAMETER :: sq2        = sqrt(2._rk)
-REAL(KIND=rk), PARAMETER :: pi         = 4.D0*DATAN(1.D0) !acos(-1._rk)
+REAL(KIND=rk), PARAMETER :: pi         = 4.D0*DATAN(1.D0)       !acos(-1._rk)
+REAL(KIND=rk), PARAMETER :: pihalf     = 4.D0*DATAN(1.D0)/2._rk !acos(-1._rk)
 REAL(KIND=rk), PARAMETER :: inv180     = 1._rk/180._rk
 REAL(KIND=rk), PARAMETER :: pi_div_180 = acos(-1._rk)/180._rk
 
@@ -34,21 +36,63 @@ END INTERFACE zero_thres
 CONTAINS
 
 !------------------------------------------------------------------------------
+! SUBROUTINE: transpose_mat
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Spatially transpose a R6x6 matrix (2nd rank tensor).
+!
+!> @param[in] tensor_in Input tensor
+!> @param[in] pos_in Requested combination of euler angles.
+!> @param[out] tensor_out Output tensor
+!------------------------------------------------------------------------------
+SUBROUTINE transpose_mat (tensor_in, pos_in, tensor_out)
+
+     REAL(KIND=rk), DIMENSION(6,6), INTENT(IN)  :: tensor_in
+     REAL(KIND=rk), DIMENSION(3)  , INTENT(IN)  :: pos_in
+     REAL(KIND=rk), DIMENSION(6,6), INTENT(OUT) :: tensor_out
+
+     REAL(KIND=rk)                 :: alpha, phi, eta
+     REAL(KIND=rk), DIMENSION(3)   :: n
+     REAL(KIND=rk), DIMENSION(3,3) :: aa
+     REAL(KIND=rk), DIMENSION(6,6) :: BB
+
+     !------------------------------------------------------------------------------
+     !  Degrees as input, radian as output to sin/cos
+     !------------------------------------------------------------------------------
+     alpha = REAL(pos_in(1)) * pi / 180._rk
+     phi   = REAL(pos_in(2)) * pi / 180._rk
+     eta   = REAL(pos_in(3)) * pi / 180._rk
+
+     n = [ COS(phi)*SIN(eta), SIN(phi)*SIN(eta), COS(eta) ]
+
+     n = n / SQRT(SUM(n*n))
+
+     aa = rot_alg(n, alpha)
+
+     BB = tra_R6(aa)
+
+     tensor_out = MATMUL(MATMUL(TRANSPOSE(BB), tensor_in), BB)
+
+END SUBROUTINE transpose_mat
+
+!------------------------------------------------------------------------------
 ! FUNCTION: rot_x
 !------------------------------------------------------------------------------  
 !> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
-!> @param[in] alpha Angle
+!> @param[in] angle Angle
 !> @return[out] aa Output transformation matrix
 !------------------------------------------------------------------------------  
-Function rot_x(alpha) Result(aa)
+Function rot_x(angle) Result(aa)
 
-    Real(kind=rk), intent(in) :: alpha
+    Real(kind=rk), intent(in) :: angle
     Real(kind=rk), Dimension(3,3) :: aa
 
     aa(1,:) = [ 1._rk ,   0._rk    ,   0._rk     ]
-    aa(2,:) = [ 0._rk , cos(alpha) , -sin(alpha) ]
-    aa(3,:) = [ 0._rk , sin(alpha) ,  cos(alpha) ]
+    aa(2,:) = [ 0._rk , cos(angle) , -sin(angle) ]
+    aa(3,:) = [ 0._rk , sin(angle) ,  cos(angle) ]
 
 End Function rot_x
 
@@ -57,17 +101,17 @@ End Function rot_x
 !------------------------------------------------------------------------------  
 !> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
-!> @param[in] alpha Angle
+!> @param[in] angle Angle
 !> @return[out] aa Output transformation matrix
 !------------------------------------------------------------------------------  
-Function rot_y(alpha) Result(aa)
+Function rot_y(angle) Result(aa)
 
-    Real(kind=rk), intent(in) :: alpha
+    Real(kind=rk), intent(in) :: angle
     Real(kind=rk), Dimension(3,3) :: aa
 
-    aa(1,:) = [ cos(alpha), 0._rk,  sin(alpha) ]
+    aa(1,:) = [ cos(angle), 0._rk,  sin(angle) ]
     aa(2,:) = [   0._rk   , 1._rk,   0._rk     ]
-    aa(3,:) = [-sin(alpha), 0._rk,  cos(alpha) ]
+    aa(3,:) = [-sin(angle), 0._rk,  cos(angle) ]
 
 End Function rot_y
 
@@ -76,16 +120,16 @@ End Function rot_y
 !------------------------------------------------------------------------------  
 !> @author Ralf Schneider - HLRS - NUM - schneider@hlrs.de
 !
-!> @param[in] alpha Angle
+!> @param[in] angle Angle
 !> @return[out] aa Output transformation matrix
 !------------------------------------------------------------------------------  
-Function rot_z(alpha) Result(aa)
+Function rot_z(angle) Result(aa)
 
-    Real(kind=rk), intent(in) :: alpha
+    Real(kind=rk), intent(in) :: angle
     Real(kind=rk), Dimension(3,3) :: aa
 
-    aa(1,:) = [ cos(alpha), -sin(alpha), 0._rk ]
-    aa(2,:) = [ sin(alpha),  cos(alpha), 0._rk ]
+    aa(1,:) = [ cos(angle), -sin(angle), 0._rk ]
+    aa(2,:) = [ sin(angle),  cos(angle), 0._rk ]
     aa(3,:) = [   0._rk   ,   0._rk    , 1._rk ]
 
 End Function rot_z

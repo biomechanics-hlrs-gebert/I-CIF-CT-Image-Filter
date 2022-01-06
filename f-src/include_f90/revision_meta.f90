@@ -1,3 +1,3 @@
-CHARACTER(LEN=scl), PARAMETER :: longname = 'Directly Discretizing Tensor Computation'
+CHARACTER(LEN=scl), PARAMETER :: longname = 'Rotational Tensor Optimization'
 CHARACTER(LEN=scl), PARAMETER :: revision = ''
-CHARACTER(LEN=scl), PARAMETER :: hash = '40cb58fe5d1b066904e8421084c11770383fe041'
+CHARACTER(LEN=scl), PARAMETER :: hash = 'ddcb4f2106f202cdf1b1c51131132ee27cd741f4'

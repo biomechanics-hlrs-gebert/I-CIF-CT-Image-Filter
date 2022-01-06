@@ -32,8 +32,8 @@ CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0  = "('EE ', *(A,I0))"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',10A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
 
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A  = "('-- ',A,1X,F0.6,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF15A = "('-- ',A,1X,F15.6,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A  = "('-- ',A,1x,F0.6,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF15A = "('-- ',A,1x,F15.6,1x,A)"
 CHARACTER(Len=*), PARAMETER :: FMT_TXT_A3I0  = "('-- ',A,3(1x,I0))"
 
 !------------------------------------------------------------------------------
@@ -43,15 +43,15 @@ CHARACTER(Len=*), PARAMETER :: FMT_MSG      = "('MM ',10A)"
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP  = "(80('-'))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxI0 = "('MM ',A,*(1x, I0))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0  = "('MM ',*(A,1X,I0,1X))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0A = "('MM ',A,1X,I0,1X,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_2AI0 = "('MM ',2(A,1X,I0,1X))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0  = "('MM ',*(A,T30,I0,1x))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0A = "('MM ',A,1x,I0,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_2AI0 = "('MM ',2(A,1x,I0,1x))"
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_A3I0 = "('MM ',A,3(1x,I0))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AF0  = "('MM ',A,1X,F0.6)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AF0A = "('MM ',A,1X,F0.6,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_A2F0 = "('MM ',A,2(1X,F0.6))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_A3F0 = "('MM ',A,3(1X,F0.6))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AF0  = "('MM ',A,1x,F0.6)"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AF0A = "('MM ',A,1x,F0.6,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_A2F0 = "('MM ',A,2(1x,F0.6))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_A3F0 = "('MM ',A,3(1x,F0.6))"
 !
 CHARACTER(Len=*), PARAMETER :: FMT_MSG_AL   = "('MM ',A,1x,L1)"
 
@@ -61,9 +61,9 @@ CHARACTER(Len=*), PARAMETER :: FMT_MSG_AL   = "('MM ',A,1x,L1)"
 CHARACTER(Len=*), PARAMETER :: FMT_WRN      = "('WW ',A)"
 CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP  = "(80('-'))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0  = "('WW ',A,1X,I0)"
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0A = "('WW ',A,1X,I0,1X,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AF0  = "('WW ',A,1X,F0.6)"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0  = "('WW ',A,1x,I0)"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0A = "('WW ',A,1x,I0,1x,A)"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AF0  = "('WW ',A,1x,F0.6)"
 
 !------------------------------------------------------------------------------
 ! Debug formats
@@ -303,7 +303,11 @@ end subroutine mpi_err
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Aborts if err > 0. err is required to call this routine after another one 
+!> Stop a program.
+!
+!> @description
+!> Aborts non-gracefull with a stop on one processor if err > 0. 
+!> Err /= 0 is required to call this routine after another one 
 !> with a status feedback.
 !
 !> @param[in] fh Handle of file to print to
@@ -315,7 +319,7 @@ SUBROUTINE print_err_stop(fh, txt, err) ! , pro_path, pro_name
 INTEGER(KIND=ik), INTENT(IN) :: fh , err
 CHARACTER(LEN=*), INTENT(IN) :: txt
 
-IF (err /= 0) THEN
+IF (err > 0) THEN
    WRITE(fh, FMT_ERR) TRIM(txt)
    WRITE(fh, FMT_ERR_STOP)
    WRITE(*,FMT_ERR) "Can't stop gracefully."
@@ -323,5 +327,44 @@ IF (err /= 0) THEN
 END IF
 
 END SUBROUTINE print_err_stop
+  
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: estimated_time_of_arrival
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Calculates the estimated time of arrival. Best suited for Julius or other 
+!> interactive notebooks/desktops/...
+!
+!> @param[in] sec Handle of file to print to
+!> @param[out] string Output string of the ETA. Printed to std_out if not given
+!------------------------------------------------------------------------------  
+SUBROUTINE estimated_time_of_arrival(sec, string)
+
+    INTEGER(KIND=ik), INTENT(IN) :: sec
+    CHARACTER(LEN=scl), INTENT(OUT), OPTIONAL :: string
+
+    INTEGER(KIND=ik) :: mins, hours, secs, seconds, mins_s, remainder
+    CHARACTER(LEN=scl) :: str
+
+    mins_s    = MODULO(sec,  3600_ik)
+    seconds   = MODULO(mins_s, 60_ik)
+    remainder = MODULO(seconds, 1_ik)
+
+    hours = (sec-mins_s) / 3600_ik
+    mins  = (mins_s-seconds) / 60_ik
+    secs  = (seconds-remainder)
+
+    write(string,'(I3,2(A,I2),A)') hours,":",mins,":",secs," hhh:mm:ss"
+
+    IF(PRESENT(string)) THEN
+        string = str
+    ELSE
+        WRITE(std_out, FMT_TXT) "ETA: "//TRIM(ADJUSTL(str))
+    END IF
+
+END SUBROUTINE estimated_time_of_arrival
 
 END MODULE user_interaction
