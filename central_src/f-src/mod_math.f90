@@ -205,82 +205,72 @@ End Function tra_R6
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Check the symmetry of an arbitrarily sized square matrix.
+!> Check the symmetry of an arbitrarily sized matrix.
 !
 !> @Description
-!> Evaluates the symmetry of the matrix dependent of the quotient of 
-!> the L2-Norm of the subtracted minor diagonals devided by the 
-!> L2-norm of the input matrix
+!> Average percentage of deviation of minor diagonals.
 !
-!> @param[in]  fh File handle to write to
-!> @param[in]  mi Input Matrix
-!> @param[in]  name Name of the matrix to evaluate
-!> @param[out] mo Output Matrix
-!> @param[out] sym_out Sum of differences of all ii,jj entries
+!> @param[in]  matin Input Matrix
+!> @param[out] matout Output Matrix
+!> @param[out] sym Sum of differences of all ii,jj entries
 !------------------------------------------------------------------------------  
-SUBROUTINE check_sym(fh, mi, name, mo, sym_out)
+SUBROUTINE check_sym(matin, sym, matout)
 
-INTEGER(KIND=ik),              INTENT(IN) :: fh
-REAL(KIND=rk), DIMENSION(:,:), INTENT(IN) :: mi
-CHARACTER(LEN=*),              INTENT(IN) , OPTIONAL :: name
-REAL(KIND=rk), DIMENSION(:,:), INTENT(OUT), OPTIONAL :: mo
-REAL(KIND=rk)                , INTENT(OUT), OPTIONAL :: sym_out
+REAL(KIND=rk), DIMENSION(:,:), INTENT(IN)  :: matin
+REAL(KIND=rk)                , INTENT(OUT) :: sym
+REAL(KIND=rk), DIMENSION(:,:), INTENT(OUT), OPTIONAL :: matout
 
-REAL(KIND=rk), DIMENSION(:,:), ALLOCATABLE :: mat 
-REAL(KIND=rk) :: sym 
-INTEGER, DIMENSION(2) :: lb, ub
-INTEGER(KIND=ik) :: ii, jj, q
-CHARACTER(LEN=scl) :: name_u, sym_out_str
+! INTEGER, DIMENSION(2) :: lb, ub
+INTEGER(KIND=ik) :: ii, jj
+REAL(KIND=rk) :: cummu, entry_counter
 
-name_u = ''
+! lb = LBOUND(matin)
+! ub = UBOUND(matin)
 
-lb = LBOUND(mi)
-ub = UBOUND(mi)
-
-ALLOCATE(mat(lb(1), ub(2)))
-mat = 0._rk
+! ALLOCATE(matout(lb(1), ub(2)))
+! matout = 0._rk
 
 !------------------------------------------------------------------------------
 ! Calculate the differences to get the information of symmetry
+! Earlier version...
 !------------------------------------------------------------------------------
-sym = 0._rk
+! sym = 0._rk
 
-Do jj = lb(2), ub(2)
-    DO ii = lb(1), ub(1)
-        sym = sym + ABS(mi(ii,jj) -  mi(jj,ii))
-    End DO
-End Do
+! DO jj = lb(2), ub(2)
+!     DO ii = lb(1), ub(1)
+!         sym = sym + ABS(matin(ii,jj) -  matin(jj,ii))
+    ! END DO
+! END DO
 
-IF(PRESENT(sym_out)) sym_out = sym
+cummu = 0._rk
+ii=1_ik
+entry_counter = 0._rk
+DO WHILE (ii < SIZE(matin, DIM=1))
+ 
+    jj=2_ik
+    DO WHILE (jj <= SIZE(matin, DIM=2))
+        cummu = cummu + (matin(ii,jj) /  matin(jj,ii))  
 
-!------------------------------------------------------------------------------
-! Write matrix out with zeros to show check_sym
-! q counts the rows/columns to suppress a half of the matrix
-!------------------------------------------------------------------------------
-mat = mi
-IF(sym <= 10E-06) THEN
-    q = 1
-    DO jj=lb(2), ub(2)-1 ! columns
-        q = q + 1 ! begins with 2
-        DO ii=lb(1), ub(2) ! rows
-            mat (ii,jj) = 0._rk
-        END DO
+        !------------------------------------------------------------------------------
+        ! How many entries are averaged?
+        !------------------------------------------------------------------------------
+        entry_counter = entry_counter + 1._rk     
+
+        jj = jj + 1_ik
     END DO
-END IF
 
-IF(PRESENT(mo)) mo = mat
-DEALLOCATE(mat)
-
-IF(PRESENT(name)) name_u = ' '//TRIM(ADJUSTL(name))
+    ii = ii + 1_ik
+END DO
 
 !------------------------------------------------------------------------------
-! Format output
+! 1 - sym quotient to compare to 0
 !------------------------------------------------------------------------------
-WRITE(sym_out_str, '(F40.20)') sym
+sym = 1._rk - (cummu / entry_counter)
 
-CALL trimzero(sym_out_str)
-
-WRITE(fh, '(4A)')"-- check_sym",TRIM(name_u),": ", TRIM(ADJUSTL(sym_out_str))
+!------------------------------------------------------------------------------
+! Write matout
+!------------------------------------------------------------------------------
+IF(PRESENT(matout)) matout = matin 
 
 END SUBROUTINE check_sym
 

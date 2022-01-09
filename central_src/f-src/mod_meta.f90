@@ -127,7 +127,7 @@ IF (restart_cmdarg /= 'U') THEN
 
    mssg=TRIM(mssg)//"restart"
    WRITE(std_out, FMT_WRN) TRIM(mssg)
-   WRITE(std_out, FMT_WRN_SEP)
+   WRITE(std_out, FMT_SEP)
 END IF
 
 !------------------------------------------------------------------------------
@@ -454,6 +454,20 @@ IF(fex) THEN
       mssg='Can not rename the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
       CALL print_err_stop(std_out, mssg, 0)
    END IF
+ELSE
+   !------------------------------------------------------------------------------
+   ! In case of an existing ascii file, the in%p_n_bsnm is relevant.
+   !------------------------------------------------------------------------------
+   INQUIRE(FILE = TRIM(in%p_n_bsnm)//TRIM(suf), EXIST=fex)
+   
+   CALL execute_command_line ('cp '//TRIM(in%p_n_bsnm)//TRIM(suf)//' '&
+      //TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
+
+   IF(ios /= 0_meta_ik) THEN
+      mssg='Can not copy the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
+      CALL print_err_stop(std_out, mssg, 0)
+   END IF
+
 END IF
 
 END SUBROUTINE meta_stop_ascii
@@ -467,6 +481,9 @@ END SUBROUTINE meta_stop_ascii
 !> @brief
 !> Subroutine to check and open ascii files which must exist, for example to
 !> read input data.
+!
+!> @description
+!> Stop the file with meta_stop_ascii
 !
 !> @param[in] fh File handle of the input
 !> @param[in] suf Suffix of the file
@@ -1090,8 +1107,37 @@ END SUBROUTINE meta_write_I0D
 
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: meta_write_R0D
+! SUBROUTINE: meta_write_I0D_long
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Module to write keywords of type integer dim 0. Specific version to 
+!> deal with numbers greater than INT32 can deal with.
+!
+!> @param[in] fh File handle to write a log/mon or text to.
+!> @param[in] keyword Keyword to write
+!> @param[in] unit Unit of the value
+!> @param[in] int_0D Datatype to read in
 !------------------------------------------------------------------------------
+SUBROUTINE meta_write_I0D_long (fh, keyword, unit, int_0D)
+   
+INTEGER(KIND=meta_ik), INTENT(IN) :: fh 
+CHARACTER(LEN=*), INTENT(IN) :: keyword
+CHARACTER(LEN=*), INTENT(IN) :: unit
+INTEGER(KIND=INT64), INTENT(IN) :: int_0D 
+
+CHARACTER(LEN=meta_scl) :: stdspcfill
+
+WRITE(stdspcfill, '(I0)') int_0D
+
+CALL meta_write_keyword (fh, keyword, stdspcfill, unit)
+
+END SUBROUTINE meta_write_I0D_long
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_write_R0D
+!------------------------------------------------------------------------------  
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief

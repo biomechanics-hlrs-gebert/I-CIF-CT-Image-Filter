@@ -12,7 +12,7 @@ USE global_std
 
 IMPLICIT NONE
 
-!------------------------------------------------------------------------------
+!----------------------------------------------------------TD00-0_tc_Dev_tensor_data.meta--------------------
 ! Describe a tensor and its state in respect to the position of the control
 ! volume. Required to fully trace the origin of a stiffness matrix (tensor).
 ! 
@@ -24,6 +24,7 @@ TYPE tensor_2nd_rank_R66
    REAL(KIND=rk) :: density    ! Percentage of monolothic young modulus
    REAL(KIND=rk) :: doa_zener  ! Degree of anisotropy
    REAL(KIND=rk) :: doa_gebert ! Degree of anisotropy
+   REAL(KIND=rk) :: sym        ! Symmetry deviation (quotient)
    REAL(KIND=rk), DIMENSION(3)   :: pos = 0._rk ! Positioon (deg) of alpha, eta, phi
    REAL(KIND=rk), DIMENSION(6,6) :: mat = 0._rk
 END TYPE tensor_2nd_rank_R66
@@ -315,12 +316,14 @@ FUNCTION gebert_density_voigt(mat, E, v) RESULT (density)
 
    !------------------------------------------------------------------------------  
    ! Minor diagonals/zero entries of the density matrix dmat are inf.  
-   !------------------------------------------------------------------------------  
+   !------------------------------------------------------------------------------    
    dmat = mat / voigt_mat 
 
    density =((dmat(1,1)+dmat(2,2)+dmat(3,3))/3._rk + &     
              (dmat(4,4)+dmat(5,5)+dmat(6,6))/3._rk + &     
              (dmat(1,2)+dmat(1,3)+dmat(2,3))/3._rk) / 3._rk
+
+   ! density = SUM(mat)/36._rk / E
 
 END FUNCTION gebert_density_voigt
 

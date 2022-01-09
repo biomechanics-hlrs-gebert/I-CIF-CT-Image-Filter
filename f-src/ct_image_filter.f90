@@ -141,9 +141,9 @@ IF(my_rank == 0) THEN
         WRITE(std_out, FMT_TXT) "Date: "//date//" [ccyymmdd]"
         WRITE(std_out, FMT_TXT) "Time: "//time//" [hhmmss.sss]"  
         WRITE(std_out, FMT_TXT_SEP)
-        WRITE(std_out, FMT_MSG_AI0) "Debug Level:", debug
-        WRITE(std_out, FMT_MSG_AI0) "Processors:", size_mpi  
-        WRITE(std_out, FMT_MSG_AI0) "Filter Size:", kernel_size
+        WRITE(std_out, FMT_MSG_xAI0) "Debug Level:", debug
+        WRITE(std_out, FMT_MSG_xAI0) "Processors:", size_mpi  
+        WRITE(std_out, FMT_MSG_xAI0) "Filter Size:", kernel_size
         WRITE(std_out, FMT_MSG)     "Filter Kernel: "//TRIM(selectKernel)
         WRITE(std_out, FMT_TXT_SEP)
         FLUSH(std_out)
@@ -165,7 +165,7 @@ CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 IF((debug >= 2) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_MSG) "Creating dimensions." 
     WRITE(std_out,FMT_MSG) "Data type: ", TRIM(type) 
-    WRITE(std_out,FMT_MSG_AF0) "Sigma selected: ", sigma 
+    WRITE(std_out,FMT_MSG_xAF0) "Sigma selected: ", sigma 
 END IF
 
 !------------------------------------------------------------------------------
@@ -217,15 +217,15 @@ subarray_origin = ((rank_section-1_ik) * (srry_dims))
 IF((debug >= 2) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_MSG) "Calculation of domain sectioning:"
     WRITE(std_out,FMT_MSG)
-    WRITE(std_out,FMT_MSG_A3I0) "sections: ", sections_ik
-    WRITE(std_out,FMT_MSG_A3I0) "dims: ", dims
-    WRITE(std_out,FMT_MSG_A3I0) "border: ", border
-    WRITE(std_out,FMT_MSG_A3I0) "input_img_padding: ", in_img_padding
-    WRITE(std_out,FMT_MSG_A3I0) "rmndr_dir: ", rmndr_dir
-    WRITE(std_out,FMT_MSG_A3I0) "dims_reduced: ", dims_reduced
-    WRITE(std_out,FMT_MSG_A3I0) "srry_dims: ", srry_dims
-    WRITE(std_out,FMT_MSG_A3I0) "srry_dims_overlap: ", srry_dims_overlap
-    WRITE(std_out,FMT_MSG_A3I0) "subarray_origin: ", subarray_origin
+    WRITE(std_out,FMT_MSG_AxI0) "sections: ", sections_ik
+    WRITE(std_out,FMT_MSG_AxI0) "dims: ", dims
+    WRITE(std_out,FMT_MSG_AxI0) "border: ", border
+    WRITE(std_out,FMT_MSG_AxI0) "input_img_padding: ", in_img_padding
+    WRITE(std_out,FMT_MSG_AxI0) "rmndr_dir: ", rmndr_dir
+    WRITE(std_out,FMT_MSG_AxI0) "dims_reduced: ", dims_reduced
+    WRITE(std_out,FMT_MSG_AxI0) "srry_dims: ", srry_dims
+    WRITE(std_out,FMT_MSG_AxI0) "srry_dims_overlap: ", srry_dims_overlap
+    WRITE(std_out,FMT_MSG_AxI0) "subarray_origin: ", subarray_origin
     WRITE(std_out,FMT_MSG_SEP)
     FLUSH(std_out)
 END IF
@@ -294,7 +294,7 @@ END SELECT
 IF((debug >= 2) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_MSG) "Kernel - slice of filtered voxel, XY plane."
 
-    CALL write_matrix(std_out, "Kernel slice XY", fmt='std', unit='-', mat=kernel(:,:,border+1))
+    CALL write_matrix(std_out, "Kernel slice XY", mat=kernel(:,:,border+1), fmti='std', unit='-')
 
     WRITE(std_out,FMT_MSG) "Prior to image filtering."
     WRITE(std_out,FMT_MSG_SEP)
@@ -314,9 +314,9 @@ SELECT CASE(type)
         ! DEBUG INFORMAITON
         IF((debug >= 2) .AND. (my_rank == 0)) THEN
             WRITE(std_out,FMT_MSG) "Subarray reduced boundaries: "
-            WRITE(std_out,FMT_MSG_A3I0) "srb(1), srb(4): ", srb(1),  srb(4) 
-            WRITE(std_out,FMT_MSG_A3I0) "srb(2), srb(5): ", srb(2),  srb(5) 
-            WRITE(std_out,FMT_MSG_A3I0) "srb(3), srb(6): ", srb(3),  srb(6) 
+            WRITE(std_out,FMT_MSG_AxI0) "srb(1), srb(4): ", srb(1),  srb(4) 
+            WRITE(std_out,FMT_MSG_AxI0) "srb(2), srb(5): ", srb(2),  srb(5) 
+            WRITE(std_out,FMT_MSG_AxI0) "srb(3), srb(6): ", srb(3),  srb(6) 
             WRITE(std_out,FMT_MSG_SEP)
             FLUSH(std_out)
         END IF
@@ -350,7 +350,7 @@ IF(my_rank == 0) THEN
 
     IF(debug >= 2) THEN
         WRITE(std_out,FMT_MSG) "Allocating memory for global histograms now."
-        WRITE(std_out,FMT_MSG_A3I0) "hbnds: ", hbnds(1), hbnds(2), hbnds(3)  
+        WRITE(std_out,FMT_MSG_AxI0) "hbnds: ", hbnds(1), hbnds(2), hbnds(3)  
         WRITE(std_out,FMT_MSG_SEP)
         FLUSH(std_out)
     END IF
@@ -398,11 +398,11 @@ END IF
 IF((debug >= 2) .AND. (my_rank == 0)) THEN
     WRITE(std_out,FMT_MSG) "Calculation of write raw mpi:"
     WRITE(std_out,FMT_MSG)
-    WRITE(std_out,FMT_MSG_A3I0) "sections: ", sections
-    WRITE(std_out,FMT_MSG_A3I0) "dims_reduced: ", dims_reduced
-    WRITE(std_out,FMT_MSG_A3I0) "dims(_reduced): ", srry_dims*sections
-    WRITE(std_out,FMT_MSG_A3I0) "srry_dims: ", srry_dims
-    WRITE(std_out,FMT_MSG_A3I0) "subarray_origin: ", subarray_origin
+    WRITE(std_out,FMT_MSG_AxI0) "sections: ", sections
+    WRITE(std_out,FMT_MSG_AxI0) "dims_reduced: ", dims_reduced
+    WRITE(std_out,FMT_MSG_AxI0) "dims(_reduced): ", srry_dims*sections
+    WRITE(std_out,FMT_MSG_AxI0) "srry_dims: ", srry_dims
+    WRITE(std_out,FMT_MSG_AxI0) "subarray_origin: ", subarray_origin
     WRITE(std_out,FMT_MSG_SEP)
     FLUSH(std_out)
 END IF
@@ -422,17 +422,17 @@ END SELECT
 IF(my_rank == 0) THEN
     CALL CPU_TIME(global_finish)
 
-    WRITE(std_out,FMT_TXT_AF15A) 'Init and parsing     = ', (init_finish- global_start),' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Read File            = ', (read_t_vtk - init_finish) ,' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Prep Histograms      = ', (prep_Histo - read_t_vtk)  ,' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Calculation          = ', (calculation - prep_Histo) ,' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Extract Histograms   = ', (extract_Histo - calculation) ,' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Write all data       = ', (global_finish - extract_Histo),' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Overall Time         = ', (global_finish - global_start) ,' Seconds'
-    WRITE(std_out,FMT_TXT_AF15A) 'Overall Time         = ', (global_finish - global_start) / 60,' Minutes'
+    WRITE(std_out,FMT_TXT_xAF0) 'Init and parsing     = ', (init_finish- global_start),' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Read File            = ', (read_t_vtk - init_finish) ,' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Prep Histograms      = ', (prep_Histo - read_t_vtk)  ,' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Calculation          = ', (calculation - prep_Histo) ,' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Extract Histograms   = ', (extract_Histo - calculation) ,' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Calculate Histograms = ', (prep_Histo - read_t_vtk + extract_Histo - calculation) ,' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Write all data       = ', (global_finish - extract_Histo),' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Overall Time         = ', (global_finish - global_start) ,' Seconds'
+    WRITE(std_out,FMT_TXT_xAF0) 'Overall Time         = ', (global_finish - global_start) / 60,' Minutes'
     WRITE(std_out,FMT_TXT_SEP)  
-    WRITE(std_out,FMT_TXT_AF0A) 'CPU time             = ', (global_finish - global_start) / 60 / 60 * size_mpi,' Hours'
+    WRITE(std_out,FMT_TXT_xAF0) 'CPU time             = ', (global_finish - global_start) / 60 / 60 * size_mpi,' Hours'
     WRITE(std_out,FMT_MSG_SEP)
 END IF
 
