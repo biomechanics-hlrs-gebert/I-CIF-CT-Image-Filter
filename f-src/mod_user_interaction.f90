@@ -16,64 +16,119 @@ MODULE user_interaction
 IMPLICIT NONE
 
 !------------------------------------------------------------------------------
-! Parameters of (error) messages
+! Formats
 !------------------------------------------------------------------------------
-INTEGER, PARAMETER :: mw = 90  ! Message width, including leading and trailing descriptors
-
-CHARACTER(Len=*), PARAMETER :: FMT_ERR      = "('EE ', A)"
+CHARACTER(Len=*), PARAMETER :: FMT_SEP = "(80('-'))"
+CHARACTER(Len=*), PARAMETER :: TAB_WDTH = "40"
+CHARACTER(Len=*), PARAMETER :: FMT_INT = "I0"
+CHARACTER(Len=*), PARAMETER :: FMT_REAL = "F0.6"
+!
+CHARACTER(Len=*), PARAMETER :: TXT = "('-- ',"
+CHARACTER(Len=*), PARAMETER :: DBG = "('DD ',"
+CHARACTER(Len=*), PARAMETER :: MSG = "('MM ',"
+CHARACTER(Len=*), PARAMETER :: WRN = "('WW ',"
+CHARACTER(Len=*), PARAMETER :: ERR = "('EE ',"
+!
+CHARACTER(LEN=*), PARAMETER :: FMT     = "*(A))"
+CHARACTER(LEN=*), PARAMETER :: AI0xAF0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_REAL//")))"
+CHARACTER(LEN=*), PARAMETER :: AI0xAI0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_INT//")))"
+CHARACTER(LEN=*), PARAMETER :: AI0AxF0 = "(A,"//FMT_INT//",1x,A,T"//TAB_WDTH//",*(1x,"//FMT_REAL//")))"
+CHARACTER(LEN=*), PARAMETER :: AI0AxI0 = "(A,"//FMT_INT//",1x,A,T"//TAB_WDTH//",*(1x,"//FMT_INT//")))"
+CHARACTER(LEN=*), PARAMETER :: xAI0    = "*(A,1x,"//FMT_INT//",1x))"
+CHARACTER(LEN=*), PARAMETER :: xAF0    = "*(A,1x,"//FMT_REAL//",1x))"
+CHARACTER(LEN=*), PARAMETER :: AxI0    = "*(A,1x,*("//FMT_INT//",1x)))"
+CHARACTER(LEN=*), PARAMETER :: AxF0    = "*(A,1x,*("//FMT_REAL//",1x)))"
+CHARACTER(LEN=*), PARAMETER :: xAL     = "*(A,1x,L1,1x))"
+!
+!------------------------------------------------------------------------------
+! The following formats are wrappers to mask a direct use of the format 
+! string concatenation. 
+!
+! For example
+! WRITE(*, FMT_ERR_xAI0) "Lorem Ipsum" and
+! WRITE(*, ERR//xAI0) "Lorem Ipsum" result in the same output.
+!------------------------------------------------------------------------------
+! Error formats
+!------------------------------------------------------------------------------
 CHARACTER(Len=*), PARAMETER :: FMT_ERR_STOP = "('EE PROGRAM STOPPED.')"
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_SEP  = "('EE ', 76('='))"
-
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0  = "('EE ', *(A,I0))"  
+!
+CHARACTER(Len=*), PARAMETER :: FMT_ERR         = ERR//FMT
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_SEP     = FMT_SEP ! "('EE ',80('='))"
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0xAF0 = ERR//AI0xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0xAI0 = ERR//AI0xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0AxF0 = ERR//AI0AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0AxI0 = ERR//AI0AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAI0    = ERR//xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAF0    = ERR//xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AxI0    = ERR//AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_AxF0    = ERR//AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAL     = ERR//xAL
 
 !------------------------------------------------------------------------------
 ! Text formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_TXT      = "('-- ',10A)"
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP  = "(80('-'))"
-
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF0A  = "('-- ',A,1x,F0.6,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AF15A = "('-- ',A,1x,F15.6,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_A3I0  = "('-- ',A,3(1x,I0))"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT         = TXT//FMT
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP     = FMT_SEP ! "('-- ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0xAF0 = TXT//AI0xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0xAI0 = TXT//AI0xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0AxF0 = TXT//AI0AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0AxI0 = TXT//AI0AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAI0    = TXT//xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAF0    = TXT//xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AxI0    = TXT//AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_AxF0    = TXT//AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAL     = TXT//xAL
 
 !------------------------------------------------------------------------------
 ! Message/debug formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_MSG      = "('MM ',10A)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP  = "(80('-'))"
-!
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxI0 = "('MM ',A,*(1x, I0))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0  = "('MM ',*(A,T30,I0,1x))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0A = "('MM ',A,1x,I0,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_2AI0 = "('MM ',2(A,1x,I0,1x))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_A3I0 = "('MM ',A,3(1x,I0))"
-!
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AF0  = "('MM ',A,1x,F0.6)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AF0A = "('MM ',A,1x,F0.6,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_A2F0 = "('MM ',A,2(1x,F0.6))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_A3F0 = "('MM ',A,3(1x,F0.6))"
-!
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AL   = "('MM ',A,1x,L1)"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG         = MSG//FMT
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP     = FMT_SEP ! "('MM ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0xAF0 = MSG//AI0xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0xAI0 = MSG//AI0xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0AxF0 = MSG//AI0AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0AxI0 = MSG//AI0AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAI0    = MSG//xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAF0    = MSG//xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxI0    = MSG//AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxF0    = MSG//AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAL     = MSG//xAL
 
 !------------------------------------------------------------------------------
 ! Warning formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_WRN      = "('WW ',A)"
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP  = "(80('-'))"
-!
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0  = "('WW ',A,1x,I0)"
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0A = "('WW ',A,1x,I0,1x,A)"
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AF0  = "('WW ',A,1x,F0.6)"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN         = WRN//FMT
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP     = FMT_SEP ! "('WW ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0xAF0 = WRN//AI0xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0xAI0 = WRN//AI0xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0AxF0 = WRN//AI0AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0AxI0 = WRN//AI0AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAI0    = WRN//xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAF0    = WRN//xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AxI0    = WRN//AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_AxF0    = WRN//AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAL     = WRN//xAL
 
 !------------------------------------------------------------------------------
 ! Debug formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_SEP = "('#DBG#',75('='))"
+CHARACTER(Len=*), PARAMETER :: FMT_DBG         = DBG//FMT
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_SEP     = FMT_SEP ! "('DD ',80('-'))"
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0xAF0 = DBG//AI0xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0xAI0 = DBG//AI0xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0AxF0 = DBG//AI0AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0AxI0 = DBG//AI0AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAI0    = DBG//xAI0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAF0    = DBG//xAF0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_AxI0    = DBG//AxI0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_AxF0    = DBG//AxF0
+CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAL     = DBG//xAL
 
 !------------------------------------------------------------------------------
 ! Provide colors on std_out (!) 
 ! Needs to compile with -fbackslash 
 ! Use of a requires resetting it.
+! Will interfere with exporting "\", especially in the context of *.tex
 !------------------------------------------------------------------------------
 CHARACTER(LEN=*), PARAMETER ::  FMT_Blck    = "\x1B[30m"
 CHARACTER(LEN=*), PARAMETER ::  FMT_Red     = "\x1B[31m"
