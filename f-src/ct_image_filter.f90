@@ -100,6 +100,7 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
+    CALL meta_read(std_out, 'RESTART'   , m_rry, restart)
     CALL meta_read(std_out, 'TYPE_RAW'  , m_rry, type)
     CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
     CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
