@@ -57,7 +57,6 @@ CHARACTER(LEN=mcl) :: fmt_a, sep, nm_fmt
 CHARACTER(LEN=mcl) :: text
 CHARACTER(LEN=mcl) :: fmt_u
 
-REAL(KIND=rk), DIMENSION(:, :), ALLOCATABLE :: matout
 REAL(KIND=rk) :: sym_out
 
 LOGICAL :: sym
@@ -70,8 +69,6 @@ dim2 = SIZE(mat, 2)
 fmt_u = 'standard'
 mssg = '' 
 text = ''
-
-ALLOCATE(matout(dim1, dim2))
 
 prec = PRECISION(mat)
 fw = prec+8
@@ -87,7 +84,7 @@ END IF
 !------------------------------------------------------------------------------
 IF (dim1 == dim2) sym = .TRUE.
 
-CALL check_sym(mat, sym_out, matout)
+CALL check_sym(mat, sym_out)
     
 !------------------------------------------------------------------------------
 ! Generate formats
@@ -115,12 +112,12 @@ SELECT CASE (TRIM(fmt_u))
        WRITE(fh,"(A,A)")TRIM(name),": matrix("
 
        DO kk = 1, dim1 - 1
-          WRITE(fh, fmt_a) matout(kk,:)
+          WRITE(fh, fmt_a) mat(kk,:)
        END DO
 
        WRITE(fmt_a,'(5(A,I0),A)')  "(' [',",dim2-1,"(E",fw,".",prec,"E2,','),E",fw,".",prec,"E2,']);' )"
 
-       WRITE(fh, fmt_a) matout(dim1, :)
+       WRITE(fh, fmt_a) mat(dim1, :)
 END SELECT
 
 IF (nm_fmt_lngth .LT. 1_ik) nm_fmt_lngth = 1_ik
@@ -155,8 +152,8 @@ DO ii=1, dim1
 
             WRITE(fh, fmt_a, ADVANCE='NO') sym_out          
         ELSE
-            IF ((ABS(matout(ii,jj)) >=  num_zero) .AND. ((.NOT. sym) .OR. ((sym) .AND. (jj .GE. ii)))) THEN 
-                WRITE(fh, fmt_a, ADVANCE='NO') matout (ii,jj)
+            IF ((ABS(mat(ii,jj)) >=  num_zero) .AND. ((.NOT. sym) .OR. ((sym) .AND. (jj .GE. ii)))) THEN 
+                WRITE(fh, fmt_a, ADVANCE='NO') mat (ii,jj)
             ELSE
                 SELECT CASE(fmt_u)
                 CASE('spl', 'simple')
