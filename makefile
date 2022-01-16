@@ -14,10 +14,10 @@ ifeq ($(PROVIDES_GIT),YES)
 # Get git hash https://jblevins.org/log/vc
 # rev = $(shell git describe --tags --always)
 	rev = $(shell git rev-parse HEAD)
-	trgt_vrsn = $(shell git describe --tags --abbrev=0)
+	trgt_vrsn = $(shell git describe --tags --abbrev=0 | tee .version)
 else
 	rev = NO_GIT_REPOSITORY
-	trgt_vrsn = ""
+	trgt_vrsn = $(shell cat .version)
 endif
 # -----------------------------------------------------------------------------
 # Check for environment
@@ -167,7 +167,6 @@ export_revision:
 	@echo "----------------------------------------------------------------------------------"
 	@echo '-- Write revision and git info'
 	@echo "CHARACTER(LEN=scl), PARAMETER :: longname = '$(long_name)'" > $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
-	@echo "CHARACTER(LEN=scl), PARAMETER :: revision = '$(trgt_vrsn)'" >> $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "CHARACTER(LEN=scl), PARAMETER :: hash = '$(rev)'" >> $(st_f_src_dir)include_f90/revision_meta$(f90_ext)
 	@echo "----------------------------------------------------------------------------------"
 
