@@ -1,0 +1,11 @@
+
+p CT_IMAGE_FILTER
+r FILTER_KERNEL         Gaussian                                       ! Identity, Gaussian
+r FILTER_SIZE           11                                             ! Odd integer
+r FILTER_SIGMA          1.0                                            ! Real
+
+r NEW_BSNM_FEATURE      G11-Sig10                                      ! Last segment of basename
+r NEW_BSNM_PURPOSE      Dev                                            ! 3rd segment of basename
+
+----------------------------------------------------------------------------------------------------
+
