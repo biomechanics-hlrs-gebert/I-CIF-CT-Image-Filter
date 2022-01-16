@@ -273,7 +273,7 @@ SUBROUTINE show_title()
 WRITE(std_out, FMT_TXT_SEP)
 WRITE(std_out, FMT_TXT) 'High-Performance Computing Center | Stuttgart (HLRS)'
 WRITE(std_out, FMT_TXT) ''
-WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(longname))//' '//TRIM(ADJUSTL(revision))
+WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(longname))
 WRITE(std_out, FMT_TXT) ''     
 WRITE(std_out, FMT_TXT) 'Developer & maintainer: Johannes Gebert, M.Sc. (HLRS, NUM)'
 WRITE(std_out, FMT_TXT_SEP)
