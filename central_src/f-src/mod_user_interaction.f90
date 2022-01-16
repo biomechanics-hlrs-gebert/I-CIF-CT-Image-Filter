@@ -415,18 +415,18 @@ end subroutine mpi_err
 !> with a status feedback.
 !
 !> @param[in] fh Handle of file to print to
-!> @param[in] txt Error message to print
-!> @param[in] err Errorcode / status of the message
+!> @param[in] text Error message to print
+!> @param[in] error Errorcode / status of the message
 !------------------------------------------------------------------------------  
-SUBROUTINE print_err_stop(fh, txt, err) ! , pro_path, pro_name
+SUBROUTINE print_err_stop(fh, text, error) ! , pro_path, pro_name
 
-INTEGER(KIND=ik), INTENT(IN) :: fh , err
-CHARACTER(LEN=*), INTENT(IN) :: txt
+INTEGER(KIND=ik), INTENT(IN) :: fh , error
+CHARACTER(LEN=*), INTENT(IN) :: text
 
-IF (err > 0) THEN
-   WRITE(fh, FMT_ERR) TRIM(txt)
+IF (error > 0) THEN
+   WRITE(fh, FMT_ERR) TRIM(text)
    WRITE(fh, FMT_ERR_STOP)
-   WRITE(*,FMT_ERR) "Can't stop gracefully."
+   WRITE(fh,FMT_ERR) "Can't stop gracefully."
    STOP 
 END IF
 

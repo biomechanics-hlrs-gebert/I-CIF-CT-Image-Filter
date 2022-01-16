@@ -54,8 +54,8 @@ fi
 #
 # ----------------------------------------
 # Define std_out
-export USE_STD_OUT=NO
+export USE_STD_OUT=YES
 #
 # ----------------------------------------
 # Root is a git repo?
-export PROVIDES_GIT="NO"
+export PROVIDES_GIT=NO

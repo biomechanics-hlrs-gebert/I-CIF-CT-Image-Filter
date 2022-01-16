@@ -146,7 +146,7 @@ IF((restart == 'N') .AND. (exist)) THEN
    ! Delete out meta if the lock file was set.
    IF (exist) CALL execute_command_line ('rm '//TRIM(out%full))
 
-   CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), err=1_meta_ik)
+   CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), 1_meta_ik)
 END IF
 
 
@@ -156,7 +156,7 @@ END IF
 !------------------------------------------------------------------------------
 IF(((restart == 'Y') .AND. (.NOT. exist)) .OR. ((restart == 'N') .AND. (.NOT. exist))) THEN
    CALL execute_command_line ('touch '//TRIM(lockname), CMDSTAT=ios)
-   CALL print_err_stop(std_out, 'The .*.lock file could not be set.', err=ios)
+   CALL print_err_stop(std_out, 'The .*.lock file could not be set.', ios)
 END IF
 
 IF((restart == 'Y') .AND. (exist)) CONTINUE

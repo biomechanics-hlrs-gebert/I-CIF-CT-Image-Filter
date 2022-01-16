@@ -9,7 +9,7 @@
 # For use of PBSPro visit:
 # https://kb.hlrs.de/platforms/index.php/Batch_System_PBSPro_(Hawk)
 # ------------------------------------------------------------------------------
-#PBS -N Dosc_PT02-1
+#PBS -N ctif-S31Sig20
 #PBS -l select=4:node_type=rome:mpiprocs=128:node_type_mem=256gb
 #PBS -l walltime=10:00:00
 #
@@ -17,4 +17,4 @@
 cd $PBS_O_WORKDIR
 #
 # Launch the parallel mpi application
-mpirun -np 512 ./bin/dosc_v1.0.0_x86_64 $PBS_O_WORKDIR ./bin/PT01-1_mu_Dev_compare_KnochProbe2.meta
+mpirun -np 512 ./bin/ctif_V5.0.0_x86_64 $PBS_O_WORKDIR ./bin/PT01-1_mu_Dev_compare_KnochProbe2.meta
