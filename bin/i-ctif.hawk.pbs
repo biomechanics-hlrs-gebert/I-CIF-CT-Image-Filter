@@ -1,0 +1,20 @@
+#!/bin/bash
+# ------------------------------------------------------------------------------
+# Batch scipt for HLRS Vulcan and the CTIF-CT-Image-Filter
+#
+# Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+# Date:      09.01.2022
+# Last edit: 15.01.2022
+#
+# For use of PBSPro visit:
+# https://kb.hlrs.de/platforms/index.php/Batch_System_PBSPro_(Hawk)
+# ------------------------------------------------------------------------------
+#PBS -N Dosc_PT02-1
+#PBS -l select=4:node_type=rome:mpiprocs=128:node_type_mem=256gb
+#PBS -l walltime=10:00:00
+#
+# Change to the direcotry that the job was submitted from
+cd $PBS_O_WORKDIR
+#
+# Launch the parallel mpi application
+mpirun -np 512 ./bin/dosc_v1.0.0_x86_64 $PBS_O_WORKDIR ./bin/PT01-1_mu_Dev_compare_KnochProbe2.meta

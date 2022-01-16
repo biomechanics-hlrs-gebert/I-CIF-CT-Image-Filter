@@ -325,7 +325,6 @@ html/*
 
 ## lapack library
 lib/lapack
-datasets/*
 *.zip
 
 ## revision meta
