@@ -459,14 +459,16 @@ ELSE
    ! In case of an existing ascii file, the in%p_n_bsnm is relevant.
    !------------------------------------------------------------------------------
    INQUIRE(FILE = TRIM(in%p_n_bsnm)//TRIM(suf), EXIST=fex)
-   
-   CALL execute_command_line ('cp '//TRIM(in%p_n_bsnm)//TRIM(suf)//' '&
-      //TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
 
-   IF(ios /= 0_meta_ik) THEN
-      mssg='Can not copy the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
-      CALL print_err_stop(std_out, mssg, 0)
-   END IF
+   IF(fex) THEN 
+      CALL execute_command_line ('cp '//TRIM(in%p_n_bsnm)//TRIM(suf)//' '&
+         //TRIM(out%p_n_bsnm)//TRIM(suf), CMDSTAT=ios)
+
+      IF(ios /= 0_meta_ik) THEN
+         mssg='Can not copy the suffix_file from »'//TRIM(temp_f_suf)//'« to the proper basename.'
+         CALL print_err_stop(std_out, mssg, 0)
+      END IF
+   END IF 
 
 END IF
 
@@ -1262,8 +1264,15 @@ SUBROUTINE meta_signing(binary)
 
 CHARACTER(LEN=*), INTENT(IN) :: binary
 
+INTEGER  (KIND=meta_ik) :: ntokens
+CHARACTER(LEN=meta_mcl) :: tokens(30), revision
+
+CALL parse(TRIM(binary), '_', tokens, ntokens)
+
+revision = TRIM(tokens(2))
+
 WRITE(fhmeo, '(A)')
-CALL meta_write(fhmeo, 'PROGRAM_VERSION', revision)
+CALL meta_write(fhmeo, 'PROGRAM_VERSION', TRIM(revision))
 CALL meta_write(fhmeo, 'PROGRAM_GIT_HASH', hash)
 
 CALL meta_write_sha256sum(binary)
