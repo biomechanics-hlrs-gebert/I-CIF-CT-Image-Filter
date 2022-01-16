@@ -1,2 +1,2 @@
-CHARACTER(LEN=scl), PARAMETER :: longname = 'Downscaling'
-CHARACTER(LEN=scl), PARAMETER :: hash = '597aa67b22c9611a705b73d7b5c077f6656c2556'
+CHARACTER(LEN=scl), PARAMETER :: longname = 'X to Meta Converter'
+CHARACTER(LEN=scl), PARAMETER :: hash = '0bea80fa73861eed2f22df2a06df71da63aafdd8'

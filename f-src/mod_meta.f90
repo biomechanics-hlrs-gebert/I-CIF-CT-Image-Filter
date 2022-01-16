@@ -14,6 +14,7 @@ MODULE meta
 
 IMPLICIT NONE
 
+   INTEGER, PARAMETER :: meta_mik = 4
    INTEGER, PARAMETER :: meta_ik = 8
    INTEGER, PARAMETER :: meta_rk = 8
    INTEGER, PARAMETER :: meta_mcl = 512
@@ -179,6 +180,8 @@ CHARACTER(LEN=meta_mcl), DIMENSION(:), ALLOCATABLE, INTENT(INOUT) :: meta_as_rry
 
 CALL meta_invoke(meta_as_rry)
 CALL meta_continue(meta_as_rry)
+
+CALL meta_write(fhmeo, 'META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
 
 END SUBROUTINE meta_append
 
@@ -1293,9 +1296,12 @@ END SUBROUTINE meta_signing
 !> @description
 !> provided by a makefile. Furhermore, it requires a global_stds file.
 !------------------------------------------------------------------------------
-SUBROUTINE meta_close()
+SUBROUTINE meta_close(size_mpi)
 
+INTEGER(KIND=meta_mik) :: size_mpi
 LOGICAL :: opened
+
+CALL meta_write(fhmeo, 'PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
 
 WRITE(fhmeo, '(A)')
 WRITE(fhmeo, "(100('-'))")
