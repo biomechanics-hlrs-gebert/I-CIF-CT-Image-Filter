@@ -472,10 +472,10 @@ IF(my_rank == 0) THEN
 
     CALL meta_stop_ascii(fht, tex_suf)
 
-    IF(std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
-
     WRITE(std_out,FMT_TXT) 'Program finished successfully.'
     WRITE(std_out,FMT_MSG_SEP)
+
+    IF(std_out/=6) CALL meta_stop_ascii(fh=std_out, suf='.std_out')
 
 END IF ! (my_rank == 0)
 
