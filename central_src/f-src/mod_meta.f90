@@ -1280,8 +1280,6 @@ CALL meta_write(fhmeo, 'PROGRAM_GIT_HASH', hash)
 
 CALL meta_write_sha256sum(binary)
 
-CALL meta_write(fhmeo, 'COMPUTATION_FINISHED' , 'Succesfully')
-
 END SUBROUTINE meta_signing
 
 
@@ -1302,6 +1300,7 @@ INTEGER(KIND=meta_mik) :: size_mpi
 LOGICAL :: opened
 
 CALL meta_write(fhmeo, 'PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
+CALL meta_write(fhmeo, 'COMPUTATION_FINISHED' , 'Succesfully')
 
 WRITE(fhmeo, '(A)')
 WRITE(fhmeo, "(100('-'))")

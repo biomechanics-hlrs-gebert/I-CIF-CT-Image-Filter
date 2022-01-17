@@ -242,17 +242,33 @@ SUBROUTINE uik2_to_ik2(subarray)
 
 INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(INOUT) :: subarray
 INTEGER(KIND=ik) :: ii, jj, kk
+INTEGER(KIND=ik), DIMENSION(3) :: shp
 
-! Not so pretty workaround
+!------------------------------------------------------------------------------  
+! Storing the array with + 65536 will cut off the image.
+! At least INT32 required.
+!------------------------------------------------------------------------------  
+INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate
+
+shp = SHAPE(subarray)
+
+ALLOCATE(intermediate(shp(1), shp(2), shp(3)))
+
 DO kk=1, SIZE(subarray,3)
 DO jj=1, SIZE(subarray,2)
 DO ii=1, SIZE(subarray,1)
-   IF(subarray(ii,jj,kk)<=0) subarray(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
+   IF(subarray(ii,jj,kk) <= 0) THEN
+      intermediate(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
+   ELSE
+      intermediate(ii,jj,kk) = subarray(ii,jj,kk)
+   END IF
 END DO
 END DO
 END DO
 
-subarray = subarray - 32768_ik
+subarray = INT(intermediate - 32768_ik, KIND=INT16)
+
+DEALLOCATE(intermediate)
 
 END SUBROUTINE uik2_to_ik2
 
