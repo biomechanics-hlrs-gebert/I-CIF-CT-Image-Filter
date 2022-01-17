@@ -133,7 +133,7 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
     step = 1
     span = 1
   ELSE
-    span = mov_avg_width / 2 ! int division
+    span = MOD(mov_avg_width, 2)
   END IF
 
   !------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
   WRITE(fh,'(A)') TRIM(ADJUSTL(hdr_str))
   
   DO ii = 1+span, hbnds(3)-span, step
-    avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width+1)
+    avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width + mov_avg_width - (span*2_ik))
 
     WRITE(fh,'(I0,A,I0)') huwritten," , ",avg
     
