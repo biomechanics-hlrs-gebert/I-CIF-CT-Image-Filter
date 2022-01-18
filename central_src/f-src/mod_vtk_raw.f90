@@ -246,22 +246,23 @@ INTEGER(KIND=ik), DIMENSION(3) :: shp
 
 !------------------------------------------------------------------------------  
 ! Storing the array with + 65536 will cut off the image.
-! At least INT32 required.
+! At least INT32 required. All of the required variables are INT32.
 !------------------------------------------------------------------------------  
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate
+INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536
+INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate, subarray_ik4
 
 shp = SHAPE(subarray)
 
 ALLOCATE(intermediate(shp(1), shp(2), shp(3)))
 
+intermediate = INT(subarray, KIND=INT32)
+
 DO kk=1, SIZE(subarray,3)
 DO jj=1, SIZE(subarray,2)
 DO ii=1, SIZE(subarray,1)
-   IF(subarray(ii,jj,kk) <= 0) THEN
-      intermediate(ii,jj,kk) = subarray(ii,jj,kk) + 65536_ik
-   ELSE
-      intermediate(ii,jj,kk) = subarray(ii,jj,kk)
-   END IF
+   IF (intermediate(ii,jj,kk) .LT. conv_param) THEN
+      intermediate(ii,jj,kk) = INT(subarray(ii,jj,kk), KIND=INT32) + offset
+   END IF 
 END DO
 END DO
 END DO
