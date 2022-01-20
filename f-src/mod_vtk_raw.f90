@@ -501,15 +501,25 @@ END SUBROUTINE mpi_write_raw_ik4
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[in] array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_write_raw_ik2(fh, filename, array)
+SUBROUTINE ser_write_raw_ik2(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'LITTLE_ENDIAN'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -526,15 +536,25 @@ END SUBROUTINE ser_write_raw_ik2
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[in] array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_write_raw_ik4(fh, filename, array)
+SUBROUTINE ser_write_raw_ik4(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'LITTLE_ENDIAN'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -551,15 +571,25 @@ END SUBROUTINE ser_write_raw_ik4
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[in] array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_write_raw_ik8(fh, filename, array)
+SUBROUTINE ser_write_raw_ik8(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'LITTLE_ENDIAN'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -576,15 +606,25 @@ END SUBROUTINE ser_write_raw_ik8
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[in] array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_write_raw_rk4(fh, filename, array)
+SUBROUTINE ser_write_raw_rk4(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'LITTLE_ENDIAN'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -601,15 +641,25 @@ END SUBROUTINE ser_write_raw_rk4
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[in] array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_write_raw_rk8(fh, filename, array)
+SUBROUTINE ser_write_raw_rk8(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'LITTLE_ENDIAN'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
