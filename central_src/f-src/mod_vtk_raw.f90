@@ -437,7 +437,7 @@ CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, INT(dims, KIND=mik), INT(subarray_dims, KI
 
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
-CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(dtrep), MPI_INFO_NULL, ierr)
+CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
 
 CALL MPI_FILE_WRITE_ALL(fh, subarray, INT(SIZE(subarray), KIND=mik), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
@@ -495,7 +495,7 @@ CALL MPI_TYPE_CREATE_SUBARRAY (3_mik, INT(dims, KIND=mik), INT(subarray_dims, KI
 CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
 CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER4, type_subarray, &
-   TRIM(dtrep), MPI_INFO_NULL, ierr)
+   TRIM(datarep), MPI_INFO_NULL, ierr)
 
 CALL MPI_FILE_WRITE_ALL(fh, subarray, INT(SIZE(subarray), KIND=mik), &
    MPI_INTEGER4, MPI_STATUS_IGNORE, ierr)
