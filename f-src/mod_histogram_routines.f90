@@ -144,7 +144,7 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
 
   WRITE(fh,'(A)') TRIM(ADJUSTL(hdr_str))
   
-  DO ii = 1+span, hbnds(z)-span, step
+  DO ii = 1+span, hbnds(2)-span, step
     avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width + 1_ik)
 
     WRITE(fh,'(I0,A,I0)') huwritten," , ",avg
