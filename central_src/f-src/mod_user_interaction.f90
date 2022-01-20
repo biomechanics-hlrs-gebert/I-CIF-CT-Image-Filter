@@ -203,7 +203,7 @@ CONTAINS
 !> @param[out] infile Name of the input file (not meta; XTOM...)
 !> @param[out] stp Stop the program?
 !> @param[out] restart Check whether a restart is required
-!> @param[out] cmd_arg_history Ravision of the program
+!> @param[out] cmd_arg_history Total command arguments
 !------------------------------------------------------------------------------
 SUBROUTINE get_cmd_args(binary, infile, stp, restart, cmd_arg_history)
 

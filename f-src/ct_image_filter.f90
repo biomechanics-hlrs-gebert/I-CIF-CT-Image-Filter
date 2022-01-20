@@ -40,7 +40,7 @@ REAL(KIND=rk) :: calculation, extract_Histo, global_finish, sigma
 REAL(KIND=rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
 REAL(KIND=rk), DIMENSION(3) :: spcng
 
-CHARACTER(LEN=mcl) :: binary
+CHARACTER(LEN=mcl) :: binary, cmd_arg_history=''
 CHARACTER(LEN=scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
 
 INTEGER(KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
@@ -74,7 +74,7 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse the command arguments
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, stp, restart, restart_cmd_arg)
+    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg, cmd_arg_history)
     IF(stp) GOTO 1001
     
     IF (in%full=='') THEN
@@ -166,6 +166,7 @@ IF(my_rank == 0) THEN
     IF((debug >= 0) .AND. (my_rank == 0)) THEN
         WRITE(std_out, FMT_TXT) "Date: "//date//" [ccyymmdd]"
         WRITE(std_out, FMT_TXT) "Time: "//time//" [hhmmss.sss]"  
+        WRITE(std_out, FMT_TXT) "Program invocation: "//TRIM(cmd_arg_history)          
         WRITE(std_out, FMT_TXT_SEP)
         WRITE(std_out, FMT_MSG_xAI0) "Debug Level:", debug
         WRITE(std_out, FMT_MSG_xAI0) "Processors:", size_mpi  
