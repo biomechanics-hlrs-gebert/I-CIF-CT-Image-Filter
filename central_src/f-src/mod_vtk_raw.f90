@@ -226,7 +226,7 @@ END SUBROUTINE mpi_read_raw_ik4
 
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: uik2_to_ik2
+! SUBROUTINE: uik2_to_ik4
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -236,11 +236,13 @@ END SUBROUTINE mpi_read_raw_ik4
 !> @description
 !> Fortran does not know this shit. Therefore a workaround...
 !
-!> @param[inout] subarray int data
+!> @param[in] subarray_in Input data
+!> @param[out] subarray_out Output data
 !------------------------------------------------------------------------------  
-SUBROUTINE uik2_to_ik2(subarray)
+SUBROUTINE uik2_to_ik4(subarray_in, subarray_out)
 
-INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(INOUT) :: subarray
+INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(IN) :: subarray_in
+INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray_out
 INTEGER(KIND=ik) :: ii, jj, kk
 INTEGER(KIND=ik), DIMENSION(3) :: shp
 
@@ -249,29 +251,26 @@ INTEGER(KIND=ik), DIMENSION(3) :: shp
 ! At least INT32 required. All of the required variables are INT32.
 !------------------------------------------------------------------------------  
 INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate ! , subarray_ik4
 
-shp = SHAPE(subarray)
+shp = SHAPE(subarray_in)
 
-ALLOCATE(intermediate(shp(1), shp(2), shp(3)))
+ALLOCATE(subarray_out(shp(1), shp(2), shp(3)))
+subarray_out = INT(0, KIND=INT32)
 
-intermediate = INT(subarray, KIND=INT32)
+subarray_out = INT(subarray_in, KIND=INT32)
 
-DO kk=1, SIZE(subarray,3)
-DO jj=1, SIZE(subarray,2)
-DO ii=1, SIZE(subarray,1)
-   IF (intermediate(ii,jj,kk) .LT. conv_param) THEN
-      intermediate(ii,jj,kk) = INT(subarray(ii,jj,kk), KIND=INT32) + offset
+DO kk=1, shp(3)
+DO jj=1, shp(2)
+DO ii=1, shp(1)
+   IF(subarray_out(ii,jj,kk) .LT. conv_param) THEN
+      subarray_out(ii,jj,kk) = subarray_out(ii,jj,kk) + offset
    END IF 
 END DO
 END DO
 END DO
 
-subarray = INT(intermediate - 32768_ik, KIND=INT16)
 
-DEALLOCATE(intermediate)
-
-END SUBROUTINE uik2_to_ik2
+END SUBROUTINE uik2_to_ik4
 
 !------------------------------------------------------------------------------
 ! SUBROUTINE: mpi_read_raw_rk4
@@ -510,7 +509,7 @@ INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -535,7 +534,7 @@ INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -560,7 +559,7 @@ INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -585,7 +584,7 @@ REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -610,7 +609,7 @@ REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
 CHARACTER(len=*), INTENT(IN) :: filename
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD", POSITION="APPEND")                                       
+   CONVERT='BIG_ENDIAN', STATUS="UNKNOWN", POSITION="APPEND")                                       
 WRITE(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -622,20 +621,30 @@ END SUBROUTINE ser_write_raw_rk8
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
-!> Read raw binary data serially. 
+!> Read raw binary data serially. Swap endianness if necessary.
 !
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[out] Array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_read_raw_ik2(fh, filename, array)
+SUBROUTINE ser_read_raw_ik2(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(len=*), INTENT(IN) :: filename
 INTEGER(KIND=INT16), DIMENSION(:,:,:), INTENT(OUT) :: array
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'NATIVE'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
 READ(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -652,15 +661,25 @@ END SUBROUTINE ser_read_raw_ik2
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[out] Array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_read_raw_ik4(fh, filename, array)
+SUBROUTINE ser_read_raw_ik4(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(len=*), INTENT(IN) :: filename
 INTEGER(KIND=INT32), DIMENSION(:,:,:), INTENT(OUT) :: array
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'NATIVE'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
 READ(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -677,15 +696,25 @@ END SUBROUTINE ser_read_raw_ik4
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[out] Array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_read_raw_ik8(fh, filename, array)
+SUBROUTINE ser_read_raw_ik8(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(len=*), INTENT(IN) :: filename
 INTEGER(KIND=INT64), DIMENSION(:,:,:), INTENT(OUT) :: array
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'NATIVE'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
 READ(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -702,15 +731,25 @@ END SUBROUTINE ser_read_raw_ik8
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[out] Array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_read_raw_rk4(fh, filename, array)
+SUBROUTINE ser_read_raw_rk4(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(len=*), INTENT(IN) :: filename
 REAL(KIND=REAL32), DIMENSION(:,:,:), INTENT(OUT) :: array
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'NATIVE'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
 READ(UNIT=fh) array
 CLOSE(UNIT=fh)
 
@@ -727,15 +766,25 @@ END SUBROUTINE ser_read_raw_rk4
 !> @param[in] fh File handle
 !> @param[in] filename Name of the file
 !> @param[out] Array Raw data
+!> @param[in] representation Optional swap of endianness
 !------------------------------------------------------------------------------
-SUBROUTINE ser_read_raw_rk8(fh, filename, array)
+SUBROUTINE ser_read_raw_rk8(fh, filename, array, representation)
 
 INTEGER(KIND=ik), INTENT(IN) :: fh
 CHARACTER(len=*), INTENT(IN) :: filename
 REAL(KIND=REAL64), DIMENSION(:,:,:), INTENT(OUT) :: array
+CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
+
+CHARACTER(len=scl) :: cnvrt
+
+IF(PRESENT(representation)) THEN
+   cnvrt = TRIM(representation)
+ELSE
+   cnvrt = 'NATIVE'
+END IF
 
 OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT='BIG_ENDIAN', STATUS="OLD")                                       
+   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
 READ(UNIT=fh) array
 CLOSE(UNIT=fh)
 
