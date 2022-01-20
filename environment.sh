@@ -26,19 +26,6 @@ fi
 #
 sys_env_path='/central_src/auxiliaries/system_environments/'
 # ----------------------------------------------------------------------------------------
-# Backup (LD_LIBRARY_)PATH to prevent confusion while changing MPI integer kind often (dev purposes).
-# Info: PATH is exported to prepend the directory of "mpirun". 
-#
-echo $PATH | grep -i mpi > /dev/null 2> /dev/null
-#
-if [ $? -eq 0 ]; then
-    export PATH=$PATH_BCKP
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH_BCKP
-else
-    export PATH_BCKP=$PATH
-    export LD_LIBRARY_PATH_BCKP=$LD_LIBRARY_PATH
-fi
-# ----------------------------------------------------------------------------------------
 #
 usage ()
 {

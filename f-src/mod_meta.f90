@@ -225,7 +225,7 @@ CALL parse_basename(filename_with_suffix, "."//tokens(ntokens))
 !------------------------------------------------------------------------------
 INQUIRE (FILE = TRIM(in%p_n_bsnm)//meta_suf, EXIST = exist)
 IF (exist) THEN
-   mssg = "The file "//TRIM(filename_with_suffix)//" already exists."
+   mssg = "The file "//TRIM(in%p_n_bsnm)//meta_suf//" already exists."
    CALL print_err_stop(std_out, TRIM(mssg), 1)
 END IF
 
