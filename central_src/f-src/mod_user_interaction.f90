@@ -208,13 +208,14 @@ CONTAINS
 SUBROUTINE get_cmd_args(binary, infile, stp, restart, cmd_arg_history)
 
 CHARACTER(LEN=*), INTENT(OUT) :: binary, infile
-CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: restart, cmd_arg_history
+CHARACTER(LEN=*), INTENT(OUT) :: restart, cmd_arg_history
 LOGICAL :: stp
 
 CHARACTER(LEN=mcl) :: cmd_arg
 INTEGER(KIND=ik) :: ii
 
 stp = .FALSE.
+restart=''
 
 CALL GET_COMMAND_ARGUMENT(0, binary)
 

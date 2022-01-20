@@ -117,20 +117,21 @@ CHARACTER(LEN=meta_mcl) :: lockname
 ! Restart handling
 ! Done after meta_io to decide based on keywords
 !------------------------------------------------------------------------------
-IF (restart_cmdarg /= 'U') THEN
-   mssg = "The keyword »restart« was overwritten by the command flag --"
-   IF (restart_cmdarg == 'N') THEN
-      restart = restart_cmdarg
-      mssg=TRIM(mssg)//"no-"
-   ELSE IF (restart_cmdarg == 'Y') THEN
-      restart = restart_cmdarg
+IF(PRESENT(restart_cmdarg)) THEN
+   IF ((restart_cmdarg /= '') .AND. (restart_cmdarg /= 'U'))THEN
+      mssg = "The keyword »restart« was overwritten by the command flag --"
+      IF (restart_cmdarg == 'N') THEN
+         restart = restart_cmdarg
+         mssg=TRIM(mssg)//"no-"
+      ELSE IF (restart_cmdarg == 'Y') THEN
+         restart = restart_cmdarg
+      END IF
+
+      mssg=TRIM(mssg)//"restart"
+      WRITE(std_out, FMT_WRN) TRIM(mssg)
+      WRITE(std_out, FMT_SEP)
    END IF
-
-   mssg=TRIM(mssg)//"restart"
-   WRITE(std_out, FMT_WRN) TRIM(mssg)
-   WRITE(std_out, FMT_SEP)
 END IF
-
 !------------------------------------------------------------------------------
 ! Automatically aborts if there is no input file found on the drive
 !------------------------------------------------------------------------------

@@ -249,7 +249,7 @@ INTEGER(KIND=ik), DIMENSION(3) :: shp
 ! At least INT32 required. All of the required variables are INT32.
 !------------------------------------------------------------------------------  
 INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate, subarray_ik4
+INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE :: intermediate ! , subarray_ik4
 
 shp = SHAPE(subarray)
 

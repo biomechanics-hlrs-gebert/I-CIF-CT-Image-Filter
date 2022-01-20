@@ -47,7 +47,7 @@ INTEGER(KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo
 INTEGER(KIND=ik), DIMENSION(3) :: hbnds
 INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F
 INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: pre_F_global, post_F_global
-INTEGER(KIND=ik) :: fh_csv_prf  = 200, fh_csv_pof  = 210, fh_csv_aprf = 220, fh_csv_apof = 230
+INTEGER(KIND=ik) :: fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof
 
 LOGICAL :: stp
 
@@ -140,10 +140,17 @@ IF(my_rank == 0) THEN
     suf_csv_aprf = "_hist_avg_pre_filter"//csv_suf
     suf_csv_apof = "_hist_avg_post_filter"//csv_suf
     suf_csv_fihi = "_filter_histogram"//csv_suf
-    
+
+    fh_csv_prf  = give_new_unit()  
     CALL meta_start_ascii(fh_csv_prf, suf_csv_prf)
+    
+    fh_csv_pof  = give_new_unit()
     CALL meta_start_ascii(fh_csv_pof, suf_csv_pof)
+    
+    fh_csv_aprf = give_new_unit()
     CALL meta_start_ascii(fh_csv_aprf, suf_csv_aprf)
+    
+    fh_csv_apof = give_new_unit()
     CALL meta_start_ascii(fh_csv_apof, suf_csv_apof)
 
     CALL meta_start_ascii(fht, tex_suf)
@@ -391,18 +398,6 @@ CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), KI
 CALL CPU_TIME(extract_Histo)
 
 !------------------------------------------------------------------------------
-! Export Histograms
-!------------------------------------------------------------------------------
-IF(my_rank == 0) THEN
-    CALL write_histo_csv(fh_csv_prf,  "scaledHU, Voxels", hbnds, 0_ik, pre_F_global)
-    CALL write_histo_csv(fh_csv_pof,  "scaledHU, Voxels", hbnds, 0_ik, post_F_global)
-    CALL write_histo_csv(fh_csv_aprf, "scaledHU, Voxels", hbnds, mov_avg_width, pre_F_global)
-    CALL write_histo_csv(fh_csv_apof, "scaledHU, Voxels", hbnds, mov_avg_width, post_F_global)
-
-    CALL write_tex_for_histogram(fht, suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof)
-END IF
-
-!------------------------------------------------------------------------------
 ! Write binary data. Since no other data types are required within this 
 ! doctoral project, no other types are implemented yet.
 !------------------------------------------------------------------------------
@@ -430,7 +425,7 @@ SELECT CASE(type)
 END SELECT
 
 !------------------------------------------------------------------------------
-! Log a few last information
+! Write final information
 !------------------------------------------------------------------------------
 IF(my_rank == 0) THEN
     CALL CPU_TIME(global_finish)
@@ -447,6 +442,23 @@ IF(my_rank == 0) THEN
     WRITE(std_out,FMT_TXT_SEP)  
     WRITE(std_out,FMT_TXT_xAF0) 'CPU time             = ', (global_finish - global_start) / 60 / 60 * size_mpi,' Hours'
     WRITE(std_out,FMT_MSG_SEP)
+
+    !------------------------------------------------------------------------------
+    ! Export Histograms
+    !------------------------------------------------------------------------------
+    CALL write_histo_csv(fh_csv_prf,  "scaledHU, Voxels", hbnds, 0_ik, pre_F_global)
+    CALL write_histo_csv(fh_csv_pof,  "scaledHU, Voxels", hbnds, 0_ik, post_F_global)
+    CALL write_histo_csv(fh_csv_aprf, "scaledHU, Voxels", hbnds, mov_avg_width, pre_F_global)
+    CALL write_histo_csv(fh_csv_apof, "scaledHU, Voxels", hbnds, mov_avg_width, post_F_global)
+
+    CALL write_tex_for_histogram(fht, suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof)
+
+    !------------------------------------------------------------------------------
+    ! Finish the program
+    !------------------------------------------------------------------------------
+    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(mm)' , srry_dims*sections*spcng)
+    CALL meta_write(fhmeo, 'DIMENSIONS', '(-)',      srry_dims*sections)
+    CALL meta_write(fhmeo, 'ENTRIES', '(-)', PRODUCT(srry_dims*sections))
 END IF
 
 !------------------------------------------------------------------------------
@@ -455,12 +467,6 @@ END IF
 1001 Continue
 
 IF(my_rank == 0) THEN
-    !------------------------------------------------------------------------------
-    ! Finish the program
-    !------------------------------------------------------------------------------
-    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(mm)' , srry_dims*sections*spcng)
-    CALL meta_write(fhmeo, 'DIMENSIONS', '(-)',      srry_dims*sections)
-    CALL meta_write(fhmeo, 'ENTRIES', '(-)', PRODUCT(srry_dims*sections))
 
     CALL meta_signing(binary)
     CALL meta_close(size_mpi)
