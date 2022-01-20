@@ -31,7 +31,7 @@ INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_suba
 INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
 CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
-CHARACTER(LEN=scl) :: type, selectKernel, restart, restart_cmd_arg
+CHARACTER(LEN=scl) :: type, selectKernel, restart, restart_cmd_arg, dbo
 CHARACTER(LEN=  8) :: date
 CHARACTER(LEN= 10) :: time
 
@@ -112,6 +112,7 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
+    CALL meta_read(std_out, 'DATA_BYTE_ORDER', m_rry, dbo)
     CALL meta_read(std_out, 'RESTART'   , m_rry, restart)
     CALL meta_read(std_out, 'TYPE_RAW'  , m_rry, type)
     CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
@@ -125,7 +126,12 @@ IF(my_rank == 0) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
         CALL print_err_stop(std_out, mssg, 1)
     END IF
-    
+
+    IF(TRIM(dbo) /= "LittleEndian") THEN
+        mssg = "Program only supports little endian files."
+        CALL print_err_stop(std_out, mssg, 1)
+    END IF
+
     !------------------------------------------------------------------------------
     ! Restart handling
     ! Done after meta_io to decide based on keywords
@@ -318,6 +324,11 @@ IF((debug >= 2) .AND. (my_rank == 0)) THEN
 
     WRITE(std_out,FMT_MSG) "Prior to image filtering."
     WRITE(std_out,FMT_MSG_SEP)
+    WRITE(std_out,FMT_MSG) "Subarray reduced boundaries: "
+    WRITE(std_out,FMT_MSG_AxI0) "srb(1), srb(4): ", srb(1),  srb(4) 
+    WRITE(std_out,FMT_MSG_AxI0) "srb(2), srb(5): ", srb(2),  srb(5) 
+    WRITE(std_out,FMT_MSG_AxI0) "srb(3), srb(6): ", srb(3),  srb(6) 
+    WRITE(std_out,FMT_MSG_SEP)
     FLUSH(std_out)
 END IF
 
@@ -330,16 +341,6 @@ SELECT CASE(type)
         !------------------------------------------------------------------------------
         CALL extract_histogram_scalar_array(&
             subarray_ik2(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
-
-        ! DEBUG INFORMAITON
-        IF((debug >= 2) .AND. (my_rank == 0)) THEN
-            WRITE(std_out,FMT_MSG) "Subarray reduced boundaries: "
-            WRITE(std_out,FMT_MSG_AxI0) "srb(1), srb(4): ", srb(1),  srb(4) 
-            WRITE(std_out,FMT_MSG_AxI0) "srb(2), srb(5): ", srb(2),  srb(5) 
-            WRITE(std_out,FMT_MSG_AxI0) "srb(3), srb(6): ", srb(3),  srb(6) 
-            WRITE(std_out,FMT_MSG_SEP)
-            FLUSH(std_out)
-        END IF
 
         CALL filter(subarray_ik2, kernel, srb, result_subarray_ik2)
         DEALLOCATE(subarray_ik2)
@@ -390,10 +391,10 @@ IF((debug >= 2) .AND. (my_rank == 0)) THEN
 END IF
 
 CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
-    MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+    MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
-    MPI_INT, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+    MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 CALL CPU_TIME(extract_Histo)
 

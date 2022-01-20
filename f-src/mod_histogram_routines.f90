@@ -90,7 +90,6 @@ histogram(:) = 0_ik
 
 shp = INT(SHAPE(array), KIND=ik)
 
-! Take care of sign of hmin!! Not that intuitive
 DO kk=1, shp(3)
 DO jj=1, shp(2)
 DO ii=1, shp(1)
@@ -107,12 +106,13 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Write the csv file of the histogram.
+!> Write the csv file of the histogram. Provide an odd number for the moving
+!> average to get the best result out of it.
 !
 !> @param[in] fh File handle
 !> @param[in] hdr_str String of the histograms header
 !> @param[in] hbnds Histogram boundaries
-!> @param[in] mov_avg_width Width of the moving average
+!> @param[in] mov_avg_width Gliding average - width of smoothing
 !> @param[in] histogram Actual histogram data
 !------------------------------------------------------------------------------  
  SUBROUTINE write_histo_csv (fh, hdr_str, hbnds, mov_avg_width, histogram)
@@ -129,12 +129,12 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
   !------------------------------------------------------------------------------
   ! Choose steps of loop according to the histogram boundaries.
   !------------------------------------------------------------------------------
-  IF (mov_avg_width <= 1) THEN
+  IF (mov_avg_width < 1) THEN
     step = 1
-    span = 1
+    span = 0
   ELSE
     step = CEILING(REAL(mov_avg_width, KIND=rk)/10._rk, KIND=ik) ! Factor ~10 or 1 
-    span = mov_avg_width/2                    ! int division
+    span = (mov_avg_width-1_ik)/2_ik                             ! int division
   END IF
 
   !------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
 
   WRITE(fh,'(A)') TRIM(ADJUSTL(hdr_str))
   
-  DO ii = 1+span, hbnds(3)-span, step
+  DO ii = 1+span, hbnds(z)-span, step
     avg = SUM(histogram(ii-span:ii+span))/(mov_avg_width + 1_ik)
 
     WRITE(fh,'(I0,A,I0)') huwritten," , ",avg
