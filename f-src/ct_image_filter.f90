@@ -107,7 +107,7 @@ IF(my_rank == 0) THEN
 
     CALL show_title()
  
-    IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/.temporary.std_out"
+    IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/temporary.std_out"
 
     !------------------------------------------------------------------------------
     ! Parse input
@@ -166,7 +166,7 @@ IF(my_rank == 0) THEN
     IF((debug >= 0) .AND. (my_rank == 0)) THEN
         WRITE(std_out, FMT_TXT) "Date: "//date//" [ccyymmdd]"
         WRITE(std_out, FMT_TXT) "Time: "//time//" [hhmmss.sss]"  
-        WRITE(std_out, FMT_TXT) "Program invocation: "//TRIM(cmd_arg_history)          
+        WRITE(std_out, FMT_TXT) "Program invocation:"//TRIM(cmd_arg_history)          
         WRITE(std_out, FMT_TXT_SEP)
         WRITE(std_out, FMT_MSG_xAI0) "Debug Level:", debug
         WRITE(std_out, FMT_MSG_xAI0) "Processors:", size_mpi  
