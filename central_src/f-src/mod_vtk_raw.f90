@@ -136,7 +136,7 @@ INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
-CHARACTER(LEN=scl), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'NATIVE'
 
@@ -194,7 +194,7 @@ INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
-CHARACTER(LEN=scl), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'NATIVE'
 
@@ -298,7 +298,7 @@ CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-CHARACTER(LEN=scl), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
@@ -361,7 +361,7 @@ REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
-CHARACTER(LEN=scl), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'NATIVE'
 

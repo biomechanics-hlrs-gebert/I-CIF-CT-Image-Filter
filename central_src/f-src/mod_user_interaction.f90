@@ -226,7 +226,7 @@ IF (command_argument_count() == 0) THEN
     mssg = "No command argument given."
     stp = .TRUE. 
 ELSE
-    DO ii=1, 15 ! Read up to 15 command arguments.
+    DO ii=0, 15 ! Read up to 15 command arguments.
     
         CALL GET_COMMAND_ARGUMENT(ii, cmd_arg)
 
@@ -295,7 +295,7 @@ SUBROUTINE usage(this_binary)
 CHARACTER(LEN=*), INTENT(IN) :: this_binary
 
 WRITE(std_out, FMT_TXT) 'Usage:'
-WRITE(std_out, FMT_TXT) './'//TRIM(ADJUSTL(this_binary))//' '//'<flags> <basename.meta>'
+WRITE(std_out, FMT_TXT) TRIM(ADJUSTL(this_binary))//' '//'<flags> <basename.meta>'
 WRITE(std_out, FMT_TXT) ''
 WRITE(std_out, FMT_TXT) '-h/ --help      This message.'
 WRITE(std_out, FMT_TXT) '-v/ --version   Version of the program'
