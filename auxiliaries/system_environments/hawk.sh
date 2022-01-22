@@ -2,21 +2,15 @@
 # -----------------------------------------------------------------------------
 # Set the environment for the Hawk system, a heterogenous cluster.
 #
-# Author:          Johannes Gebert - HLRS - NUM - gebert@hlrs.de
-# Created:         25.12.2021
-# Last edit:       18.01.2022
+# Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+# Created:   25.12.2021
+# Last edit: 23.01.2022
 # -----------------------------------------------------------------------------
 # Commented out mpi for hawk since the defaults are ok.
 # -----------------------------------------------------------------------------
 #
-# Unload MPT ------------------------------
-# module unload mpt/2.23
-#
-# Unload MPT ------------------------------
-# module load gcc/9.2.0
-#
-# MPI environment ------------------------
-# module load openmpi/4.0.4
+# Load MPI
+module load mpi/openmpi/4.1.1-gnu-11.1.0
 #
 # mpi_prefix=/opt/hlrs/non-spack/mpi/openmpi/4.0.4-gcc-9.2.0/
 # export PATH=${mpi_prefix}/bin:$PATH
