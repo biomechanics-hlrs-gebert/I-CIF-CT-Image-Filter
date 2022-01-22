@@ -99,7 +99,8 @@ CONTAINS
 !> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
 !
 !> @brief
-!> Subroutine to encapsule the lock file handling
+!> Subroutine to encapsule the lock file handling. The lock file might be used 
+!> as an activity tracker for large computations.
 !
 !> @param[in] restart Whether to restart or not to.
 !> @param[in] restart_cmdarg Possible cmd argument override
@@ -117,20 +118,21 @@ CHARACTER(LEN=meta_mcl) :: lockname
 ! Restart handling
 ! Done after meta_io to decide based on keywords
 !------------------------------------------------------------------------------
-IF (restart_cmdarg /= 'U') THEN
-   mssg = "The keyword »restart« was overwritten by the command flag --"
-   IF (restart_cmdarg == 'N') THEN
-      restart = restart_cmdarg
-      mssg=TRIM(mssg)//"no-"
-   ELSE IF (restart_cmdarg == 'Y') THEN
-      restart = restart_cmdarg
+IF(PRESENT(restart_cmdarg)) THEN
+   IF ((restart_cmdarg /= '') .AND. (restart_cmdarg /= 'U'))THEN
+      mssg = "The keyword »restart« was overwritten by the command flag --"
+      IF (restart_cmdarg == 'N') THEN
+         restart = restart_cmdarg
+         mssg=TRIM(mssg)//"no-"
+      ELSE IF (restart_cmdarg == 'Y') THEN
+         restart = restart_cmdarg
+      END IF
+
+      mssg=TRIM(mssg)//"restart"
+      WRITE(std_out, FMT_WRN) TRIM(mssg)
+      WRITE(std_out, FMT_SEP)
    END IF
-
-   mssg=TRIM(mssg)//"restart"
-   WRITE(std_out, FMT_WRN) TRIM(mssg)
-   WRITE(std_out, FMT_SEP)
 END IF
-
 !------------------------------------------------------------------------------
 ! Automatically aborts if there is no input file found on the drive
 !------------------------------------------------------------------------------
@@ -360,19 +362,16 @@ END SUBROUTINE meta_continue
 !> of the meta data approach. 
 !
 !> @Description
-!> Meta log only gets called __after__ meta append or meta_close respectively. 
-!> This way, a log file is optional.
+!> This routine only gets called __after__ meta append or meta_close 
+!> respectively.
 !
-!> In the meta file format, the restart procedure only is checked for the
-!> meta file itself.
-!>
 !> If the variable restart is not explicitly set .TRUE., the program will not 
 !> restart.
 !> If the variable in/out are not set, the program will not start/stop 
 !> accordingly.
 !
-!> The Name of the temporary logfile is hardcoded!
-!> »'.temporary.'//log_suf«
+!> During computation (before meta_stop_ascii), the files are called
+!> 'temporary.suffix' to show which ones are subject to modifications.
 !
 !> @param[in] fh File handle of the input
 !> @param[in] suf Suffix of the file
@@ -389,7 +388,7 @@ INTEGER(KIND=meta_ik) :: ios
 LOGICAL :: exist_temp, exist_perm
 
 ! The temporaray file is a hidden one.
-temp_f_suf = TRIM(out%path)//'.temporary'//TRIM(suf)
+temp_f_suf = TRIM(out%path)//'temporary'//TRIM(suf)
 perm_f_suf = TRIM(out%p_n_bsnm)//TRIM(suf)
   
 !------------------------------------------------------------------------------
@@ -439,7 +438,7 @@ LOGICAL :: op, fex
 op = .FALSE.
 fex = .FALSE.
 
-temp_f_suf = TRIM(out%path)//'.temporary'//TRIM(suf)
+temp_f_suf = TRIM(out%path)//'temporary'//TRIM(suf)
 perm_f_suf = TRIM(out%p_n_bsnm)//TRIM(suf)
 
 INQUIRE(UNIT=fh, OPENED=op)

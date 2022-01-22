@@ -114,7 +114,9 @@ END SUBROUTINE get_rank_section
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Read the raw int2 data of a binary blob
+!> Read the raw int2 data of a binary blob. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @param[in] filename File name
 !> @param[in] disp Length of the header (bytes)
@@ -122,7 +124,7 @@ END SUBROUTINE get_rank_section
 !> @param[in] subarray_dims Amount of voxels per direction of the subarray
 !> @param[in] subarray_origin Physical origin of the data set
 !> @param[out] subarray data
-!> @param[in] dtrep Whether the input file is big or little endian. 
+!> @param[in] dtrep Datarepresentation 
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
@@ -134,13 +136,11 @@ INTEGER(KIND=INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
-LOGICAL, INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
-datarep = 'EXTERNAL32'
+datarep = 'NATIVE'
 
-IF(PRESENT(dtrep)) THEN ! Prepare for other representations
-   IF(dtrep) datarep = 'EXTERNAL32'
-END IF
+IF(PRESENT(dtrep)) datarep = TRIM(dtrep)
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -172,7 +172,9 @@ END SUBROUTINE mpi_read_raw_ik2
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Read the raw int4 data of a binary blob
+!> Read the raw int4 data of a binary blob. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @param[in] filename File name
 !> @param[in] disp Length of the header (bytes)
@@ -192,13 +194,11 @@ INTEGER(KIND=INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
-LOGICAL, INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
-datarep = 'EXTERNAL32'
+datarep = 'NATIVE'
 
-IF(PRESENT(dtrep)) THEN ! Prepare for other representations
-   IF(dtrep) datarep = 'EXTERNAL32'
-END IF
+IF(PRESENT(dtrep)) datarep = TRIM(dtrep)
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -231,7 +231,9 @@ END SUBROUTINE mpi_read_raw_ik4
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Convert unsigned int2 to int 2 data.
+!> Convert unsigned int2 to int 2 data. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @description
 !> Fortran does not know this shit. Therefore a workaround...
@@ -250,7 +252,7 @@ INTEGER(KIND=ik), DIMENSION(3) :: shp
 ! Storing the array with + 65536 will cut off the image.
 ! At least INT32 required. All of the required variables are INT32.
 !------------------------------------------------------------------------------  
-INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536, int2max=32768
+INTEGER(KIND=INT32), PARAMETER :: conv_param=0, offset=65536
 
 shp = SHAPE(subarray_in)
 
@@ -278,7 +280,9 @@ END SUBROUTINE uik2_to_ik4
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Read the raw real 4 (single precision) data of a binary blob
+!> Read the raw real 4 (single precision) data of a binary blob. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @param[in] filename File name
 !> @param[in] disp Length of the header (bytes)
@@ -294,17 +298,15 @@ CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(KIND=REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-LOGICAL, INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
 
-datarep = 'EXTERNAL32'
+datarep = 'NATIVE'
 
-IF(PRESENT(dtrep)) THEN ! Prepare for other representations
-   IF(dtrep) datarep = 'EXTERNAL32'
-END IF
+IF(PRESENT(dtrep)) datarep = TRIM(dtrep)
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -336,7 +338,9 @@ END SUBROUTINE mpi_read_raw_rk4
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Read the raw real 8 (double precision) data of a binary blob
+!> Read the raw real 8 (double precision) data of a binary blob. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @param[in] fh File handle
 !> @param[in] filename File name
@@ -357,13 +361,11 @@ REAL(KIND=REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik) :: ierr, type_subarray, my_rank, size_mpi, fh
 CHARACTER(LEN=scl) :: datarep
-LOGICAL, INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
 
-datarep = 'EXTERNAL32'
+datarep = 'NATIVE'
 
-IF(PRESENT(dtrep)) THEN ! Prepare for other representations
-   IF(dtrep) datarep = 'EXTERNAL32'
-END IF
+IF(PRESENT(dtrep)) datarep = TRIM(dtrep)
 
 ! Required to open files
 CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
@@ -397,7 +399,9 @@ END SUBROUTINE mpi_read_raw_rk8
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Write raw binary data
+!> Write raw binary data. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @param[in] fh File handle
 !> @param[in] disp Length of the header (bytes) - position to write to
@@ -408,7 +412,7 @@ END SUBROUTINE mpi_read_raw_rk8
 !> @param[in] subarray Scalar field / Image data
 !> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
- SUBROUTINE mpi_write_raw_ik2 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
+ SUBROUTINE mpi_write_raw_ik2 (filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 
@@ -416,10 +420,15 @@ CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(KIND=INT16), DIMENSION (:,:,:), INTENT(IN) :: subarray
+CHARACTER(LEN=scl), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik)  :: fh, ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
+CHARACTER(LEN=scl) :: datarep = 'NATIVE'
+
+datarep = 'NATIVE'
+
+IF(PRESENT(dtrep)) datarep = TRIM(dtrep)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
 
@@ -445,7 +454,9 @@ END SUBROUTINE mpi_write_raw_ik2
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
 !> @brief
-!> Write raw binary data
+!> Write raw binary data. @Datarepresenation: 
+!> NATIVE=LittleEndian on file system, EXTERNAL32 --> BigEndian. 
+!> Please check and test if you need this feature!! Depends on Hardware.
 !
 !> @description
 !
@@ -457,7 +468,7 @@ END SUBROUTINE mpi_write_raw_ik2
 !> @param[in] subarray Scalar field / Image data
 !> @param[in] dtrep Whether the input file is big or little endian. 
 !------------------------------------------------------------------------------  
- SUBROUTINE mpi_write_raw_ik4 (filename, disp, dims, subarray_dims, subarray_origin, subarray)
+ SUBROUTINE mpi_write_raw_ik4 (filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 
@@ -465,10 +476,15 @@ CHARACTER(LEN=*), INTENT(IN) :: filename
 INTEGER(KIND=MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(KIND=ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(KIND=INT32), DIMENSION (:,:,:), INTENT(IN) :: subarray
+CHARACTER(LEN=scl), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(KIND=mik)  :: fh, ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep = 'EXTERNAL32'
+CHARACTER(LEN=scl) :: datarep = 'NATIVE'
+
+datarep = 'NATIVE'
+
+IF(PRESENT(dtrep)) datarep = TRIM(dtrep)
 
 CALL MPI_FILE_OPEN(MPI_COMM_WORLD, TRIM(filename), &
    MPI_MODE_WRONLY+MPI_MODE_CREATE, MPI_INFO_NULL, fh, ierr)
