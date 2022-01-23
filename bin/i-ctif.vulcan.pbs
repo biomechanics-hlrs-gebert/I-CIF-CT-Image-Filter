@@ -4,12 +4,12 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      09.01.2022
-# Last edit: 15.01.2022
+# Last edit: 23.01.2022
 #
 # For use of PBSPro visit:
 # https://kb.hlrs.de/platforms/index.php/Batch_System_PBSPro_(vulcan)
 # ------------------------------------------------------------------------------
-#PBS -N Dosc_PT02-1
+#PBS -N Ctif
 #PBS -l select=22:node_type=clx384gb40c:mpiprocs=40
 #PBS -l walltime=20:00:00
 #
@@ -20,4 +20,4 @@ cd $PBS_O_WORKDIR
 module load mpi/openmpi/4.1.0-gnu-10.3.0
 #
 # Launch the parallel mpi application
-mpirun -np 880 ./bin/dosc_v1.0.0_x86_64 $PBS_O_WORKDIR ./datasets/FH01-2_mu_Pro_Original_Reconstructed.meta
+mpirun -np 880 ./bin/ctif_V5.0.0_x86_64 $PBS_O_WORKDIR ./datasets/FH01-2_mu_Prod_vtk_original.meta
