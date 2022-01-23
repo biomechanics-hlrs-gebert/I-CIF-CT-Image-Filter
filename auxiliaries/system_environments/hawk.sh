@@ -10,11 +10,11 @@
 # -----------------------------------------------------------------------------
 #
 # Load MPI
-module load mpi/openmpi/4.1.1-gnu-11.1.0
+module load openmpi/4.0.5
 #
-# mpi_prefix=/opt/hlrs/non-spack/mpi/openmpi/4.0.4-gcc-9.2.0/
-# export PATH=${mpi_prefix}/bin:$PATH
-# export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
+mpi_prefix=/opt/hlrs/non-spack/mpi/openmpi/4.0.5-gcc-9.2.0/
+export PATH=${mpi_prefix}/bin:$PATH
+export LD_LIBRARY_PATH=${mpi_prefix}/lib:$LD_LIBRARY_PATH
 # -----------------------------------------------------------------------------
 # M-DDTC-Directly-Discretizing-Tensor-Computation / Struct process ...
 # ... specific environments
@@ -32,17 +32,15 @@ if [[ -f "f-src/struct_process.f90" ]]; then
     #
     # ----------------------------------------
     # METIS installation
-    module load metis/5.1.0-int64
     #
-    metis_prefix=/opt/hlrs/spack/rev-004_2020-06-17/metis/5.1.0-gcc-9.2.0-rdkkxlua
+    metis_prefix=$PWD/lib/metis/metis-5.1.0
     export METIS_INCPATH=${metis_prefix}/include
     export METIS_LIBPATH=${metis_prefix}/lib
     #
     # ----------------------------------------
     # PETSc installation
-    # module load petsc/3.12.2-int64
     #
-    petsc_prefix=$PWD/petsc
+    petsc_prefix=$PWD/lib/petsc/petsc-3.15
     export PETSC_INCPATH=${petsc_prefix}/include
     export PETSC_LIBPATH=${petsc_prefix}/lib
     export LD_LIBRARY_PATH=${petsc_prefix}/lib:$LD_LIBRARY_PATH
