@@ -1567,10 +1567,21 @@ DO ii=1, 6
 
    my_pos = my_size+1
 
+   !------------------------------------------------------------------------------
+   ! Write the binary information ('phi') to file
+   !------------------------------------------------------------------------------
+   SELECT CASE(TRIM(datatype))
+      CASE('ik2')
+         IF(ii == 2) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
+      CASE('ik4')
+         IF(ii == 3) CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
+   END SELECT
+
+   !------------------------------------------------------------------------------
+   ! Write specific information to file
+   !------------------------------------------------------------------------------
    SELECT CASE(ii)
       CASE(3)
-         CALL write_leaf_to_header(fhh, "Scalar data", ii, stda(ii,:))
- 
          stda(ii,:) = [3, stda(ii,3)+1, stda(ii,3)+3]
          CALL write_leaf_to_header(fhh, "Number of voxels per direction", ii, stda(ii,:))           
          WRITE(free_file_handle, POS=my_pos) INT(vox_per_dim, KIND=4)
