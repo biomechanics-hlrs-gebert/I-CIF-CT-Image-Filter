@@ -25,6 +25,8 @@ IMPLICIT NONE
    INTEGER, PARAMETER :: ucl    = 8    ! Unit    character  length
    INTEGER, PARAMETER :: stdspc = 39   ! Keyword standard space
 
+   REAL(KIND=meta_rk) :: meta_start, meta_end
+
    CHARACTER(LEN=kcl) :: global_meta_program_keyword
    CHARACTER(LEN=kcl) :: global_meta_prgrm_mstr_app
 
@@ -184,7 +186,8 @@ CALL meta_invoke(meta_as_rry)
 CALL meta_continue(meta_as_rry)
 
 CALL meta_write(fhmeo, 'META_PARSED/INVOKED' , 'Now - Date/Time on the right.')
-
+ 
+CALL CPU_TIME(meta_start)
 END SUBROUTINE meta_append
 
 
@@ -606,7 +609,7 @@ SUBROUTINE parse_basename(filename, suf)
 
 CHARACTER(LEN=*) :: filename, suf
 INTEGER  (KIND=meta_ik) :: ntokens
-CHARACTER(LEN=meta_mcl) :: tokens(30)
+CHARACTER(LEN=meta_mcl) :: tokens(30), sgmnts
 
 in%full = TRIM(ADJUSTL(filename))
 
@@ -623,7 +626,8 @@ in%bsnm = TRIM(tokens(ntokens))
 CALL parse( str=TRIM(in%bsnm), delims="_", args=tokens, nargs=ntokens)
 
 IF (ntokens /= 5) THEN
-   mssg = "Invalid basename given: "//TRIM(in%p_n_bsnm)
+   write(sgmnts, '(I0)') ntokens
+   mssg = "Basename with "//TRIM(sgmnts)//" segments given, which is invalid: "//TRIM(in%p_n_bsnm)
    CALL print_err_stop(std_out, mssg, 1)
 END IF
 
@@ -1299,7 +1303,10 @@ INTEGER(KIND=meta_mik) :: size_mpi
 LOGICAL :: opened
 
 CALL meta_write(fhmeo, 'PROCESSORS', '(-)', INT(size_mpi, KIND=meta_ik))
-CALL meta_write(fhmeo, 'COMPUTATION_FINISHED' , 'Succesfully')
+
+CALL CPU_TIME(meta_end)
+
+CALL meta_write(fhmeo, 'FINISHED_WALLTIME' , '(s)', (meta_end-meta_start))
 
 WRITE(fhmeo, '(A)')
 WRITE(fhmeo, "(100('-'))")
