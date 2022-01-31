@@ -1,2 +1,2 @@
 CHARACTER(LEN=scl), PARAMETER :: longname = 'Computed Tomography Image Filter'
-CHARACTER(LEN=scl), PARAMETER :: hash = '7e2105877a930bed897653d98b6597e8ab005c65'
+CHARACTER(LEN=scl), PARAMETER :: hash = 'f3144366dfc4e455465f07d1c2bf00ef35260a09'
