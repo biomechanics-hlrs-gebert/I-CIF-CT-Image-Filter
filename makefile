@@ -1,13 +1,13 @@
 # ------------------------------------------------------------------------------
-# Makefile to build the CTIF-CT-Image-Filter
+# Makefile to build the CIF-CT-Image-Filter
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      25.04.2021
-# Last edit: 30.12.2021
+# Last edit: 27.02.2022
 #
 # For use of make visit: https://www.gnu.org/software/make/
 # ------------------------------------------------------------------------------
-bin_name="ctif"
+bin_name="cif"
 long_name="Computed Tomography Image Filter"
 # ------------------------------------------------------------------------------
 ifeq ($(PROVIDES_GIT),YES)
