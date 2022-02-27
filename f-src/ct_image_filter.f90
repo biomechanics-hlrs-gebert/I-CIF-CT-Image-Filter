@@ -112,15 +112,15 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
-    CALL meta_read(std_out, 'DATA_BYTE_ORDER', m_rry, dbo)
-    CALL meta_read(std_out, 'RESTART'   , m_rry, restart)
-    CALL meta_read(std_out, 'TYPE_RAW'  , m_rry, type)
-    CALL meta_read(std_out, 'SPACING'   , m_rry, spcng)
-    CALL meta_read(std_out, 'DIMENSIONS', m_rry, dims)
+    CALL meta_read('DATA_BYTE_ORDER', m_rry, dbo)
+    CALL meta_read('RESTART'   , m_rry, restart)
+    CALL meta_read('TYPE_RAW'  , m_rry, type)
+    CALL meta_read('SPACING'   , m_rry, spcng)
+    CALL meta_read('DIMENSIONS', m_rry, dims)
 
-    CALL meta_read(std_out, 'FILTER_SIZE'  , m_rry, kernel_size)
-    CALL meta_read(std_out, 'FILTER_KERNEL', m_rry, selectKernel)
-    CALL meta_read(std_out, 'FILTER_SIGMA' , m_rry, sigma)
+    CALL meta_read('FILTER_SIZE'  , m_rry, kernel_size)
+    CALL meta_read('FILTER_KERNEL', m_rry, selectKernel)
+    CALL meta_read('FILTER_SIGMA' , m_rry, sigma)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
@@ -458,9 +458,9 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Finish the program
     !------------------------------------------------------------------------------
-    CALL meta_write(fhmeo, 'FIELD_OF_VIEW', '(mm)' , srry_dims*sections*spcng)
-    CALL meta_write(fhmeo, 'DIMENSIONS', '(-)',      srry_dims*sections)
-    CALL meta_write(fhmeo, 'ENTRIES', '(-)', PRODUCT(srry_dims*sections))
+    CALL meta_write('FIELD_OF_VIEW', '(mm)' , srry_dims*sections*spcng)
+    CALL meta_write('DIMENSIONS', '(-)',      srry_dims*sections)
+    CALL meta_write('ENTRIES', '(-)', PRODUCT(srry_dims*sections))
 END IF
 
 !------------------------------------------------------------------------------

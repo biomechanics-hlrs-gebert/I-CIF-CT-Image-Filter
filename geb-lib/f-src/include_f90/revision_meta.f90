@@ -1,2 +1,2 @@
-CHARACTER(LEN=scl), PARAMETER :: longname = 'Directly Discretizing Tensor Computation'
-CHARACTER(LEN=scl), PARAMETER :: hash = '0142455330c458b5987534304630940fc3a96e86'
+CHARACTER(LEN=scl), PARAMETER :: longname = 'Computed Tomography Image Filter'
+CHARACTER(LEN=scl), PARAMETER :: hash = 'a6d8d02a4a289cd9dd8f66a5a7ee1baef96e060f'

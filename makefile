@@ -41,7 +41,7 @@ export build_path
 # Directories 
 # st: "Subtree" - A git procedure to inherit another repository as some sort of
 # submodule. https://gist.github.com/SKempin/b7857a6ff6bddb05717cc17a44091202
-st_path= $(build_path)/central_src/
+st_path= $(build_path)/geb-lib/
 #
 st_obj_dir = $(st_path)/obj/
 st_mod_dir = $(st_path)/mod/
@@ -188,7 +188,7 @@ help:
 	@echo "----------------------------------------------------------------------------------"
 	@echo "-- $(long_name) make targets"
 	@echo "-- Regular:  »make (all)«    - Build the $(long_name)"
-	@echo "-- Cleaning: »make clean«    - Remove build files, keep the central_src"
+	@echo "-- Cleaning: »make clean«    - Remove build files, keep the geb-lib"
 	@echo "-- Cleaning: »make cleanall« - Remove all build files."
 	@echo "-- Docs:     »make docs      - Build the html and the tex documentation."
 	@echo "----------------------------------------------------------------------------------"
@@ -232,6 +232,6 @@ clean:
 	
 cleanall: clean
 	@echo "----------------------------------------------------------------------------------"
-	@echo "-- Cleaning central_src st"
+	@echo "-- Cleaning geb-lib st"
 	@echo "----------------------------------------------------------------------------------"
 	$(MAKE) clean -C $(st_path)
