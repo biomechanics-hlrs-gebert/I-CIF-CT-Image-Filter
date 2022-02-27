@@ -1,0 +1,17 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# Batch scipt for HLRS Aurora
+#
+# Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+# Created:   28.11.2021
+# Last edit: 27.02.2022
+# ------------------------------------------------------------------------------
+#PBS -N cif
+#PBS -l select=4:node_type=aurora:mpiprocs=96
+#PBS -l walltime=10:00:00
+
+# Change to the direcotry that the job was submitted from
+cd "$PBS_O_WORKDIR" || exit
+
+# Launch the parallel mpi application (compiled with intel mpi) to the allocated compute nodes
+mpirun -np 96 ./bin/Convolusional_Filtering_V3.4.1_x86_64 "$PBS_O_WORKDIR" ./bin/PT01-1_mu_Dev_compare_KnochProbe2.meta
