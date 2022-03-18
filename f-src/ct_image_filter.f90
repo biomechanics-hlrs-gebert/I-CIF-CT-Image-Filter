@@ -105,7 +105,7 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     IF(std_out/=6) CALL meta_start_ascii(std_out, '.std_out')
 
-    CALL show_title()
+    CALL show_title(["Johannes Gebert, M.Sc. (HLRS, NUM) "])
  
     IF(debug >=0) WRITE(std_out, FMT_MSG) "Post mortem info probably in ./datasets/temporary.std_out"
 
