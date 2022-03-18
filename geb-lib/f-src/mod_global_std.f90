@@ -11,7 +11,7 @@ MODULE global_std
 IMPLICIT NONE
 
 ! Debugging
-CHARACTER(LEN=*), PARAMETER :: out_amount  =  "DEBUG" ! "PRODUCTION" !"DEBUG" !
+CHARACTER(LEN=*), PARAMETER :: out_amount  =  "PRODUCTION" ! "DEBUG" ! "ALEXANDRIA"
 
 ! General constants
 INTEGER, PARAMETER :: sik = 2   ! INTEGER Kind
@@ -29,7 +29,7 @@ INTEGER(KIND=ik), PARAMETER :: dbg_lvl = 1
 CHARACTER(LEN=mcl) :: mssg = ''
 
 ! Dynamically assigned, must fit to program
-INTEGER(KIND=ik)            :: std_out
+INTEGER(KIND=ik)            :: std_out = 6
 INTEGER(KIND=ik), PARAMETER :: std_in  = 5
 INTEGER(KIND=ik), PARAMETER :: std_err = 0
 

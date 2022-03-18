@@ -21,7 +21,7 @@ cat ./datasets/I-CIF.meta.template >> Your_Meta_File.meta
 ## Usage
 For example for testing on julius:
 ```
-mpirun ./bin/cif_v1.0.0_x86_64 -np 4 <basename>.meta```
+mpirun ./bin/cif_v1.0.0_x86_64 -np 4 <base>.meta
 ```
 ## Datasets
 ... are transfered via file exchange and are not pushed into the repository. 

@@ -3,8 +3,14 @@
 !------------------------------------------------------------------------------
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
-! @Description:
+! @Brief:
 !> Module containing all meta file read/write routines.
+!
+! @Description:
+!> It is strongly advised, to check the existance of the file before calling 
+!> these functions and routines. In case of an error, this library will 
+!> invoke an STOP and therefore MPI_ABORT operation with the program exiting
+!> improperly.
 !------------------------------------------------------------------------------
 MODULE meta
 
@@ -94,7 +100,6 @@ IMPLICIT NONE
       MODULE PROCEDURE meta_write_R1D
    END INTERFACE meta_write
 
-
 CONTAINS
 
 !------------------------------------------------------------------------------
@@ -123,20 +128,9 @@ CHARACTER(LEN=meta_mcl) :: lockname
 ! Done after meta_io to decide based on keywords
 !------------------------------------------------------------------------------
 IF(PRESENT(restart_cmdarg)) THEN
-   IF ((restart_cmdarg /= '') .AND. (restart_cmdarg /= 'U'))THEN
-      mssg = "The keyword »restart« was overwritten by the command flag --"
-      IF (restart_cmdarg == 'N') THEN
-         restart = restart_cmdarg
-         mssg=TRIM(mssg)//"no-"
-      ELSE IF (restart_cmdarg == 'Y') THEN
-         restart = restart_cmdarg
-      END IF
-
-      mssg=TRIM(mssg)//"restart"
-      WRITE(std_out, FMT_WRN) TRIM(mssg)
-      WRITE(std_out, FMT_SEP)
-   END IF
+   CALL meta_compare_restart(restart, restart_cmdarg)
 END IF
+
 !------------------------------------------------------------------------------
 ! Automatically aborts if there is no input file found on the drive
 !------------------------------------------------------------------------------
@@ -155,8 +149,6 @@ IF((restart == 'N') .AND. (exist)) THEN
    CALL print_err_stop(std_out, TRIM(ADJUSTL(mssg)), 1_meta_ik)
 END IF
 
-
-
 !------------------------------------------------------------------------------
 ! Create a new lock file.
 !------------------------------------------------------------------------------
@@ -168,6 +160,38 @@ END IF
 IF((restart == 'Y') .AND. (exist)) CONTINUE
 
 END SUBROUTINE meta_handle_lock_file
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: meta_compare_restart
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> compare restart arguments.
+!
+!> @param[in] restart Whether to restart or not to.
+!> @param[in] restart_cmdarg Possible cmd argument override
+!------------------------------------------------------------------------------  
+SUBROUTINE meta_compare_restart(restart, restart_cmdarg)
+
+CHARACTER, INTENT(INOUT) :: restart
+CHARACTER, INTENT(IN)    :: restart_cmdarg
+
+IF ((restart_cmdarg /= '') .AND. (restart_cmdarg /= 'U'))THEN
+   mssg = "The keyword »restart« was overwritten by the command flag --"
+   IF (restart_cmdarg == 'N') THEN
+      restart = restart_cmdarg
+      mssg=TRIM(mssg)//"no-"
+   ELSE IF (restart_cmdarg == 'Y') THEN
+      restart = restart_cmdarg
+   END IF
+
+   mssg=TRIM(mssg)//"restart"
+   WRITE(std_out, FMT_WRN) TRIM(mssg)
+   WRITE(std_out, FMT_SEP)
+END IF
+
+END SUBROUTINE meta_compare_restart
 
 
 !------------------------------------------------------------------------------
@@ -374,17 +398,22 @@ END SUBROUTINE meta_continue
 !
 !> @param[in] fh File handle of the input
 !> @param[in] suf Suffix of the file
-!> @param[in] restart Logfiles (temporary and permanent)
+!> @param[in] access optional type of access
 !------------------------------------------------------------------------------  
-SUBROUTINE meta_start_ascii(fh, suf)
+SUBROUTINE meta_start_ascii(fh, suf, access)
 
 INTEGER(KIND=meta_ik), INTENT(IN) :: fh
 CHARACTER(LEN=*), INTENT(IN) :: suf
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: access
 
-CHARACTER(LEN=meta_mcl) :: temp_f_suf, perm_f_suf
+
+CHARACTER(LEN=meta_mcl) :: temp_f_suf, perm_f_suf, access_u
 INTEGER(KIND=meta_ik) :: ios
 
 LOGICAL :: exist_temp, exist_perm
+
+access_u = 'SEQUENTIAL'
+IF(PRESENT(access)) access_u = TRIM(access)
 
 ! The temporaray file is a hidden one.
 temp_f_suf = TRIM(out%path)//'temporary'//TRIM(suf)
@@ -410,7 +439,7 @@ IF(exist_perm) THEN
    CALL print_err_stop(std_out, '»'//TRIM(out%full)//'« not deletable.', ios)
 END IF
 
-OPEN(UNIT=fh, FILE=TRIM(temp_f_suf), ACTION='WRITE', ACCESS='SEQUENTIAL', STATUS='NEW')
+OPEN(UNIT=fh, FILE=TRIM(temp_f_suf), ACTION='WRITE', ACCESS=TRIM(access_u), STATUS='NEW')
 
 END SUBROUTINE meta_start_ascii
 

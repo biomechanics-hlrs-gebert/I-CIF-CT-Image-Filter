@@ -21,6 +21,105 @@ IMPLICIT NONE
 CONTAINS
 
 !------------------------------------------------------------------------------
+! SUBROUTINE: print_trimmed_text
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Prints a text with a specified width
+!
+!> @param[in] instring Input string
+!> @param[out] outstring Output string
+!------------------------------------------------------------------------------  
+SUBROUTINE print_trimmed_text (instring, frmt)
+
+CHARACTER(LEN=*), INTENT(IN) :: instring
+CHARACTER(LEN=*), INTENT(IN) :: frmt
+
+CHARACTER(LEN=mcl) :: text, sub_mssg
+CHARACTER(LEN=mcl)   :: delim, tokens(100), path_tokens(50)
+CHARACTER(LEN=mcl+1) :: next_token
+
+INTEGER(KIND=ik) :: fh , ntokens, path_ntokens, ii, jj, sw, mode
+
+mode = 0                ! Absolute or relative path
+sw = 2                  ! Whether it's the beginning or within a path
+ntokens = 0             ! Amount of words in message
+path_ntokens = 0        ! Amount of words in a path
+delim = '/'
+sub_mssg = ''
+ii = 1
+jj = 1
+
+text = TRIM(ADJUSTL(instring))
+
+IF (instring  /= '') THEN
+
+    !------------------------------------------------------------------------------  
+    ! Parse error message
+    !------------------------------------------------------------------------------  
+    CALL parse(str=text, delims=' ', args = tokens, nargs=ntokens)
+
+    !------------------------------------------------------------------------------  
+    ! next_token  = tokens(1) 
+    !------------------------------------------------------------------------------  
+    next_token = ''
+
+    DO WHILE (ii .LT. ntokens) 
+    
+        sub_mssg = REPEAT(' ', scl)
+        sub_mssg = TRIM(next_token)
+
+        DO           
+            !------------------------------------------------------------------------------  
+            ! path_ntokens = 1
+            !------------------------------------------------------------------------------  
+            IF (sw==2) CALL parse(str = tokens(ii), delims='/', args = path_tokens, nargs = path_ntokens)
+
+            IF (path_ntokens .GT. 1) sw=1
+            
+            IF (sw == 1) THEN
+                IF (TRIM(ADJUSTL(path_tokens(1))) =='') mode = 2
+                
+                IF ((mode == 2) .AND. (jj == 1)) jj = jj + 1
+                IF ((mode == 2) .AND. (jj == 2)) THEN
+                    delim = ' /'
+                ELSE
+                    delim = '/'
+                END IF
+
+                next_token = TRIM(delim)//ADJUSTL(path_tokens(jj))
+
+                jj = jj + 1                         
+                IF (jj .GT. path_ntokens) THEN
+                    sw   = 2
+                    jj   = 1
+                    mode = 1
+                    ii   = ii + 1
+                END IF
+            ELSE
+                next_token = ' '//tokens(ii)
+                ii = ii + 1
+                IF (ii .GT. ntokens+1) EXIT
+            END IF
+                        
+            IF ((LEN_TRIM(ADJUSTL(sub_mssg)) + LEN_TRIM(next_token)) .LT. scl) THEN
+                sub_mssg = TRIM(ADJUSTL(sub_mssg))//TRIM(next_token)
+            ELSE
+                EXIT ! Finishes the current line with scl characters
+            END IF
+        END DO
+
+        WRITE(fh, frmt) sub_mssg
+
+    END DO
+    FLUSH(fh)
+
+END IF ! (instring  /= '') THEN
+
+END SUBROUTINE print_trimmed_text
+
+!------------------------------------------------------------------------------
 ! SUBROUTINE: write_matrix
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
