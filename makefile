@@ -14,10 +14,10 @@ ifeq ($(PROVIDES_GIT),YES)
 # Get git hash https://jblevins.org/log/vc
 # rev = $(shell git describe --tags --always)
 	rev = $(shell git rev-parse HEAD)
-	trgt_vrsn = $(shell git describe --tags --abbrev=0 | tee .version)
+	trgt_vrsn = $(shell git describe --tags --abbrev=0 | tee VERSION)
 else
 	rev = NO_GIT_REPOSITORY
-	trgt_vrsn = $(shell cat .version)
+	trgt_vrsn = $(shell cat VERSION)
 endif
 # -----------------------------------------------------------------------------
 # Check for environment
@@ -139,7 +139,7 @@ $(obj_dir)mod_histogram_routines$(obj_ext):$(st_mod_dir)global_std$(mod_ext) \
 											$(st_mod_dir)meta$(mod_ext) \
 											$(st_mod_dir)formatted_plain$(mod_ext) \
 											$(f_src_dir)mod_histogram_routines$(f90_ext)
-	@echo "----- Compiling " $(f_src_dir)mod_histogram_routines$(f90_ext) " -----"
+	@echo "----- Compiling " $(f_src_dir)mod_histogram_routines$(f90_ext) "-----"
 	$(compiler) $(c_flags_f90) -c $(f_src_dir)mod_histogram_routines$(f90_ext) -o $@
 	@echo
 
@@ -147,7 +147,7 @@ $(obj_dir)mod_histogram_routines$(obj_ext):$(st_mod_dir)global_std$(mod_ext) \
 # ------------------------------------------------------------------------------
 # Module containing convolutional kernels
 $(obj_dir)mod_kernels$(obj_ext):$(st_mod_dir)math$(mod_ext) $(f_src_dir)mod_kernels$(f90_ext)
-	@echo "----- Compiling " $(f_src_dir)mod_kernels$(f90_ext)" -----"
+	@echo "----- Compiling " $(f_src_dir)mod_kernels$(f90_ext)"-----"
 	$(compiler) $(c_flags_f90) -c $(f_src_dir)mod_kernels$(f90_ext) -o $@
 	@echo
 
@@ -160,7 +160,7 @@ $(obj_dir)ct_image_filter$(obj_ext):$(st_mod_dir)global_std$(mod_ext)\
  			            			$(st_mod_dir)strings$(mod_ext)\
 			            			$(mod_dir)histogram_routines$(mod_ext)\
 									$(f_src_dir)ct_image_filter$(f90_ext)
-	@echo "----- Compiling " $(f_src_dir)ct_image_filter$(f90_ext) " -----"
+	@echo "----- Compiling " $(f_src_dir)ct_image_filter$(f90_ext) "-----"
 	$(compiler) $(c_flags_f90) -c $(f_src_dir)ct_image_filter$(f90_ext) -o $@
 
 # --------------------------------------------------------------------------------------------------
