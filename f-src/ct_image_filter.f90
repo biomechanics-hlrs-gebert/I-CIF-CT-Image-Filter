@@ -17,42 +17,42 @@ USE histogram_routines
 IMPLICIT NONE 
 
 ! Parameter
-INTEGER(KIND=ik), PARAMETER :: debug = 2   ! Choose an even integer!!
-INTEGER(KIND=ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
+INTEGER(ik), PARAMETER :: debug = 2   ! Choose an even integer!!
+INTEGER(ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 
 ! Internal Variables
-INTEGER(KIND=ik) :: border, kernel_size
-INTEGER(KIND=ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
-INTEGER(KIND=mik), DIMENSION(3) :: sections
-INTEGER(KIND=ik), DIMENSION(3) :: sections_ik, rank_section, srry_dims
-INTEGER(KIND=ik), DIMENSION(3) :: dims_reduced, rmndr_dir, srry_dims_overlap
-INTEGER(KIND=ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
-INTEGER(KIND=INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_ik2
-INTEGER(KIND=INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
+INTEGER(mik) :: sections(3), stat
+INTEGER(ik) :: border, kernel_size
+INTEGER(ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
+INTEGER(ik), DIMENSION(3) :: sections_ik, rank_section, srry_dims
+INTEGER(ik), DIMENSION(3) :: dims_reduced, rmndr_dir, srry_dims_overlap
+INTEGER(ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
+INTEGER(INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_ik2
+INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
 CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
 CHARACTER(LEN=scl) :: type, selectKernel, restart, restart_cmd_arg, dbo
 CHARACTER(LEN=  8) :: date
 CHARACTER(LEN= 10) :: time
 
-REAL(KIND=rk) :: global_start, init_finish, read_t_vtk, prep_Histo
-REAL(KIND=rk) :: calculation, extract_Histo, global_finish, sigma
-REAL(KIND=rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
-REAL(KIND=rk), DIMENSION(3) :: spcng
+REAL(rk) :: global_start, init_finish, read_t_vtk, prep_Histo
+REAL(rk) :: calculation, extract_Histo, global_finish, sigma
+REAL(rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
+REAL(rk) :: spcng(3)
 
 CHARACTER(LEN=mcl) :: binary, cmd_arg_history=''
 CHARACTER(LEN=scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
 
-INTEGER(KIND=ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
-INTEGER(KIND=ik), DIMENSION(3) :: hbnds
-INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F
-INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE :: pre_F_global, post_F_global
-INTEGER(KIND=ik) :: fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof
+INTEGER(ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
+INTEGER(ik) :: hbnds(3)
+INTEGER(ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F
+INTEGER(ik), DIMENSION(:), ALLOCATABLE :: pre_F_global, post_F_global
+INTEGER(ik) :: fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof
 
-LOGICAL :: stp
+LOGICAL :: stp, abrt=.FALSE.
 
 ! MPI Variables
-INTEGER(KIND=mik) :: ierr, my_rank, size_mpi
+INTEGER(mik) :: ierr, my_rank, size_mpi
 
 ! Initialize MPI Environment
 CALL MPI_INIT(ierr)
@@ -92,7 +92,8 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     global_meta_prgrm_mstr_app = 'ctif' 
     global_meta_program_keyword = 'CT_IMAGE_FILTER'
-    CALL meta_append(m_rry)
+    CALL meta_append(m_rry, size_mpi, stat)
+    CALL print_err_stop(std_out, "Meta append failed.", stat)
     
     !------------------------------------------------------------------------------
     ! Redirect std_out into a file in case std_out is not useful by environment.
@@ -112,15 +113,15 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
-    CALL meta_read('DATA_BYTE_ORDER', m_rry, dbo)
-    CALL meta_read('RESTART'   , m_rry, restart)
-    CALL meta_read('TYPE_RAW'  , m_rry, type)
-    CALL meta_read('SPACING'   , m_rry, spcng)
-    CALL meta_read('DIMENSIONS', m_rry, dims)
+    CALL meta_read('DATA_BYTE_ORDER', m_rry, dbo, stat); CALL mest(stat, abrt)
+    CALL meta_read('RESTART'   , m_rry, restart, stat); CALL mest(stat, abrt)
+    CALL meta_read('TYPE_RAW'  , m_rry, type, stat); CALL mest(stat, abrt)
+    CALL meta_read('SPACING'   , m_rry, spcng, stat); CALL mest(stat, abrt)
+    CALL meta_read('DIMENSIONS', m_rry, dims, stat); CALL mest(stat, abrt)
 
-    CALL meta_read('FILTER_SIZE'  , m_rry, kernel_size)
-    CALL meta_read('FILTER_KERNEL', m_rry, selectKernel)
-    CALL meta_read('FILTER_SIGMA' , m_rry, sigma)
+    CALL meta_read('FILTER_SIZE'  , m_rry, kernel_size, stat); CALL mest(stat, abrt)
+    CALL meta_read('FILTER_KERNEL', m_rry, selectKernel, stat); CALL mest(stat, abrt)
+    CALL meta_read('FILTER_SIGMA' , m_rry, sigma, stat); CALL mest(stat, abrt)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
@@ -180,10 +181,10 @@ IF(my_rank == 0) THEN
       
 ENDIF ! (my_rank == 0)
 
-CALL MPI_BCAST( in%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(selectKernel, INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
-CALL MPI_BCAST(type        , INT(scl, KIND=mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST( in%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(selectKernel, INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(type        , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(sigma       , 1_mik, MPI_DOUBLE_PRECISION , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
@@ -200,9 +201,9 @@ END IF
 !------------------------------------------------------------------------------
 sections=0
 CALL MPI_DIMS_CREATE(size_mpi, 3_mik, sections, ierr)
-sections_ik = INT(sections, KIND=ik)
+sections_ik = INT(sections, ik)
 
-CALL get_rank_section(domain=INT(my_rank, KIND=ik), sections=sections_ik, rank_section=rank_section)
+CALL get_rank_section(domain=INT(my_rank, ik), sections=sections_ik, rank_section=rank_section)
 
 !------------------------------------------------------------------------------
 ! Calculate Padding to decrease "size of array" to a corresponding size
@@ -391,10 +392,10 @@ IF((debug >= 2) .AND. (my_rank == 0)) THEN
     FLUSH(std_out)
 END IF
 
-CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), KIND=mik), &
+CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), mik), &
     MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
-CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), KIND=mik), &
+CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), mik), &
     MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
 
 CALL CPU_TIME(extract_Histo)
@@ -471,7 +472,7 @@ END IF
 IF(my_rank == 0) THEN
 
     CALL meta_signing(binary)
-    CALL meta_close(size_mpi)
+    CALL meta_close()
 
     CALL meta_stop_ascii(fh_csv_prf, suf_csv_prf)
     CALL meta_stop_ascii(fh_csv_pof, suf_csv_pof)
@@ -488,6 +489,6 @@ IF(my_rank == 0) THEN
 END IF ! (my_rank == 0)
 
 CALL MPI_FINALIZE(ierr)
-CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, KIND=ik))
+CALL print_err_stop(std_out, "MPI_FINALIZE didn't succeed", INT(ierr, ik))
 
 END PROGRAM CTIF

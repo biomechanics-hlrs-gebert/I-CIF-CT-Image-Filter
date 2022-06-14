@@ -1,2 +1,2 @@
-CHARACTER(LEN=scl), PARAMETER :: longname = 'Spatial Image Registration'
-CHARACTER(LEN=scl), PARAMETER :: hash = 'dad512ce2c137ab5eddb21aa6310e4f1bfa0bf65'
+CHARACTER(LEN=scl), PARAMETER :: longname = 'Computed Tomography Image Filter'
+CHARACTER(LEN=scl), PARAMETER :: hash = 'b3bd338ffeb48588f9f769c2161ba142d087e8e5'
