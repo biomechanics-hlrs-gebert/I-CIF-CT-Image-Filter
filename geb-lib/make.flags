@@ -1,0 +1,39 @@
+# ------------------------------------------------------------------------------
+# Compilers
+f90_compiler = "mpif90"
+export f90_compiler
+c_compiler = "gcc"
+export c_compiler
+#
+# ------------------------------------------------------------------------------
+# Programming Environment - gnu, LLVM
+# ------------------------------------------------------------------------------
+PE = gnu
+# ------------------------------------------------------------------------------
+# Compile mode - dev, prod - Defined in environment.sh
+compile_MODE = dev
+# ------------------------------------------------------------------------------
+# Compile flags GNU Compiler
+# The subtree structure requires two directories containing modules.
+# In this case, the program root/mod directory addressed by the -J 
+# http://www.hpc.icc.ru/documentation/intel/f_ug1/fced_mod.htm
+ifeq ($(PE),gnu)
+	f90_std_IJ     = -J$(mod_dir) -I$(st_mod_dir)
+	f90_dev_flags  = 	-fdefault-integer-8 -fdefault-real-8 \
+						-finstrument-functions -ggdb -o -O3 \
+						-fbacktrace -fbounds-check  # -cpp -MD \
+						-Wno-conversion -Wall -fbackslash
+	f90_prod_flags = 	-fdefault-integer-8 -fdefault-real-8 -O3
+
+	c_std_I        = -I$(st_mod_dir)
+	c_dev_flags    = -g -O3
+	c_prod_flags   = -O3
+        
+	ifeq ($(compile_MODE),prod)
+		c_flags_f90 = $(f90_std_IJ) $(f90_prod_flags)
+		c_flags_c   = $(c_std_I) $(c_prod_flags)
+	else
+		c_flags_f90 = $(f90_std_IJ) $(f90_dev_flags)
+		c_flags_c   = $(c_std_I) $(c_dev_flags)
+	endif
+endif
