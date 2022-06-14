@@ -21,7 +21,7 @@ INTEGER(ik), PARAMETER :: debug = 2   ! Choose an even integer!!
 INTEGER(ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 
 ! Internal Variables
-INTEGER(mik) :: sections(3), stat
+INTEGER(mik) :: sections(3)
 INTEGER(ik) :: border, kernel_size
 INTEGER(ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
 INTEGER(ik), DIMENSION(3) :: sections_ik, rank_section, srry_dims
@@ -30,18 +30,18 @@ INTEGER(ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
 INTEGER(INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_ik2
 INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
-CHARACTER(LEN=mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
-CHARACTER(LEN=scl) :: type, selectKernel, restart, restart_cmd_arg, dbo
-CHARACTER(LEN=  8) :: date
-CHARACTER(LEN= 10) :: time
+CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
+CHARACTER(scl) :: type, selectKernel, restart, restart_cmd_arg, dbo, stat
+CHARACTER(  8) :: date
+CHARACTER( 10) :: time
 
 REAL(rk) :: global_start, init_finish, read_t_vtk, prep_Histo
 REAL(rk) :: calculation, extract_Histo, global_finish, sigma
 REAL(rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
 REAL(rk) :: spcng(3)
 
-CHARACTER(LEN=mcl) :: binary, cmd_arg_history=''
-CHARACTER(LEN=scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
+CHARACTER(mcl) :: binary, cmd_arg_history=''
+CHARACTER(scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
 
 INTEGER(ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
 INTEGER(ik) :: hbnds(3)
@@ -93,7 +93,7 @@ IF(my_rank == 0) THEN
     global_meta_prgrm_mstr_app = 'ctif' 
     global_meta_program_keyword = 'CT_IMAGE_FILTER'
     CALL meta_append(m_rry, size_mpi, stat)
-    CALL print_err_stop(std_out, "Meta append failed.", stat)
+    IF(stat/="") CALL print_err_stop(std_out, stat, 1)
     
     !------------------------------------------------------------------------------
     ! Redirect std_out into a file in case std_out is not useful by environment.
@@ -113,15 +113,17 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
-    CALL meta_read('DATA_BYTE_ORDER', m_rry, dbo, stat); CALL mest(stat, abrt)
-    CALL meta_read('RESTART'   , m_rry, restart, stat); CALL mest(stat, abrt)
-    CALL meta_read('TYPE_RAW'  , m_rry, type, stat); CALL mest(stat, abrt)
-    CALL meta_read('SPACING'   , m_rry, spcng, stat); CALL mest(stat, abrt)
-    CALL meta_read('DIMENSIONS', m_rry, dims, stat); CALL mest(stat, abrt)
+    CALL meta_read('DATA_BYTE_ORDER', m_rry, dbo, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('RESTART'   , m_rry, restart, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('TYPE_RAW'  , m_rry, type, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('SPACING'   , m_rry, spcng, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('DIMENSIONS', m_rry, dims, stat); IF(stat/="") abrt=.TRUE.
 
-    CALL meta_read('FILTER_SIZE'  , m_rry, kernel_size, stat); CALL mest(stat, abrt)
-    CALL meta_read('FILTER_KERNEL', m_rry, selectKernel, stat); CALL mest(stat, abrt)
-    CALL meta_read('FILTER_SIGMA' , m_rry, sigma, stat); CALL mest(stat, abrt)
+    CALL meta_read('FILTER_SIZE'  , m_rry, kernel_size, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('FILTER_KERNEL', m_rry, selectKernel, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('FILTER_SIGMA' , m_rry, sigma, stat); IF(stat/="") abrt=.TRUE.
+
+    IF (abrt) CALL print_err_stop(std_out, "A keyword failed.", 1)
     
     IF((type /= "ik2") .AND. (type /= "ik4")) THEN
         mssg = "Program only supports ik2 and ik4 for 'TYPE_RAW'"
