@@ -31,7 +31,7 @@ INTEGER(INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_
 INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
 CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
-CHARACTER(scl) :: type, selectKernel, restart, restart_cmd_arg, dbo, stat
+CHARACTER(scl) :: type, selectKernel, restart, restart_cmd_arg, dbo
 CHARACTER(  8) :: date
 CHARACTER( 10) :: time
 
@@ -40,7 +40,7 @@ REAL(rk) :: calculation, extract_Histo, global_finish, sigma
 REAL(rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
 REAL(rk) :: spcng(3)
 
-CHARACTER(mcl) :: binary, cmd_arg_history=''
+CHARACTER(mcl) :: binary, cmd_arg_history='', stat
 CHARACTER(scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
 
 INTEGER(ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
