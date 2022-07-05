@@ -20,34 +20,34 @@ IMPLICIT NONE
 INTEGER(ik), PARAMETER :: debug = 2   ! Choose an even integer!!
 INTEGER(ik), PARAMETER :: mov_avg_width = 100   ! Choose an even integer!!
 
-! Internal Variables
 INTEGER(mik) :: sections(3)
-INTEGER(ik) :: border, kernel_size
-INTEGER(ik), DIMENSION(3) :: dims, in_img_padding, subarray_origin
-INTEGER(ik), DIMENSION(3) :: sections_ik, rank_section, srry_dims
-INTEGER(ik), DIMENSION(3) :: dims_reduced, rmndr_dir, srry_dims_overlap
-INTEGER(ik), DIMENSION(6) :: srb ! subarray_reduced_bndaries
+
 INTEGER(INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_ik2
 INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
-CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry      
-CHARACTER(scl) :: type, selectKernel, restart, restart_cmd_arg, dbo
-CHARACTER(  8) :: date
-CHARACTER( 10) :: time
+CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry
+CHARACTER(scl) :: type='', selectKernel='', restart='', restart_cmd_arg='', db_order='', datarep=''
+CHARACTER(  8) :: date=''
+CHARACTER( 10) :: time=''
 
-REAL(rk) :: global_start, init_finish, read_t_vtk, prep_Histo
-REAL(rk) :: calculation, extract_Histo, global_finish, sigma
+REAL(rk) :: global_start, init_finish, read_t_vtk, prep_Histo, &
+    calculation, extract_Histo, global_finish, sigma, spcng(3)
+
 REAL(rk), DIMENSION(:,:,:), ALLOCATABLE  :: kernel
-REAL(rk) :: spcng(3)
 
-CHARACTER(mcl) :: binary, cmd_arg_history='', stat
+CHARACTER(mcl) :: binary, cmd_arg_history='', stat=''
 CHARACTER(scl) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof, suf_csv_fihi
 
-INTEGER(ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo,  histo_bnd_local_hi
-INTEGER(ik) :: hbnds(3)
-INTEGER(ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F
-INTEGER(ik), DIMENSION(:), ALLOCATABLE :: pre_F_global, post_F_global
-INTEGER(ik) :: fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof
+INTEGER(ik) :: histo_bnd_global_lo, histo_bnd_global_hi, histo_bnd_local_lo, &
+    histo_bnd_local_hi, fh_csv_prf, fh_csv_pof, fh_csv_aprf, fh_csv_apof, &
+    border, kernel_size, srb(6) ! subarray_reduced_bndaries
+
+INTEGER(ik), DIMENSION(3) :: hbnds, dims, in_img_padding, subarray_origin, &
+    sections_ik, rank_section, srry_dims, &
+    dims_reduced, rmndr_dir, srry_dims_overlap
+
+INTEGER(ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F, &
+    pre_F_global, post_F_global
 
 LOGICAL :: stp, abrt=.FALSE.
 
@@ -113,7 +113,7 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse input
     !------------------------------------------------------------------------------
-    CALL meta_read('DATA_BYTE_ORDER', m_rry, dbo, stat); IF(stat/="") abrt=.TRUE.
+    CALL meta_read('DATA_BYTE_ORDER', m_rry, db_order, stat); IF(stat/="") abrt=.TRUE.
     CALL meta_read('RESTART'   , m_rry, restart, stat); IF(stat/="") abrt=.TRUE.
     CALL meta_read('TYPE_RAW'  , m_rry, type, stat); IF(stat/="") abrt=.TRUE.
     CALL meta_read('SPACING'   , m_rry, spcng, stat); IF(stat/="") abrt=.TRUE.
@@ -130,10 +130,14 @@ IF(my_rank == 0) THEN
         CALL print_err_stop(std_out, mssg, 1)
     END IF
 
-    IF(TRIM(dbo) /= "LittleEndian") THEN
-        mssg = "Program only supports little endian files."
-        CALL print_err_stop(std_out, mssg, 1)
-    END IF
+    !------------------------------------------------------------------------------
+    ! Check the endianess
+    !------------------------------------------------------------------------------
+    IF (db_order == "BigEndian") THEN
+        datarep = "BIG_ENDIAN"
+     ELSE
+        datarep = "LITTLE_ENDIAN"
+     END IF      
 
     !------------------------------------------------------------------------------
     ! Restart handling
@@ -185,10 +189,14 @@ ENDIF ! (my_rank == 0)
 
 CALL MPI_BCAST( in%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+
 CALL MPI_BCAST(selectKernel, INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(type        , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(datarep     , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+
 CALL MPI_BCAST(sigma       , 1_mik, MPI_DOUBLE_PRECISION , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
+
 CALL MPI_BCAST(dims, 3_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
 
 ! DEBUG INFORMATION
@@ -263,6 +271,13 @@ END IF
 !------------------------------------------------------------------------------
 ! Allocate memory and read data
 !------------------------------------------------------------------------------
+IF(TRIM(datarep) == "BIG_ENDIAN") THEN
+    datarep = "external32"
+ELSE
+    datarep = "native"
+END IF 
+ 
+
 SELECT CASE(type)
     CASE('ik2') 
         ALLOCATE(subarray_ik2(srry_dims_overlap(1), srry_dims_overlap(2), srry_dims_overlap(3)))
@@ -271,7 +286,7 @@ SELECT CASE(type)
         result_subarray_ik2 = 0
 
         CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
-            srry_dims_overlap, subarray_origin, subarray_ik2)
+            srry_dims_overlap, subarray_origin, subarray_ik2, TRIM(datarep))
 
         !------------------------------------------------------------------------------
         ! Adjust the the data range of the Histogram to min/max of the subarray and
@@ -286,7 +301,7 @@ SELECT CASE(type)
         result_subarray_ik4 = 0
 
         CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
-            srry_dims_overlap, subarray_origin, subarray_ik4)
+            srry_dims_overlap, subarray_origin, subarray_ik4, TRIM(datarep))
 
         histo_bnd_local_lo = MINVAL(subarray_ik4)
         histo_bnd_local_hi = MAXVAL(subarray_ik4)
