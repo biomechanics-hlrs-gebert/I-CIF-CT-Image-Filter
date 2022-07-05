@@ -18,39 +18,39 @@ IMPLICIT NONE
 !------------------------------------------------------------------------------
 ! Formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_SHSEP = "(60('-'))"
-CHARACTER(Len=*), PARAMETER :: FMT_SEP   = "(80('-'))"
-CHARACTER(Len=*), PARAMETER :: FMT_TAB   = "    "
-CHARACTER(Len=*), PARAMETER :: FMT_DSEP  = "(80('='))"
-CHARACTER(Len=*), PARAMETER :: TAB_WDTH  = "4"
-CHARACTER(Len=*), PARAMETER :: FMT_INT   = "I0"
-CHARACTER(Len=*), PARAMETER :: FMT_SCI   = "E0.6"
-CHARACTER(Len=*), PARAMETER :: FMT_REAL  = "F0.6"
+CHARACTER(*), PARAMETER :: FMT_SHSEP = "(60('-'))"
+CHARACTER(*), PARAMETER :: FMT_SEP   = "(80('-'))"
+CHARACTER(*), PARAMETER :: FMT_TAB   = "    "
+CHARACTER(*), PARAMETER :: FMT_DSEP  = "(80('='))"
+CHARACTER(*), PARAMETER :: TAB_WDTH  = "4"
+CHARACTER(*), PARAMETER :: FMT_INT   = "I0"
+CHARACTER(*), PARAMETER :: FMT_SCI   = "E0.6"
+CHARACTER(*), PARAMETER :: FMT_REAL  = "F0.6"
 !
-CHARACTER(Len=*), PARAMETER :: TXT = "('-- ',"
-CHARACTER(Len=*), PARAMETER :: DBG = "('DD ',"
-CHARACTER(Len=*), PARAMETER :: MSG = "('MM ',"
-CHARACTER(Len=*), PARAMETER :: WRN = "('WW ',"
-CHARACTER(Len=*), PARAMETER :: ERR = "('EE ',"
+CHARACTER(*), PARAMETER :: TXT = "('-- ',"
+CHARACTER(*), PARAMETER :: DBG = "('DD ',"
+CHARACTER(*), PARAMETER :: MSG = "('MM ',"
+CHARACTER(*), PARAMETER :: WRN = "('WW ',"
+CHARACTER(*), PARAMETER :: ERR = "('EE ',"
 !
-CHARACTER(LEN=*), PARAMETER :: FMT     = "*(A))"
+CHARACTER(*), PARAMETER :: FMT     = "*(A))"
 !
-CHARACTER(LEN=*), PARAMETER :: AI0xAI0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_INT//")))"
-CHARACTER(LEN=*), PARAMETER :: AI0AxI0 = "(A,"//FMT_INT//",1x,A,*(1x,"//FMT_INT//")))"
-CHARACTER(LEN=*), PARAMETER :: xAI0    = "*(A,1x,"//FMT_INT//",1x))"
-CHARACTER(LEN=*), PARAMETER :: AxI0    = "*(A,1x,*("//FMT_INT//",1x)))"
+CHARACTER(*), PARAMETER :: AI0xAI0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_INT//")))"
+CHARACTER(*), PARAMETER :: AI0AxI0 = "(A,"//FMT_INT//",1x,A,*(1x,"//FMT_INT//")))"
+CHARACTER(*), PARAMETER :: xAI0    = "*(A,1x,"//FMT_INT//",1x))"
+CHARACTER(*), PARAMETER :: AxI0    = "*(A,1x,*("//FMT_INT//",1x)))"
 !
-CHARACTER(LEN=*), PARAMETER :: AI0xAF0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_REAL//")))"
-CHARACTER(LEN=*), PARAMETER :: AI0AxF0 = "(A,"//FMT_INT//",1x,A,*(1x,"//FMT_REAL//")))"
-CHARACTER(LEN=*), PARAMETER :: xAF0    = "*(A,1x,"//FMT_REAL//",1x))"
-CHARACTER(LEN=*), PARAMETER :: AxF0    = "*(A,1x,*("//FMT_REAL//",1x)))"
+CHARACTER(*), PARAMETER :: AI0xAF0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_REAL//")))"
+CHARACTER(*), PARAMETER :: AI0AxF0 = "(A,"//FMT_INT//",1x,A,*(1x,"//FMT_REAL//")))"
+CHARACTER(*), PARAMETER :: xAF0    = "*(A,1x,"//FMT_REAL//",1x))"
+CHARACTER(*), PARAMETER :: AxF0    = "*(A,1x,*("//FMT_REAL//",1x)))"
 !
-CHARACTER(LEN=*), PARAMETER :: AI0xAE0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_SCI//")))"
-CHARACTER(LEN=*), PARAMETER :: AI0AxE0 = "(A,"//FMT_INT//",1x,A,*(1x,"//FMT_SCI//")))"
-CHARACTER(LEN=*), PARAMETER :: xAE0    = "*(A,1x,"//FMT_SCI//",1x))"
-CHARACTER(LEN=*), PARAMETER :: AxE0    = "*(A,1x,*("//FMT_SCI//",1x)))"
+CHARACTER(*), PARAMETER :: AI0xAE0 = "(A,"//FMT_INT//",1x,*(A,1x,"//FMT_SCI//")))"
+CHARACTER(*), PARAMETER :: AI0AxE0 = "(A,"//FMT_INT//",1x,A,*(1x,"//FMT_SCI//")))"
+CHARACTER(*), PARAMETER :: xAE0    = "*(A,1x,"//FMT_SCI//",1x))"
+CHARACTER(*), PARAMETER :: AxE0    = "*(A,1x,*("//FMT_SCI//",1x)))"
 !
-CHARACTER(LEN=*), PARAMETER :: xAL     = "*(A,1x,L1,1x))"
+CHARACTER(*), PARAMETER :: xAL     = "*(A,1x,L1,1x))"
 !
 !------------------------------------------------------------------------------
 ! The following formats are wrappers to mask a direct use of the format 
@@ -62,130 +62,130 @@ CHARACTER(LEN=*), PARAMETER :: xAL     = "*(A,1x,L1,1x))"
 !------------------------------------------------------------------------------
 ! Error formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_STOP = "('EE PROGRAM STOPPED.')"
+CHARACTER(*), PARAMETER :: FMT_ERR_STOP = "('EE PROGRAM STOPPED.')"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_ERR         = ERR//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_SEP     = FMT_SEP  ! "('EE ',80('='))"
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_DSEP    = FMT_DSEP ! "('EE ',80('='))"
+CHARACTER(*), PARAMETER :: FMT_ERR         = ERR//FMT
+CHARACTER(*), PARAMETER :: FMT_ERR_SEP     = FMT_SEP  ! "('EE ',80('='))"
+CHARACTER(*), PARAMETER :: FMT_ERR_DSEP    = FMT_DSEP ! "('EE ',80('='))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0xAI0 = ERR//AI0xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0AxI0 = ERR//AI0AxI0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAI0    = ERR//xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AxI0    = ERR//AxI0
+CHARACTER(*), PARAMETER :: FMT_ERR_AI0xAI0 = ERR//AI0xAI0
+CHARACTER(*), PARAMETER :: FMT_ERR_AI0AxI0 = ERR//AI0AxI0
+CHARACTER(*), PARAMETER :: FMT_ERR_xAI0    = ERR//xAI0
+CHARACTER(*), PARAMETER :: FMT_ERR_AxI0    = ERR//AxI0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0xAF0 = ERR//AI0xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0AxF0 = ERR//AI0AxF0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAF0    = ERR//xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AxF0    = ERR//AxF0
+CHARACTER(*), PARAMETER :: FMT_ERR_AI0xAF0 = ERR//AI0xAF0
+CHARACTER(*), PARAMETER :: FMT_ERR_AI0AxF0 = ERR//AI0AxF0
+CHARACTER(*), PARAMETER :: FMT_ERR_xAF0    = ERR//xAF0
+CHARACTER(*), PARAMETER :: FMT_ERR_AxF0    = ERR//AxF0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0xAE0 = ERR//AI0xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AI0AxE0 = ERR//AI0AxE0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAE0    = ERR//xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_AxE0    = ERR//AxE0
+CHARACTER(*), PARAMETER :: FMT_ERR_AI0xAE0 = ERR//AI0xAE0
+CHARACTER(*), PARAMETER :: FMT_ERR_AI0AxE0 = ERR//AI0AxE0
+CHARACTER(*), PARAMETER :: FMT_ERR_xAE0    = ERR//xAE0
+CHARACTER(*), PARAMETER :: FMT_ERR_AxE0    = ERR//AxE0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_ERR_xAL     = ERR//xAL
+CHARACTER(*), PARAMETER :: FMT_ERR_xAL     = ERR//xAL
 
 !------------------------------------------------------------------------------
 ! Text formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_STOP = "('-- Program finished.')"
+CHARACTER(*), PARAMETER :: FMT_TXT_STOP = "('-- Program finished.')"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_TXT         = TXT//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_SEP     = FMT_SEP  ! "('-- ',80('-'))"
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_DSEP    = FMT_DSEP ! "('-- ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_TXT         = TXT//FMT
+CHARACTER(*), PARAMETER :: FMT_TXT_SEP     = FMT_SEP  ! "('-- ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_TXT_DSEP    = FMT_DSEP ! "('-- ',80('-'))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0xAI0 = TXT//AI0xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0AxI0 = TXT//AI0AxI0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAI0    = TXT//xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AxI0    = TXT//AxI0
+CHARACTER(*), PARAMETER :: FMT_TXT_AI0xAI0 = TXT//AI0xAI0
+CHARACTER(*), PARAMETER :: FMT_TXT_AI0AxI0 = TXT//AI0AxI0
+CHARACTER(*), PARAMETER :: FMT_TXT_xAI0    = TXT//xAI0
+CHARACTER(*), PARAMETER :: FMT_TXT_AxI0    = TXT//AxI0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0xAF0 = TXT//AI0xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0AxF0 = TXT//AI0AxF0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAF0    = TXT//xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AxF0    = TXT//AxF0
+CHARACTER(*), PARAMETER :: FMT_TXT_AI0xAF0 = TXT//AI0xAF0
+CHARACTER(*), PARAMETER :: FMT_TXT_AI0AxF0 = TXT//AI0AxF0
+CHARACTER(*), PARAMETER :: FMT_TXT_xAF0    = TXT//xAF0
+CHARACTER(*), PARAMETER :: FMT_TXT_AxF0    = TXT//AxF0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0xAE0 = TXT//AI0xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AI0AxE0 = TXT//AI0AxE0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAE0    = TXT//xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_AxE0    = TXT//AxE0
+CHARACTER(*), PARAMETER :: FMT_TXT_AI0xAE0 = TXT//AI0xAE0
+CHARACTER(*), PARAMETER :: FMT_TXT_AI0AxE0 = TXT//AI0AxE0
+CHARACTER(*), PARAMETER :: FMT_TXT_xAE0    = TXT//xAE0
+CHARACTER(*), PARAMETER :: FMT_TXT_AxE0    = TXT//AxE0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_TXT_xAL     = TXT//xAL
+CHARACTER(*), PARAMETER :: FMT_TXT_xAL     = TXT//xAL
 
 !------------------------------------------------------------------------------
 ! Message/debug formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_STOP = "('MM Program finished.')"
+CHARACTER(*), PARAMETER :: FMT_MSG_STOP = "('MM Program finished.')"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_MSG         = MSG//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_SEP     = FMT_SEP  ! "('MM ',80('-'))"
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_DSEP    = FMT_DSEP ! "('MM ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_MSG         = MSG//FMT
+CHARACTER(*), PARAMETER :: FMT_MSG_SEP     = FMT_SEP  ! "('MM ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_MSG_DSEP    = FMT_DSEP ! "('MM ',80('-'))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0xAI0 = MSG//AI0xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0AxI0 = MSG//AI0AxI0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAI0    = MSG//xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxI0    = MSG//AxI0
+CHARACTER(*), PARAMETER :: FMT_MSG_AI0xAI0 = MSG//AI0xAI0
+CHARACTER(*), PARAMETER :: FMT_MSG_AI0AxI0 = MSG//AI0AxI0
+CHARACTER(*), PARAMETER :: FMT_MSG_xAI0    = MSG//xAI0
+CHARACTER(*), PARAMETER :: FMT_MSG_AxI0    = MSG//AxI0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0xAF0 = MSG//AI0xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0AxF0 = MSG//AI0AxF0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAF0    = MSG//xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxF0    = MSG//AxF0
+CHARACTER(*), PARAMETER :: FMT_MSG_AI0xAF0 = MSG//AI0xAF0
+CHARACTER(*), PARAMETER :: FMT_MSG_AI0AxF0 = MSG//AI0AxF0
+CHARACTER(*), PARAMETER :: FMT_MSG_xAF0    = MSG//xAF0
+CHARACTER(*), PARAMETER :: FMT_MSG_AxF0    = MSG//AxF0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0xAE0 = MSG//AI0xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AI0AxE0 = MSG//AI0AxE0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAE0    = MSG//xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_AxE0    = MSG//AxE0
+CHARACTER(*), PARAMETER :: FMT_MSG_AI0xAE0 = MSG//AI0xAE0
+CHARACTER(*), PARAMETER :: FMT_MSG_AI0AxE0 = MSG//AI0AxE0
+CHARACTER(*), PARAMETER :: FMT_MSG_xAE0    = MSG//xAE0
+CHARACTER(*), PARAMETER :: FMT_MSG_AxE0    = MSG//AxE0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_MSG_xAL     = MSG//xAL
+CHARACTER(*), PARAMETER :: FMT_MSG_xAL     = MSG//xAL
 
 !------------------------------------------------------------------------------
 ! Warning formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_STOP = "('WW Program halted.')"
+CHARACTER(*), PARAMETER :: FMT_WRN_STOP = "('WW Program halted.')"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_WRN         = WRN//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_SEP     = FMT_SEP  ! "('WW ',80('-'))"
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_DSEP    = FMT_DSEP ! "('MM ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_WRN         = WRN//FMT
+CHARACTER(*), PARAMETER :: FMT_WRN_SEP     = FMT_SEP  ! "('WW ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_WRN_DSEP    = FMT_DSEP ! "('MM ',80('-'))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0xAI0 = WRN//AI0xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0AxI0 = WRN//AI0AxI0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAI0    = WRN//xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AxI0    = WRN//AxI0
+CHARACTER(*), PARAMETER :: FMT_WRN_AI0xAI0 = WRN//AI0xAI0
+CHARACTER(*), PARAMETER :: FMT_WRN_AI0AxI0 = WRN//AI0AxI0
+CHARACTER(*), PARAMETER :: FMT_WRN_xAI0    = WRN//xAI0
+CHARACTER(*), PARAMETER :: FMT_WRN_AxI0    = WRN//AxI0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0xAF0 = WRN//AI0xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0AxF0 = WRN//AI0AxF0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAF0    = WRN//xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AxF0    = WRN//AxF0
+CHARACTER(*), PARAMETER :: FMT_WRN_AI0xAF0 = WRN//AI0xAF0
+CHARACTER(*), PARAMETER :: FMT_WRN_AI0AxF0 = WRN//AI0AxF0
+CHARACTER(*), PARAMETER :: FMT_WRN_xAF0    = WRN//xAF0
+CHARACTER(*), PARAMETER :: FMT_WRN_AxF0    = WRN//AxF0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0xAE0 = WRN//AI0xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AI0AxE0 = WRN//AI0AxE0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAE0    = WRN//xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_AxE0    = WRN//AxE0
+CHARACTER(*), PARAMETER :: FMT_WRN_AI0xAE0 = WRN//AI0xAE0
+CHARACTER(*), PARAMETER :: FMT_WRN_AI0AxE0 = WRN//AI0AxE0
+CHARACTER(*), PARAMETER :: FMT_WRN_xAE0    = WRN//xAE0
+CHARACTER(*), PARAMETER :: FMT_WRN_AxE0    = WRN//AxE0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_WRN_xAL     = WRN//xAL
+CHARACTER(*), PARAMETER :: FMT_WRN_xAL     = WRN//xAL
 
 !------------------------------------------------------------------------------
 ! Debug formats
 !------------------------------------------------------------------------------
-CHARACTER(Len=*), PARAMETER :: FMT_DBG         = DBG//FMT
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_SEP     = FMT_SEP  ! "('DD ',80('-'))"
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_DSEP    = FMT_DSEP ! "('DD ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_DBG         = DBG//FMT
+CHARACTER(*), PARAMETER :: FMT_DBG_SEP     = FMT_SEP  ! "('DD ',80('-'))"
+CHARACTER(*), PARAMETER :: FMT_DBG_DSEP    = FMT_DSEP ! "('DD ',80('-'))"
 !
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0xAI0 = DBG//AI0xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0AxI0 = DBG//AI0AxI0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAI0    = DBG//xAI0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AxI0    = DBG//AxI0
+CHARACTER(*), PARAMETER :: FMT_DBG_AI0xAI0 = DBG//AI0xAI0
+CHARACTER(*), PARAMETER :: FMT_DBG_AI0AxI0 = DBG//AI0AxI0
+CHARACTER(*), PARAMETER :: FMT_DBG_xAI0    = DBG//xAI0
+CHARACTER(*), PARAMETER :: FMT_DBG_AxI0    = DBG//AxI0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0xAF0 = DBG//AI0xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0AxF0 = DBG//AI0AxF0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAF0    = DBG//xAF0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AxF0    = DBG//AxF0
+CHARACTER(*), PARAMETER :: FMT_DBG_AI0xAF0 = DBG//AI0xAF0
+CHARACTER(*), PARAMETER :: FMT_DBG_AI0AxF0 = DBG//AI0AxF0
+CHARACTER(*), PARAMETER :: FMT_DBG_xAF0    = DBG//xAF0
+CHARACTER(*), PARAMETER :: FMT_DBG_AxF0    = DBG//AxF0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0xAE0 = DBG//AI0xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AI0AxE0 = DBG//AI0AxE0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAE0    = DBG//xAE0
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_AxE0    = DBG//AxE0
+CHARACTER(*), PARAMETER :: FMT_DBG_AI0xAE0 = DBG//AI0xAE0
+CHARACTER(*), PARAMETER :: FMT_DBG_AI0AxE0 = DBG//AI0AxE0
+CHARACTER(*), PARAMETER :: FMT_DBG_xAE0    = DBG//xAE0
+CHARACTER(*), PARAMETER :: FMT_DBG_AxE0    = DBG//AxE0
 !
-CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAL     = DBG//xAL
+CHARACTER(*), PARAMETER :: FMT_DBG_xAL     = DBG//xAL
 
 !------------------------------------------------------------------------------
 ! Provide colors on std_out (!) 
@@ -193,15 +193,15 @@ CHARACTER(Len=*), PARAMETER :: FMT_DBG_xAL     = DBG//xAL
 ! Use of a requires resetting it.
 ! Will interfere with exporting "\", especially in the context of *.tex
 !------------------------------------------------------------------------------
-CHARACTER(LEN=*), PARAMETER ::  FMT_Blck    = "\x1B[30m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Red     = "\x1B[31m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Green   = "\x1B[32m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Orange  = "\x1B[33m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Blue    = "\x1B[34m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Purple  = "\x1B[35m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Cyan    = "\x1B[36m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_Gray    = "\x1B[37m"
-CHARACTER(LEN=*), PARAMETER ::  FMT_nocolor = "\x1B[0m"
+CHARACTER(*), PARAMETER ::  FMT_Blck    = "\x1B[30m"
+CHARACTER(*), PARAMETER ::  FMT_Red     = "\x1B[31m"
+CHARACTER(*), PARAMETER ::  FMT_Green   = "\x1B[32m"
+CHARACTER(*), PARAMETER ::  FMT_Orange  = "\x1B[33m"
+CHARACTER(*), PARAMETER ::  FMT_Blue    = "\x1B[34m"
+CHARACTER(*), PARAMETER ::  FMT_Purple  = "\x1B[35m"
+CHARACTER(*), PARAMETER ::  FMT_Cyan    = "\x1B[36m"
+CHARACTER(*), PARAMETER ::  FMT_Gray    = "\x1B[37m"
+CHARACTER(*), PARAMETER ::  FMT_nocolor = "\x1B[0m"
 
 !> Interface: print_err_stop
 !> \author Johannes Gebert
@@ -223,20 +223,20 @@ CONTAINS
 !
 !> @param[out] binary Name of the program
 !> @param[out] infile Name of the input file (not meta; XTOM...)
-!> @param[out] stp Stop the program?
+!> @param[out] stat Stop the program?
 !> @param[out] restart Check whether a restart is required
 !> @param[out] cmd_arg_history Ravision of the program
 !------------------------------------------------------------------------------
-SUBROUTINE get_cmd_args(binary, infile, stp, restart, cmd_arg_history)
+SUBROUTINE get_cmd_args(binary, infile, stat, restart, cmd_arg_history)
 
-CHARACTER(LEN=*), INTENT(OUT) :: binary, infile
-CHARACTER(LEN=*), INTENT(OUT) :: restart, cmd_arg_history
-LOGICAL :: stp
+CHARACTER(*), INTENT(OUT) :: binary, infile
+CHARACTER(*), INTENT(OUT) :: restart, cmd_arg_history
+INTEGER(ik), INTENT(OUT) :: stat
 
-CHARACTER(LEN=mcl) :: cmd_arg
-INTEGER(KIND=ik) :: ii
+CHARACTER(mcl) :: cmd_arg
+INTEGER(ik) :: ii
 
-stp = .FALSE.
+stat = 0_ik
 restart=''
 
 CALL GET_COMMAND_ARGUMENT(0, binary)
@@ -246,7 +246,7 @@ IF (command_argument_count() == 0) THEN
     CALL usage(binary)
 
     mssg = "No command argument given."
-    stp = .TRUE. 
+    stat = 0_ik
 ELSE
     DO ii=0, 15 ! Read up to 15 command arguments.
     
@@ -264,10 +264,10 @@ ELSE
                 restart = 'Y'
             CASE('v', '-Version', '-version')
                 CALL show_title([""])
-                stp = .TRUE. 
+                stat = 0_ik
             CASE('h', '-Help', '-help')
                 CALL usage(binary)
-                stp = .TRUE. 
+                stat = 0_ik
             END SELECT
             !
             SELECT CASE( cmd_arg(3:4) )
@@ -278,7 +278,7 @@ ELSE
 
     IF(TRIM(infile) == '') THEN
         mssg = "No input file given via command argument."
-        stp = .TRUE. 
+        stat = 0_ik
     END IF 
 END IF
 
@@ -294,11 +294,11 @@ END SUBROUTINE get_cmd_args
 !------------------------------------------------------------------------------
 SUBROUTINE show_title(authors, longname_opt)
 
-CHARACTER(LEN=*), DIMENSION(:), INTENT(IN) :: authors
-CHARACTER(LEN=*), OPTIONAL,     INTENT(IN) :: longname_opt
+CHARACTER(*), DIMENSION(:), INTENT(IN) :: authors
+CHARACTER(*), OPTIONAL,     INTENT(IN) :: longname_opt
 
-CHARACTER(LEN=scl):: app_name
-INTEGER(KIND=ik) :: ii
+CHARACTER(scl):: app_name
+INTEGER(ik) :: ii
 
 IF(PRESENT(longname_opt)) THEN
     app_name = TRIM(ADJUSTL(longname_opt))
@@ -334,8 +334,8 @@ END SUBROUTINE show_title
 !------------------------------------------------------------------------------  
 SUBROUTINE usage(this_binary, additional_text)
 
-CHARACTER(LEN=*), INTENT(IN) :: this_binary
-CHARACTER(LEN=*), DIMENSION(:), INTENT(IN), OPTIONAL :: additional_text
+CHARACTER(*), INTENT(IN) :: this_binary
+CHARACTER(*), DIMENSION(:), INTENT(IN), OPTIONAL :: additional_text
 
 INTEGER :: ii
 
@@ -373,10 +373,10 @@ END SUBROUTINE usage
 !------------------------------------------------------------------------------  
 FUNCTION determine_stout() RESULT(fh_std_out)
 
-INTEGER(KIND=ik) :: fh_std_out
+INTEGER(ik) :: fh_std_out
 
-INTEGER(KIND=ik) :: stat
-CHARACTER(LEN=scl) :: use_std_out
+INTEGER(ik) :: stat
+CHARACTER(scl) :: use_std_out
 
 CALL GET_ENVIRONMENT_VARIABLE(NAME='USE_STD_OUT', VALUE=use_std_out, STATUS=stat)
 
@@ -401,8 +401,8 @@ END FUNCTION determine_stout
 !------------------------------------------------------------------------------
 function give_new_unit() result(new_unit)
 
-Integer(KIND=ik) :: new_unit
-Integer(KIND=ik) :: ii
+Integer(ik) :: new_unit
+Integer(ik) :: ii
 Logical :: unit_is_open
 
 Do ii = 300, huge(new_unit)-1
@@ -418,7 +418,7 @@ End Do
 
 if ( unit_is_open ) then
     mssg = 'Something bad and unexpected happened during search for free unit: &
-    &Could not find a new unit between 100 and huge(Int(kind=4))'
+    &Could not find a new unit between 100 and huge(Int(4))'
     CALL print_err_stop(std_out, mssg, 1_ik)
 END IF
 
@@ -438,8 +438,8 @@ End function give_new_unit
 subroutine mpi_err(ierr, text)
 
     !-- Dummy parameters
-    integer(kind=mik), intent(in) :: ierr
-    character(len=*), intent(in) :: text
+    integer(mik), intent(in) :: ierr
+    character(*), intent(in) :: text
    
     if (ierr /= MPI_SUCCESS) THEN
         write(*, "(100('!'))")
@@ -471,9 +471,9 @@ end subroutine mpi_err
 !------------------------------------------------------------------------------  
 SUBROUTINE print_err_stop_ik4(fh, text, error)
 
-INTEGER(KIND=ik),  INTENT(IN) :: fh
-INTEGER(KIND=mik), INTENT(IN) :: error
-CHARACTER(LEN=*),  INTENT(IN) :: text
+INTEGER(ik),  INTENT(IN) :: fh
+INTEGER(mik), INTENT(IN) :: error
+CHARACTER(*),  INTENT(IN) :: text
 
 IF (error > 0) THEN
     ! TODO: Repair this routine :-)
@@ -504,8 +504,8 @@ END SUBROUTINE print_err_stop_ik4
 !------------------------------------------------------------------------------  
 SUBROUTINE print_err_stop_ik8(fh, text, error) ! , pro_path, pro_name
 
-INTEGER(KIND=ik), INTENT(IN) :: fh , error
-CHARACTER(LEN=*), INTENT(IN) :: text
+INTEGER(ik), INTENT(IN) :: fh , error
+CHARACTER(*), INTENT(IN) :: text
 
 IF (error > 0) THEN
     ! TODO: Repair this routine :-)
@@ -532,11 +532,11 @@ END SUBROUTINE print_err_stop_ik8
 !------------------------------------------------------------------------------  
 SUBROUTINE estimated_time_of_arrival(sec, string)
 
-    INTEGER(KIND=ik), INTENT(IN) :: sec
-    CHARACTER(LEN=scl), INTENT(OUT), OPTIONAL :: string
+    INTEGER(ik), INTENT(IN) :: sec
+    CHARACTER(scl), INTENT(OUT), OPTIONAL :: string
 
-    INTEGER(KIND=ik) :: mins, hours, secs, seconds, mins_s, remainder
-    CHARACTER(LEN=scl) :: str
+    INTEGER(ik) :: mins, hours, secs, seconds, mins_s, remainder
+    CHARACTER(scl) :: str
 
     mins_s    = MODULO(sec,  3600_ik)
     seconds   = MODULO(mins_s, 60_ik)
@@ -570,15 +570,15 @@ END SUBROUTINE estimated_time_of_arrival
 !------------------------------------------------------------------------------  
 SUBROUTINE print_trimmed (fh , instring, frmt)
 
-INTEGER(KIND=ik), INTENT(IN) :: fh
-CHARACTER(LEN=*), INTENT(IN) :: instring
-CHARACTER(LEN=*), INTENT(IN) :: frmt
+INTEGER(ik), INTENT(IN) :: fh
+CHARACTER(*), INTENT(IN) :: instring
+CHARACTER(*), INTENT(IN) :: frmt
 
-CHARACTER(LEN=mcl)   :: sub_mssg
-CHARACTER(LEN=mcl)   :: delim, tokens(100), path_tokens(50)
-CHARACTER(LEN=mcl+1) :: next_token
+CHARACTER(mcl)   :: sub_mssg
+CHARACTER(mcl)   :: delim, tokens(100), path_tokens(50)
+CHARACTER(mcl+1) :: next_token
 
-INTEGER(KIND=ik) :: ntokens, path_ntokens, ii, jj, sw, mode
+INTEGER(ik) :: ntokens, path_ntokens, ii, jj, sw, mode
 
 mode = 0                ! Absolute or relative path
 sw = 2                  ! Whether it's the beginning or within a path

@@ -610,4 +610,39 @@ END DO
 
 END SUBROUTINE write_tensor_2nd_rank_R66
 
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: std_err
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
+!
+!> @brief
+!> Stop program if a subroutine signals an error.
+!
+!> @param[in] stat Status integer
+!> @param[out] abrt Whether to abort the program.
+!------------------------------------------------------------------------------
+SUBROUTINE std_err(stat, abrt)
+
+CHARACTER(*), INTENT(IN) :: stat
+LOGICAL, INTENT(INOUT) :: abrt
+
+INTEGER(mik) :: ierr, my_rank
+
+
+CALL MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
+
+!------------------------------------------------------------------------------
+! Set my_rank = 0 to enable error printing subseqently.
+!------------------------------------------------------------------------------
+IF(ierr /= 0_ik) my_rank = 0_ik
+
+IF((stat /= "") .AND. (my_rank==0)) THEN
+    WRITE(std_out, FMT_ERR) "Error in keyword '"//TRIM(stat)//"'."
+    abrt = .TRUE.
+END IF 
+
+END SUBROUTINE std_err
+    
+
 END MODULE formatted_plain

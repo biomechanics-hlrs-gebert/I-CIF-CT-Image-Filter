@@ -34,8 +34,8 @@ INTERFACE mpi_read_raw
 END INTERFACE mpi_read_raw
 
 INTERFACE mpi_write_raw
-   MODULE PROCEDURE mpi_write_raw_ik4
    MODULE PROCEDURE mpi_write_raw_ik2
+   MODULE PROCEDURE mpi_write_raw_ik4
 END INTERFACE mpi_write_raw
 
 INTERFACE ser_read_raw
@@ -128,15 +128,15 @@ END SUBROUTINE get_rank_section
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*), INTENT(IN) :: filename
+CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik) :: ierr, type_subarray, my_rank, size_mpi, fh
-CHARACTER(LEN=scl) :: datarep
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(scl) :: datarep
+CHARACTER(*), INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'NATIVE'
 
@@ -188,15 +188,15 @@ END SUBROUTINE mpi_read_raw_ik2
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*), INTENT(IN) :: filename
+CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik) :: ierr, type_subarray, my_rank, size_mpi, fh
-CHARACTER(LEN=scl) :: datarep
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(scl) :: datarep
+CHARACTER(*), INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'NATIVE'
 
@@ -348,15 +348,15 @@ END SUBROUTINE uik2_to_ik4
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_rk4(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*), INTENT(IN) :: filename
+CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(REAL32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(*), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik) :: ierr, type_subarray, my_rank, size_mpi, fh
-CHARACTER(LEN=scl) :: datarep
+CHARACTER(scl) :: datarep
 
 datarep = 'NATIVE'
 
@@ -409,15 +409,15 @@ END SUBROUTINE mpi_read_raw_rk4
 !------------------------------------------------------------------------------  
 SUBROUTINE mpi_read_raw_rk8(filename, disp, dims, subarray_dims, subarray_origin, subarray, dtrep)
 
-CHARACTER(LEN=*), INTENT(IN) :: filename
+CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 REAL(REAL64), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik) :: ierr, type_subarray, my_rank, size_mpi, fh
-CHARACTER(LEN=scl) :: datarep
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(scl) :: datarep
+CHARACTER(*), INTENT(IN), OPTIONAL :: dtrep
 
 datarep = 'NATIVE'
 
@@ -474,15 +474,15 @@ END SUBROUTINE mpi_read_raw_rk8
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 
-CHARACTER(LEN=*), INTENT(IN) :: filename
+CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(INT16), DIMENSION (:,:,:), INTENT(IN) :: subarray
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(*), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik)  :: fh, ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep = 'NATIVE'
+CHARACTER(scl) :: datarep = 'NATIVE'
 
 datarep = 'NATIVE'
 
@@ -532,15 +532,15 @@ END SUBROUTINE mpi_write_raw_ik2
 ! type = 'int2', 'int4'
 ! IF type = uint2 - send an int4 and let it convert into int2 (!) Have a look at the src for details
 
-CHARACTER(LEN=*), INTENT(IN) :: filename
+CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
 INTEGER(INT32), DIMENSION (:,:,:), INTENT(IN) :: subarray
-CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: dtrep
+CHARACTER(*), INTENT(IN), OPTIONAL :: dtrep
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik)  :: fh, ierr, type_subarray
-CHARACTER(LEN=scl) :: datarep = 'NATIVE'
+CHARACTER(scl) :: datarep = 'NATIVE'
 
 datarep = 'NATIVE'
 
@@ -583,23 +583,8 @@ END SUBROUTINE mpi_write_raw_ik4
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik2(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
 INTEGER(INT16), DIMENSION(:,:,:), INTENT(IN) :: array
-CHARACTER(len=*), INTENT(IN) :: filename
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'LITTLE_ENDIAN'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
-WRITE(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_write_raw.aux.f90"
 
 END SUBROUTINE ser_write_raw_ik2
 
@@ -618,23 +603,8 @@ END SUBROUTINE ser_write_raw_ik2
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik4(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
 INTEGER(INT32), DIMENSION(:,:,:), INTENT(IN) :: array
-CHARACTER(len=*), INTENT(IN) :: filename
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'LITTLE_ENDIAN'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
-WRITE(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_write_raw.aux.f90"
 
 END SUBROUTINE ser_write_raw_ik4
 
@@ -653,23 +623,8 @@ END SUBROUTINE ser_write_raw_ik4
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_ik8(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
 INTEGER(INT64), DIMENSION(:,:,:), INTENT(IN) :: array
-CHARACTER(len=*), INTENT(IN) :: filename
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'LITTLE_ENDIAN'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
-WRITE(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_write_raw.aux.f90"
 
 END SUBROUTINE ser_write_raw_ik8
 
@@ -688,23 +643,8 @@ END SUBROUTINE ser_write_raw_ik8
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_rk4(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
 REAL(REAL32), DIMENSION(:,:,:), INTENT(IN) :: array
-CHARACTER(len=*), INTENT(IN) :: filename
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'LITTLE_ENDIAN'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
-WRITE(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_write_raw.aux.f90"
 
 END SUBROUTINE ser_write_raw_rk4
 
@@ -723,23 +663,8 @@ END SUBROUTINE ser_write_raw_rk4
 !------------------------------------------------------------------------------
 SUBROUTINE ser_write_raw_rk8(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
 REAL(REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
-CHARACTER(len=*), INTENT(IN) :: filename
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'LITTLE_ENDIAN'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN", POSITION="APPEND")                                       
-WRITE(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_write_raw.aux.f90"
 
 END SUBROUTINE ser_write_raw_rk8
 
@@ -758,23 +683,8 @@ END SUBROUTINE ser_write_raw_rk8
 !------------------------------------------------------------------------------
 SUBROUTINE ser_read_raw_ik2(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
-CHARACTER(len=*), INTENT(IN) :: filename
 INTEGER(INT16), DIMENSION(:,:,:), INTENT(OUT) :: array
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'NATIVE'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
-READ(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_read_raw.aux.f90"
 
 END SUBROUTINE ser_read_raw_ik2
 
@@ -793,23 +703,8 @@ END SUBROUTINE ser_read_raw_ik2
 !------------------------------------------------------------------------------
 SUBROUTINE ser_read_raw_ik4(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
-CHARACTER(len=*), INTENT(IN) :: filename
 INTEGER(INT32), DIMENSION(:,:,:), INTENT(OUT) :: array
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'NATIVE'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
-READ(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_read_raw.aux.f90"
 
 END SUBROUTINE ser_read_raw_ik4
 
@@ -828,23 +723,8 @@ END SUBROUTINE ser_read_raw_ik4
 !------------------------------------------------------------------------------
 SUBROUTINE ser_read_raw_ik8(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
-CHARACTER(len=*), INTENT(IN) :: filename
 INTEGER(INT64), DIMENSION(:,:,:), INTENT(OUT) :: array
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'NATIVE'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
-READ(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_read_raw.aux.f90"
 
 END SUBROUTINE ser_read_raw_ik8
 
@@ -863,23 +743,8 @@ END SUBROUTINE ser_read_raw_ik8
 !------------------------------------------------------------------------------
 SUBROUTINE ser_read_raw_rk4(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
-CHARACTER(len=*), INTENT(IN) :: filename
 REAL(REAL32), DIMENSION(:,:,:), INTENT(OUT) :: array
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'NATIVE'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
-READ(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_read_raw.aux.f90"
 
 END SUBROUTINE ser_read_raw_rk4
 
@@ -898,23 +763,8 @@ END SUBROUTINE ser_read_raw_rk4
 !------------------------------------------------------------------------------
 SUBROUTINE ser_read_raw_rk8(fh, filename, array, representation)
 
-INTEGER(ik), INTENT(IN) :: fh
-CHARACTER(len=*), INTENT(IN) :: filename
 REAL(REAL64), DIMENSION(:,:,:), INTENT(OUT) :: array
-CHARACTER(len=*), INTENT(IN), OPTIONAL :: representation
-
-CHARACTER(len=scl) :: cnvrt
-
-IF(PRESENT(representation)) THEN
-   cnvrt = TRIM(representation)
-ELSE
-   cnvrt = 'NATIVE'
-END IF
-
-OPEN (UNIT=fh, FILE=TRIM(filename), ACCESS="STREAM", FORM="UNFORMATTED", &
-   CONVERT=TRIM(cnvrt), STATUS="UNKNOWN")                                       
-READ(UNIT=fh) array
-CLOSE(UNIT=fh)
+INCLUDE "./include_f90/ser_read_raw.aux.f90"
 
 END SUBROUTINE ser_read_raw_rk8
 
@@ -941,6 +791,7 @@ IMPLICIT NONE
 INTERFACE write_ser_vtk
    MODULE PROCEDURE write_ser_vtk_ik2
    MODULE PROCEDURE write_ser_vtk_ik4
+   MODULE PROCEDURE write_ser_vtk_rk8
 END INTERFACE write_ser_vtk
 
 CONTAINS
@@ -967,13 +818,12 @@ SUBROUTINE write_vtk_struct_points_header (fh, filename, type, spcng, origin, di
 ! sequence often is placed at the very end of a program, which may run some time.
 
 INTEGER  (ik), INTENT(IN) :: fh
-CHARACTER(len=*)  , INTENT(IN) :: filename
-CHARACTER(LEN=*)  , INTENT(IN) :: type
-REAL     (rk), INTENT(IN), DIMENSION(3) :: spcng
-REAL     (rk), INTENT(IN), DIMENSION(3) :: origin
-INTEGER  (ik), INTENT(IN), DIMENSION(3) :: dims
+CHARACTER(*) , INTENT(IN) :: filename
+CHARACTER(*) , INTENT(IN) :: type
+INTEGER(ik), INTENT(IN) :: dims(3)
+REAL(rk), INTENT(IN) :: spcng(3), origin(3)
 
-CHARACTER(LEN=scl) :: datatype=''
+CHARACTER(scl) :: datatype=''
 LOGICAL :: exist
 
 INQUIRE(UNIT=fh, exist=exist)
@@ -1022,7 +872,7 @@ END SUBROUTINE write_vtk_struct_points_header
 SUBROUTINE write_vtk_struct_points_footer (fh, filename)
 
 INTEGER(ik), INTENT(IN) :: fh
-CHARACTER(len=*) :: filename
+CHARACTER(*) :: filename
 
 LOGICAL :: opened
 
@@ -1058,19 +908,18 @@ END SUBROUTINE write_vtk_struct_points_footer
 !------------------------------------------------------------------------------
 SUBROUTINE read_vtk_meta(filename, disp, dims, origin, spcng, type)
 
-CHARACTER(len=*)  , INTENT(IN)  :: filename
-INTEGER  (ik), INTENT(OUT) :: disp
-INTEGER  (ik), DIMENSION(3) , INTENT(OUT) :: dims
-REAL     (rk), DIMENSION(3) , INTENT(OUT) :: origin
-REAL     (rk), DIMENSION(3) , INTENT(OUT) :: spcng
-CHARACTER(len=*), INTENT(OUT) :: type
+CHARACTER(*), INTENT(IN) :: filename
+INTEGER(ik), INTENT(OUT) :: disp
+INTEGER(ik), INTENT(OUT) :: dims(3)
+REAL   (rk), INTENT(OUT) :: spcng(3), origin(3)
+CHARACTER(*), INTENT(OUT) :: type
 
 !-- Initialize variables in case they're not used
 INTEGER  (ik) :: ii=0, ntokens, fh
 
-CHARACTER(len=mcl) :: line
-CHARACTER(len=mcl) :: tokens(100)
-CHARACTER(len=mcl), DIMENSION(3) :: token
+CHARACTER(mcl) :: line
+CHARACTER(mcl) :: tokens(100)
+CHARACTER(mcl), DIMENSION(3) :: token
 
 !------------------------------------------------------------------------------
 ! Determine a new unit
@@ -1135,21 +984,8 @@ END SUBROUTINE read_vtk_meta
 !------------------------------------------------------------------------------
 SUBROUTINE write_ser_vtk_ik2(filename, type, spcng, dims, origin, array)
 
-CHARACTER(len=*)  , INTENT(IN)  :: filename, type
-INTEGER  (ik), DIMENSION(3) , INTENT(IN) :: dims
-REAL     (rk), DIMENSION(3) , INTENT(IN) :: origin
-REAL     (rk), DIMENSION(3) , INTENT(IN) :: spcng
-INTEGER  (INT16), DIMENSION(:,:,:), INTENT(IN) :: array
-
-INTEGER  (ik) :: fh_temp
-
-fh_temp = give_new_unit()
-
-CALL write_vtk_struct_points_header(fh_temp, TRIM(filename), TRIM(type), spcng, origin, dims)
-
-CALL ser_write_raw(fh_temp, TRIM(filename), array, 'BIG_ENDIAN')
-
-CALL write_vtk_struct_points_footer(fh_temp, TRIM(filename))
+INTEGER(INT16), DIMENSION(:,:,:), INTENT(IN) :: array
+INCLUDE "./include_f90/write_ser_vtk.aux.f90"
 
 END SUBROUTINE write_ser_vtk_ik2
 
@@ -1170,22 +1006,31 @@ END SUBROUTINE write_ser_vtk_ik2
 !------------------------------------------------------------------------------
 SUBROUTINE write_ser_vtk_ik4(filename, type, spcng, dims, origin, array)
 
-CHARACTER(len=*)  , INTENT(IN)  :: filename, type
-INTEGER  (ik), DIMENSION(3) , INTENT(IN) :: dims
-REAL     (rk), DIMENSION(3) , INTENT(IN) :: origin
-REAL     (rk), DIMENSION(3) , INTENT(IN) :: spcng
-INTEGER  (INT32), DIMENSION(:,:,:), INTENT(IN) :: array
-
-INTEGER  (ik) :: fh_temp
-
-fh_temp = give_new_unit()
-
-CALL write_vtk_struct_points_header(fh_temp, TRIM(filename), TRIM(type), spcng, origin, dims)
-
-CALL ser_write_raw(fh_temp, TRIM(filename), array, 'BIG_ENDIAN')
-
-CALL write_vtk_struct_points_footer(fh_temp, TRIM(filename))
+INTEGER(INT32), DIMENSION(:,:,:), INTENT(IN) :: array
+INCLUDE "./include_f90/write_ser_vtk.aux.f90"
 
 END SUBROUTINE write_ser_vtk_ik4
+
+!------------------------------------------------------------------------------
+! SUBROUTINE: write_ser_vtk_rk8
+!------------------------------------------------------------------------------  
+!> @author Johannes Gebert, gebert@hlrs.de, HLRS/NUM
+!
+!> @brief
+!> Basically a simple wrapper
+!
+!> @param[in] filename File name
+!> @param[in] type Data type contained in binary blob
+!> @param[in] spcng Physical distance between two voxels (mm)
+!> @param[in] dims Voxels per direction
+!> @param[in] origin Physical (mm) origin
+!> @param[in] array Data
+!------------------------------------------------------------------------------
+SUBROUTINE write_ser_vtk_rk8(filename, type, spcng, dims, origin, array)
+
+REAL(REAL64), DIMENSION(:,:,:), INTENT(IN) :: array
+INCLUDE "./include_f90/write_ser_vtk.aux.f90"
+
+END SUBROUTINE write_ser_vtk_rk8
 
 END MODULE vtk_meta_data
