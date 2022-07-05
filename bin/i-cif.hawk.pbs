@@ -4,17 +4,45 @@
 #
 # Author:    Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 # Date:      09.01.2022
-# Last edit: 27.02.2022
+# Last edit: 12.04.2022
 #
 # For use of PBSPro visit:
 # https://kb.hlrs.de/platforms/index.php/Batch_System_PBSPro_(Hawk)
 # ------------------------------------------------------------------------------
-#PBS -N cif
+#PBS -N cif-FH01-1
 #PBS -l select=4:node_type=rome:mpiprocs=128:node_type_mem=256gb
-#PBS -l walltime=10:00:00
+#PBS -l walltime=24:00:00
+###PBS -q test
+# ------------------------------------------------------------------------------
+date
+echo "############################################################"
+echo -e "Job identifier:\t${PBS_JOBID}"
 #
+echo -e "Job name:\t${PBS_JOBNAME}"
+echo "running on ${HOST}"
+#
+# ------------------------------------------------------------------------------
 # Change to the direcotry that the job was submitted from
+# ------------------------------------------------------------------------------
 cd "$PBS_O_WORKDIR" || exit
 #
+# ------------------------------------------------------------------------------
+# Source environment. »shellcheck« is some sort of a pragma for shellcheck (!)
+# ------------------------------------------------------------------------------
+# shellcheck source=/dev/null
+source "./environment.source" hawk --no-output
+#
+# ------------------------------------------------------------------------------
+# Set the basename of the dataset, according to the MeRaDat format.
+# ------------------------------------------------------------------------------
+export BASENAME=FH01-1_mu_Prod_vtk_original    
+#
+# ------------------------------------------------------------------------------
+# Start/append memory logging; Extract with the corresponding shell script
+# ------------------------------------------------------------------------------
+datasets/memlog.sh datasets/$BASENAME.memlog > /dev/null 2> /dev/null &
+#
+# ------------------------------------------------------------------------------
 # Launch the parallel mpi application
-mpirun -np 512 ./bin/ctif_V5.0.0_x86_64 "$PBS_O_WORKDIR" ./bin/PT01-1_mu_Dev_compare_KnochProbe2.meta
+# ------------------------------------------------------------------------------
+mpirun --map-by ppr:64:node  ./bin/ctif_V5.0.0_x86_64  "$PBS_O_WORKDIR" datasets/$BASENAME.meta
