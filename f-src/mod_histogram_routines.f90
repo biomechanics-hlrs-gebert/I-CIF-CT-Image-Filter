@@ -37,18 +37,18 @@ CONTAINS
 !------------------------------------------------------------------------------  
 SUBROUTINE extract_histogram_scalar_array_ik2(array, hbnds, histogram)
 ! This is an inherently unflexible subroutine. It delivers exactly this kind of histogram and nothing else...
-INTEGER(KIND=INT16), DIMENSION(:,:,:) :: array
-INTEGER(KIND=ik), DIMENSION(3), INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
-INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: histogram
+INTEGER(INT16), DIMENSION(:,:,:) :: array
+INTEGER(ik), DIMENSION(3), INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
+INTEGER(ik), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: histogram
 
 ! Internal variables
-INTEGER(KIND=ik) :: ii, jj, kk
-INTEGER(KIND=ik), DIMENSION(3) :: shp
+INTEGER(ik) :: ii, jj, kk
+INTEGER(ik), DIMENSION(3) :: shp
 
 ALLOCATE(histogram(hbnds(1):hbnds(2)))
 histogram(:) = 0_ik
 
-shp = INT(SHAPE(array), KIND=ik)
+shp = INT(SHAPE(array), ik)
 
 ! Take care of sign of hmin!! Not that intuitive
 DO kk=1_ik, shp(3)
@@ -76,19 +76,19 @@ END SUBROUTINE extract_histogram_scalar_array_ik2
 !------------------------------------------------------------------------------  
 SUBROUTINE extract_histogram_scalar_array_ik4(array, hbnds, histogram)
 ! This is an inherently unflexible subroutine. It delivers exactly this kind of histogram and nothing else...
-INTEGER(KIND=INT32), DIMENSION(:,:,:) :: array
-INTEGER(KIND=ik), DIMENSION(3)             , INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
-INTEGER(KIND=ik), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: histogram
+INTEGER(INT32), DIMENSION(:,:,:) :: array
+INTEGER(ik), DIMENSION(3)             , INTENT(IN)  :: hbnds    ! histogram lower/upper bounds
+INTEGER(ik), DIMENSION(:), ALLOCATABLE, INTENT(OUT) :: histogram
 
 ! Internal variables
-INTEGER(KIND=ik) :: ii, jj, kk
-INTEGER(KIND=ik), DIMENSION(3) :: shp
+INTEGER(ik) :: ii, jj, kk
+INTEGER(ik), DIMENSION(3) :: shp
 
 ALLOCATE(histogram(hbnds(1):hbnds(2)))
 
 histogram(:) = 0_ik
 
-shp = INT(SHAPE(array), KIND=ik)
+shp = INT(SHAPE(array), ik)
 
 DO kk=1, shp(3)
 DO jj=1, shp(2)
@@ -118,13 +118,13 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
  SUBROUTINE write_histo_csv (fh, hdr_str, hbnds, mov_avg_width, histogram)
   ! Arg_divider acts as a parameter defining a moving average (!)
   ! It has an immediate effect like a filtered graph.
-  INTEGER(KIND=ik), INTENT(IN) :: fh
+  INTEGER(ik), INTENT(IN) :: fh
   CHARACTER(len=*), INTENT(IN) :: hdr_str
-  INTEGER(KIND=ik), DIMENSION(3), INTENT(IN) :: hbnds ! histogram lower/upper bounds
-  INTEGER(KIND=ik)              , INTENT(IN) :: mov_avg_width
-  INTEGER(KIND=ik), DIMENSION(:), INTENT(IN) :: histogram
+  INTEGER(ik), DIMENSION(3), INTENT(IN) :: hbnds ! histogram lower/upper bounds
+  INTEGER(ik)              , INTENT(IN) :: mov_avg_width
+  INTEGER(ik), DIMENSION(:), INTENT(IN) :: histogram
 
-  INTEGER(KIND=ik) :: ii, avg, span, step, huwritten
+  INTEGER(ik) :: ii, avg, span, step, huwritten
   
   !------------------------------------------------------------------------------
   ! Choose steps of loop according to the histogram boundaries.
@@ -133,7 +133,7 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
     step = 1
     span = 0
   ELSE
-    step = CEILING(REAL(mov_avg_width, KIND=rk)/10._rk, KIND=ik) ! Factor ~10 or 1 
+    step = CEILING(REAL(mov_avg_width, rk)/10._rk, ik) ! Factor ~10 or 1 
     span = (mov_avg_width-1_ik)/2_ik                             ! int division
   END IF
 
@@ -171,7 +171,7 @@ END SUBROUTINE extract_histogram_scalar_array_ik4
 !------------------------------------------------------------------------------  
 SUBROUTINE write_tex_for_histogram (fun, suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof)
 
-  INTEGER(KIND=ik), INTENT(IN) :: fun
+  INTEGER(ik), INTENT(IN) :: fun
   CHARACTER(LEN=*), INTENT(IN) :: suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof
 
   CHARACTER(LEN=mcl) :: title

@@ -131,7 +131,7 @@ SUBROUTINE mpi_read_raw_ik2(filename, disp, dims, subarray_dims, subarray_origin
 CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+INTEGER(INT16), DIMENSION (:,:,:), ALLOCATABLE, INTENT(INOUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik) :: ierr, type_subarray, my_rank, size_mpi, fh
@@ -158,7 +158,7 @@ CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
 CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER2, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
 
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+! ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
 
 CALL MPI_FILE_READ_ALL(fh, subarray, INT(SIZE(subarray), mik), MPI_INTEGER2, MPI_STATUS_IGNORE, ierr)
 
@@ -191,7 +191,7 @@ SUBROUTINE mpi_read_raw_ik4(filename, disp, dims, subarray_dims, subarray_origin
 CHARACTER(*), INTENT(IN) :: filename
 INTEGER(MPI_OFFSET_KIND), INTENT(IN) :: disp
 INTEGER(ik),DIMENSION(3), INTENT(IN) :: dims, subarray_dims, subarray_origin
-INTEGER(INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(OUT) :: subarray
+INTEGER(INT32), DIMENSION (:,:,:), ALLOCATABLE, INTENT(INOUT) :: subarray
 
 ! file handle fh is provided by mpi itself and mustn't be given by the program/call/user
 INTEGER(mik) :: ierr, type_subarray, my_rank, size_mpi, fh
@@ -218,7 +218,7 @@ CALL MPI_TYPE_COMMIT(type_subarray, ierr)
 
 CALL MPI_FILE_SET_VIEW(fh, disp, MPI_INTEGER4, type_subarray, TRIM(datarep), MPI_INFO_NULL, ierr)
 
-ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
+! ALLOCATE(subarray(subarray_dims(1), subarray_dims(2), subarray_dims(3)))
 
 CALL MPI_FILE_READ_ALL(fh, subarray, INT(SIZE(subarray), mik), MPI_INTEGER4, MPI_STATUS_IGNORE, ierr)
 

@@ -26,8 +26,10 @@ INTEGER(INT16), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik2, result_subarray_
 INTEGER(INT32), DIMENSION(:,:,:), ALLOCATABLE  :: subarray_ik4, result_subarray_ik4
 
 CHARACTER(mcl), DIMENSION(:), ALLOCATABLE :: m_rry
-CHARACTER(scl) :: type='', selectKernel='', restart='', restart_cmd_arg='', db_order='', datarep=''
-CHARACTER(  8) :: date=''
+CHARACTER(scl) :: type='', selectKernel='', restart='', restart_cmd_arg='', &
+    db_order='', datarep='', histog=''
+
+    CHARACTER(  8) :: date=''
 CHARACTER( 10) :: time=''
 
 REAL(rk) :: global_start, init_finish, read_t_vtk, prep_Histo, &
@@ -49,7 +51,7 @@ INTEGER(ik), DIMENSION(3) :: hbnds, dims, in_img_padding, subarray_origin, &
 INTEGER(ik), DIMENSION(:), ALLOCATABLE :: histogram_pre__F, histogram_post_F, &
     pre_F_global, post_F_global
 
-LOGICAL :: stp, abrt=.FALSE.
+LOGICAL :: abrt=.FALSE.
 
 ! MPI Variables
 INTEGER(mik) :: ierr, my_rank, size_mpi
@@ -74,8 +76,8 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     ! Parse the command arguments
     !------------------------------------------------------------------------------
-    CALL get_cmd_args(binary, in%full, stp, restart_cmd_arg, cmd_arg_history)
-    IF(stp) GOTO 1001
+    CALL get_cmd_args(binary, in%full, stat, restart_cmd_arg, cmd_arg_history)
+    IF(stat /= '') GOTO 1001
     
     IF (in%full=='') THEN
         CALL usage(binary)    
@@ -119,6 +121,8 @@ IF(my_rank == 0) THEN
     CALL meta_read('SPACING'   , m_rry, spcng, stat); IF(stat/="") abrt=.TRUE.
     CALL meta_read('DIMENSIONS', m_rry, dims, stat); IF(stat/="") abrt=.TRUE.
 
+    CALL meta_read('HISTOGRAM', m_rry, histog, stat); IF(stat/="") abrt=.TRUE.
+
     CALL meta_read('FILTER_SIZE'  , m_rry, kernel_size, stat); IF(stat/="") abrt=.TRUE.
     CALL meta_read('FILTER_KERNEL', m_rry, selectKernel, stat); IF(stat/="") abrt=.TRUE.
     CALL meta_read('FILTER_SIGMA' , m_rry, sigma, stat); IF(stat/="") abrt=.TRUE.
@@ -145,29 +149,30 @@ IF(my_rank == 0) THEN
     !------------------------------------------------------------------------------
     CALL meta_handle_lock_file(restart, restart_cmd_arg)
 
-    !------------------------------------------------------------------------------
-    ! Spawn files for the csv-data and for the tex environment
-    !------------------------------------------------------------------------------
-    suf_csv_prf = "_hist_pre_filter"//csv_suf
-    suf_csv_pof = "_hist_post_filter"//csv_suf
-    suf_csv_aprf = "_hist_avg_pre_filter"//csv_suf
-    suf_csv_apof = "_hist_avg_post_filter"//csv_suf
-    suf_csv_fihi = "_filter_histogram"//csv_suf
+    IF ((histog == "YES") .OR. (histog=='Y')) THEN
+        !------------------------------------------------------------------------------
+        ! Spawn files for the csv-data and for the tex environment
+        !------------------------------------------------------------------------------
+        suf_csv_prf = "_hist_pre_filter"//csv_suf
+        suf_csv_pof = "_hist_post_filter"//csv_suf
+        suf_csv_aprf = "_hist_avg_pre_filter"//csv_suf
+        suf_csv_apof = "_hist_avg_post_filter"//csv_suf
+        suf_csv_fihi = "_filter_histogram"//csv_suf
 
-    fh_csv_prf  = give_new_unit()  
-    CALL meta_start_ascii(fh_csv_prf, suf_csv_prf)
-    
-    fh_csv_pof  = give_new_unit()
-    CALL meta_start_ascii(fh_csv_pof, suf_csv_pof)
-    
-    fh_csv_aprf = give_new_unit()
-    CALL meta_start_ascii(fh_csv_aprf, suf_csv_aprf)
-    
-    fh_csv_apof = give_new_unit()
-    CALL meta_start_ascii(fh_csv_apof, suf_csv_apof)
+        fh_csv_prf  = give_new_unit()  
+        CALL meta_start_ascii(fh_csv_prf, suf_csv_prf)
+        
+        fh_csv_pof  = give_new_unit()
+        CALL meta_start_ascii(fh_csv_pof, suf_csv_pof)
+        
+        fh_csv_aprf = give_new_unit()
+        CALL meta_start_ascii(fh_csv_aprf, suf_csv_aprf)
+        
+        fh_csv_apof = give_new_unit()
+        CALL meta_start_ascii(fh_csv_apof, suf_csv_apof)
 
-    CALL meta_start_ascii(fht, tex_suf)
-
+        CALL meta_start_ascii(fht, tex_suf)
+    END IF 
     CALL DATE_AND_TIME(date, time)
 
     IF((debug >= 0) .AND. (my_rank == 0)) THEN
@@ -193,6 +198,7 @@ CALL MPI_BCAST(out%p_n_bsnm, INT(meta_mcl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD
 CALL MPI_BCAST(selectKernel, INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(type        , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(datarep     , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
+CALL MPI_BCAST(histog      , INT(scl, mik), MPI_CHAR, 0_mik, MPI_COMM_WORLD, ierr)
 
 CALL MPI_BCAST(sigma       , 1_mik, MPI_DOUBLE_PRECISION , 0_mik, MPI_COMM_WORLD, ierr)
 CALL MPI_BCAST(kernel_size , 1_mik, MPI_INTEGER8, 0_mik, MPI_COMM_WORLD, ierr)
@@ -276,7 +282,9 @@ IF(TRIM(datarep) == "BIG_ENDIAN") THEN
 ELSE
     datarep = "native"
 END IF 
- 
+write(*,*) "my_rank: ", my_rank, "subarray_origin", subarray_origin
+write(*,*) "my_rank: ", my_rank, "subarray_max", subarray_origin + srry_dims_overlap
+
 
 SELECT CASE(type)
     CASE('ik2') 
@@ -292,8 +300,11 @@ SELECT CASE(type)
         ! Adjust the the data range of the Histogram to min/max of the subarray and
         ! exchange information with all other ranks to get the global min/max.
         !------------------------------------------------------------------------------
-        histo_bnd_local_lo = MINVAL(subarray_ik2)
-        histo_bnd_local_hi = MAXVAL(subarray_ik2)
+        IF ((histog == "YES") .OR. (histog=='Y')) THEN
+            histo_bnd_local_lo = MINVAL(subarray_ik2)
+            histo_bnd_local_hi = MAXVAL(subarray_ik2)
+        END IF 
+
     CASE('ik4') 
         ALLOCATE(subarray_ik4(srry_dims_overlap(1), srry_dims_overlap(2), srry_dims_overlap(3)))
         ALLOCATE(result_subarray_ik4(srry_dims(1), srry_dims(2), srry_dims(3)))
@@ -303,8 +314,10 @@ SELECT CASE(type)
         CALL mpi_read_raw(TRIM(in%p_n_bsnm)//raw_suf, 0_8, dims, &
             srry_dims_overlap, subarray_origin, subarray_ik4, TRIM(datarep))
 
-        histo_bnd_local_lo = MINVAL(subarray_ik4)
-        histo_bnd_local_hi = MAXVAL(subarray_ik4)
+        IF ((histog == "YES") .OR. (histog=='Y')) THEN
+            histo_bnd_local_lo = MINVAL(subarray_ik4)
+            histo_bnd_local_hi = MAXVAL(subarray_ik4)
+        END IF 
 END SELECT
 
 !------------------------------------------------------------------------------
@@ -353,13 +366,15 @@ END IF
 
 SELECT CASE(type)
     CASE('ik2') 
+        IF ((histog == "YES") .OR. (histog=='Y')) THEN
 
-        !------------------------------------------------------------------------------
-        ! Prior to image filtering
-        ! Get Histogram of Scalar Values
-        !------------------------------------------------------------------------------
-        CALL extract_histogram_scalar_array(&
-            subarray_ik2(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
+            !------------------------------------------------------------------------------
+            ! Prior to image filtering
+            ! Get Histogram of Scalar Values
+            !------------------------------------------------------------------------------
+            CALL extract_histogram_scalar_array(&
+                subarray_ik2(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
+        END IF
 
         CALL filter(subarray_ik2, kernel, srb, result_subarray_ik2)
         DEALLOCATE(subarray_ik2)
@@ -368,16 +383,18 @@ SELECT CASE(type)
         ! After image filtering
         ! Get Histogram of Scalar Values
         !------------------------------------------------------------------------------
-        CALL extract_histogram_scalar_array(result_subarray_ik2, hbnds, histogram_post_F)        
+        IF ((histog == "YES") .OR. (histog=='Y')) CALL extract_histogram_scalar_array(&
+            result_subarray_ik2, hbnds, histogram_post_F)        
 
     CASE('ik4') 
-        CALL extract_histogram_scalar_array(&
-            subarray_ik4(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
+        IF ((histog == "YES") .OR. (histog=='Y')) CALL extract_histogram_scalar_array(&
+                subarray_ik4(srb(1):srb(4), srb(2):srb(5), srb(3):srb(6)), hbnds, histogram_pre__F)    
 
         CALL filter(subarray_ik4, kernel, srb, result_subarray_ik4)
         DEALLOCATE(subarray_ik4)
 
-        CALL extract_histogram_scalar_array(result_subarray_ik4, hbnds, histogram_post_F)
+        IF ((histog == "YES") .OR. (histog=='Y')) CALL extract_histogram_scalar_array(&
+            result_subarray_ik4, hbnds, histogram_post_F)
 END SELECT
 
 DEALLOCATE(kernel)
@@ -388,34 +405,39 @@ DEALLOCATE(kernel)
 IF(my_rank == 0) THEN
     CALL CPU_TIME(calculation)
 
-    IF(debug >= 2) THEN
-        WRITE(std_out,FMT_MSG) "Allocating memory for global histograms now."
-        WRITE(std_out,FMT_MSG_AxI0) "hbnds: ", hbnds(1), hbnds(2), hbnds(3)  
+    IF ((histog == "YES") .OR. (histog=='Y')) THEN
+        IF(debug >= 2) THEN
+            WRITE(std_out,FMT_MSG) "Allocating memory for global histograms now."
+            WRITE(std_out,FMT_MSG_AxI0) "hbnds: ", hbnds(1), hbnds(2), hbnds(3)  
+            WRITE(std_out,FMT_MSG_SEP)
+            FLUSH(std_out)
+        END IF
+
+        ALLOCATE(pre_F_global(hbnds(1):hbnds(2)))
+        ALLOCATE(post_F_global(hbnds(1):hbnds(2)))
+    END IF     
+END IF
+
+IF ((histog == "YES") .OR. (histog=='Y')) THEN
+
+    !------------------------------------------------------------------------------
+    ! Collect the data of the histogram post filtering       
+    !------------------------------------------------------------------------------
+    ! DEBUG INFORMATION
+    IF((debug >= 2) .AND. (my_rank == 0)) THEN
+        WRITE(std_out,FMT_MSG) "Collecting the data of the histogram post filter now."
         WRITE(std_out,FMT_MSG_SEP)
         FLUSH(std_out)
     END IF
 
-    ALLOCATE(pre_F_global(hbnds(1):hbnds(2)))
-    ALLOCATE(post_F_global(hbnds(1):hbnds(2)))
+    CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), mik), &
+        MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+
+    CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), mik), &
+        MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
+
+    CALL CPU_TIME(extract_Histo)
 END IF
-
-!------------------------------------------------------------------------------
-! Collect the data of the histogram post filtering       
-!------------------------------------------------------------------------------
-! DEBUG INFORMATION
-IF((debug >= 2) .AND. (my_rank == 0)) THEN
-    WRITE(std_out,FMT_MSG) "Collecting the data of the histogram post filter now."
-    WRITE(std_out,FMT_MSG_SEP)
-    FLUSH(std_out)
-END IF
-
-CALL MPI_REDUCE (histogram_pre__F, pre_F_global, INT(SIZE(histogram_pre__F), mik), &
-    MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
-
-CALL MPI_REDUCE (histogram_post_F, post_F_global, INT(SIZE(histogram_post_F), mik), &
-    MPI_INTEGER8, MPI_SUM, 0_mik, MPI_COMM_WORLD, ierr)
-
-CALL CPU_TIME(extract_Histo)
 
 !------------------------------------------------------------------------------
 ! Write binary data. Since no other data types are required within this 
@@ -463,16 +485,18 @@ IF(my_rank == 0) THEN
     WRITE(std_out,FMT_TXT_xAF0) 'CPU time             = ', (global_finish - global_start) / 60 / 60 * size_mpi,' Hours'
     WRITE(std_out,FMT_MSG_SEP)
 
-    !------------------------------------------------------------------------------
-    ! Export Histograms
-    !------------------------------------------------------------------------------
-    CALL write_histo_csv(fh_csv_prf,  "scaledHU, Voxels", hbnds, 0_ik, pre_F_global)
-    CALL write_histo_csv(fh_csv_pof,  "scaledHU, Voxels", hbnds, 0_ik, post_F_global)
-    CALL write_histo_csv(fh_csv_aprf, "scaledHU, Voxels", hbnds, mov_avg_width, pre_F_global)
-    CALL write_histo_csv(fh_csv_apof, "scaledHU, Voxels", hbnds, mov_avg_width, post_F_global)
+    IF ((histog == "YES") .OR. (histog=='Y')) THEN
+        !------------------------------------------------------------------------------
+        ! Export Histograms
+        !------------------------------------------------------------------------------
+        CALL write_histo_csv(fh_csv_prf,  "scaledHU, Voxels", hbnds, 0_ik, pre_F_global)
+        CALL write_histo_csv(fh_csv_pof,  "scaledHU, Voxels", hbnds, 0_ik, post_F_global)
+        CALL write_histo_csv(fh_csv_aprf, "scaledHU, Voxels", hbnds, mov_avg_width, pre_F_global)
+        CALL write_histo_csv(fh_csv_apof, "scaledHU, Voxels", hbnds, mov_avg_width, post_F_global)
 
-    CALL write_tex_for_histogram(fht, suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof)
-
+        CALL write_tex_for_histogram(fht, suf_csv_prf, suf_csv_pof, suf_csv_aprf, suf_csv_apof)
+    END IF 
+    
     !------------------------------------------------------------------------------
     ! Finish the program
     !------------------------------------------------------------------------------
@@ -491,12 +515,15 @@ IF(my_rank == 0) THEN
     CALL meta_signing(binary)
     CALL meta_close()
 
-    CALL meta_stop_ascii(fh_csv_prf, suf_csv_prf)
-    CALL meta_stop_ascii(fh_csv_pof, suf_csv_pof)
-    CALL meta_stop_ascii(fh_csv_aprf, suf_csv_aprf)
-    CALL meta_stop_ascii(fh_csv_apof, suf_csv_apof)
+    IF ((histog == "YES") .OR. (histog=='Y')) THEN
+        CALL meta_stop_ascii(fh_csv_prf, suf_csv_prf)
+        CALL meta_stop_ascii(fh_csv_pof, suf_csv_pof)
+        CALL meta_stop_ascii(fh_csv_aprf, suf_csv_aprf)
+        CALL meta_stop_ascii(fh_csv_apof, suf_csv_apof)
+    
+        CALL meta_stop_ascii(fht, tex_suf)
 
-    CALL meta_stop_ascii(fht, tex_suf)
+    END IF 
 
     WRITE(std_out,FMT_TXT) 'Program finished successfully.'
     WRITE(std_out,FMT_MSG_SEP)

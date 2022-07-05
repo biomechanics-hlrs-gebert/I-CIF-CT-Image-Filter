@@ -612,7 +612,7 @@ END SUBROUTINE write_tensor_2nd_rank_R66
 
 
 !------------------------------------------------------------------------------
-! SUBROUTINE: std_err
+! SUBROUTINE: std_stop
 !------------------------------------------------------------------------------  
 !> @author Johannes Gebert - HLRS - NUM - gebert@hlrs.de
 !
@@ -622,7 +622,7 @@ END SUBROUTINE write_tensor_2nd_rank_R66
 !> @param[in] stat Status integer
 !> @param[out] abrt Whether to abort the program.
 !------------------------------------------------------------------------------
-SUBROUTINE std_err(stat, abrt)
+SUBROUTINE std_stop(stat, abrt)
 
 CHARACTER(*), INTENT(IN) :: stat
 LOGICAL, INTENT(INOUT) :: abrt
@@ -642,7 +642,7 @@ IF((stat /= "") .AND. (my_rank==0)) THEN
     abrt = .TRUE.
 END IF 
 
-END SUBROUTINE std_err
+END SUBROUTINE std_stop
     
 
 END MODULE formatted_plain

@@ -4,6 +4,7 @@ r FILTER_KERNEL         Gaussian                                       ! Identit
 r FILTER_SIZE           11                                             ! Odd integer
 r FILTER_SIGMA          1.0                                            ! Real
 r RESTART               Y                                              ! 'N', 'Y', 'U'
+r HISTOGRAM             Y                                              ! 'Y', 'YES', anything else = 'NO'
 
 r NEW_BSNM_FEATURE      G11-Sig10                                      ! Last segment of basename
 r NEW_BSNM_PURPOSE      Dev                                            ! 3rd segment of basename

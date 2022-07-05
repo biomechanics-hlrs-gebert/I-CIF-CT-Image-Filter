@@ -229,14 +229,12 @@ CONTAINS
 !------------------------------------------------------------------------------
 SUBROUTINE get_cmd_args(binary, infile, stat, restart, cmd_arg_history)
 
-CHARACTER(*), INTENT(OUT) :: binary, infile
-CHARACTER(*), INTENT(OUT) :: restart, cmd_arg_history
-INTEGER(ik), INTENT(OUT) :: stat
+CHARACTER(*), INTENT(OUT) :: binary, infile, restart, cmd_arg_history, stat
 
 CHARACTER(mcl) :: cmd_arg
 INTEGER(ik) :: ii
 
-stat = 0_ik
+stat = ''
 restart=''
 
 CALL GET_COMMAND_ARGUMENT(0, binary)
@@ -246,7 +244,7 @@ IF (command_argument_count() == 0) THEN
     CALL usage(binary)
 
     mssg = "No command argument given."
-    stat = 0_ik
+    stat = ''
 ELSE
     DO ii=0, 15 ! Read up to 15 command arguments.
     
@@ -264,10 +262,10 @@ ELSE
                 restart = 'Y'
             CASE('v', '-Version', '-version')
                 CALL show_title([""])
-                stat = 0_ik
+                stat = ''
             CASE('h', '-Help', '-help')
                 CALL usage(binary)
-                stat = 0_ik
+                stat = ''
             END SELECT
             !
             SELECT CASE( cmd_arg(3:4) )
@@ -278,7 +276,7 @@ ELSE
 
     IF(TRIM(infile) == '') THEN
         mssg = "No input file given via command argument."
-        stat = 0_ik
+        stat = ''
     END IF 
 END IF
 

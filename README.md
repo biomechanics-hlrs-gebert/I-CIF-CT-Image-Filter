@@ -23,6 +23,8 @@ For example for testing on julius:
 ```
 mpirun ./bin/cif_v1.0.0_x86_64 -np 4 <base>.meta
 ```
+
+Enabling the histogram is very memory intensive (due to a bad implementation....). Since a histogram is more reliably retrieved by Paraview, this feature is considered deprecated and not recommended.
 ## Datasets
 ... are transfered via file exchange and are not pushed into the repository. 
 
